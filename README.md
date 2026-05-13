@@ -82,4 +82,3 @@ A Interface do Rocket League irá mentir para você. O menu pode mostrar caixas 
 ---
 **Forged by GuttyTECH - World Champion Overclocker.**
 *O limite do silício foi atingido.*
-```
