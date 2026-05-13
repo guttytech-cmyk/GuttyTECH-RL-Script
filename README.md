@@ -62,7 +62,7 @@ Esse Script destrói essa arquitetura. Ele empurra o jogo para 16-pixels (Modo B
 ### 🗄️ Registros Oficiais de Auditoria (Links CapFrameX)
 Para provar que não há margem de erro, a telemetria bruta foi subida para os servidores oficiais do CapFrameX. Analise os dados com seus próprios olhos:
 * 📉 **Sessão ANTES (Vanilla):** [Clique aqui para abrir o laudo original](https://www.capframex.com/sessioncollections/e7e2ab39-3c60-4bcb-8bcd-f6adebeba450)
-* 🚀 **Sessão DEPOIS (GuttyTECH V21):** [Clique aqui para abrir o laudo otimizado] (https://www.capframex.com/sessioncollections/d03911ec-a7f5-4ae0-9134-9eee1c9b3766)
+* 🚀 **Sessão DEPOIS (GuttyTECH V21):** [Clique aqui para abrir o laudo otimizado](https://www.capframex.com/sessioncollections/d03911ec-a7f5-4ae0-9134-9eee1c9b3766)
 
 ---
 
