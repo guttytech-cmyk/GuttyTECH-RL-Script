@@ -80,5 +80,5 @@ Após aplicar o V21, **NÃO MEXA NAS OPÇÕES DE VÍDEO DENTRO DO JOGO**.
 A Interface do Rocket League irá mentir para você. O menu pode mostrar caixas marcadas como "High Quality", mas o motor real do jogo, por trás dos panos, estará rodando na escuridão absoluta forçada pela GuttyTECH. Se você tentar mudar algo no menu, o jogo não conseguirá salvar (graças ao nosso selo SID de acesso negado). Entre no Freeplay e veja os gráficos quadrados e o FPS infinito com seus próprios olhos.
 
 ---
-**Forged by GuttyTECH - World Champion Overclocker.**
+**Forged by GuttyTECH - Overclocker Specialist.**
 *O limite do silício foi atingido.*
