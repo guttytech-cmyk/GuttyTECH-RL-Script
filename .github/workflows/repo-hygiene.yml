@@ -16,9 +16,15 @@ jobs:
       - name: Block obvious secret patterns
         shell: bash
         run: |
+          # git grep exit 1 = no match; must NOT use set -e before grep
+          set +e
+          hits=$(git grep -nE 'ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,}' -- \
+            ':(exclude)*.md' ':(exclude).github' 2>/dev/null)
+          code=$?
           set -e
-          if git grep -nE 'ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}' -- ':!*.md' ':!.github' 2>/dev/null; then
-            echo "::error::Possible GitHub PAT committed — rotate and remove."
+          if [ "$code" -eq 0 ] && [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::Possible GitHub PAT in repo — rotate and remove."
             exit 1
           fi
           echo "No PAT patterns in tracked source."
