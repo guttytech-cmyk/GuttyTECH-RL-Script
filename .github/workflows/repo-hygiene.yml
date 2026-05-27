@@ -1,0 +1,24 @@
+name: Repo Hygiene
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  secret-pattern-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block obvious secret patterns
+        shell: bash
+        run: |
+          set -e
+          if git grep -nE 'ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}' -- ':!*.md' ':!.github' 2>/dev/null; then
+            echo "::error::Possible GitHub PAT committed — rotate and remove."
+            exit 1
+          fi
+          echo "No PAT patterns in tracked source."
