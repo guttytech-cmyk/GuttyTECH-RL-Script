@@ -34,7 +34,7 @@ Esse Script destrói essa arquitetura. Ele empurra o jogo para 16-pixels (Modo B
 
 <img width="1234" height="524" alt="592042349-785c525e-6438-426a-bfda-a999bf6f06c0" src="https://github.com/user-attachments/assets/e39a0512-5a39-436e-9a53-126b2f0bde2f" />
 
-| Métrica                         | Configuração A (Vermelho)            | Configuração B (Verde)                    |
+| Métrica                         | Configuração Depois (Vermelho)            | Configuração Antes (Verde)           |
 | ------------------------------- | ------------------------------------ | ----------------------------------------- |
 | **Moda (frametime mais comum)** | ~1,25 ms                             | ~1,70 ms                                  |
 | **FPS equivalente na moda**     | ~800 FPS                             | ~588 FPS                                  |
