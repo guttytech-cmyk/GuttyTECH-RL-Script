@@ -3,7 +3,7 @@
 chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
 color 0C
-title GUTTYTECH - RL ENGINE NUKER V19.1 (PROJECT TESSERACT OVERRIDE)
+title GUTTYTECH - RL ENGINE NUKER V21.0 (PROJECT TESSERACT FINAL)
 
 :: ============================================================================
 :: ELEVACAO DE PRIVILEGIO (RING 0)
@@ -19,8 +19,8 @@ if '%errorlevel%' NEQ '0' (
 if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
 
 echo +=======================================================+
-echo ^| GUTTYTECH RL NUKER v19.1 - PROJECT TESSERACT        ^|
-echo ^| "O jogo acabou. Lobotomizando o Windows..."         ^|
+echo ^| GUTTYTECH RL NUKER v21.0 - PROJECT TESSERACT FINAL   ^|
+echo ^| "O jogo acabou. Lobotomizando o Windows..."          ^|
 echo +=======================================================+
 echo.
 
@@ -49,15 +49,42 @@ echo [+] FASE 2/4: RASTREANDO ARQUIVO DO ROCKET LEAGUE...
 set "TARGET_FILE=My Games\Rocket League\TAGame\Config\TASystemSettings.ini"
 set "RL_CONFIG_PATH="
 
-for /d %%U in ("C:\Users\*") do (
-    if exist "%%U\Documents\!TARGET_FILE!" set "RL_CONFIG_PATH=%%U\Documents\!TARGET_FILE!"
-    if exist "%%U\OneDrive\Documents\!TARGET_FILE!" set "RL_CONFIG_PATH=%%U\OneDrive\Documents\!TARGET_FILE!"
-    if exist "%%U\OneDrive - Personal\Documents\!TARGET_FILE!" set "RL_CONFIG_PATH=%%U\OneDrive - Personal\Documents\!TARGET_FILE!"
+:: --- BUSCA DIRETA NO PERFIL DO USUARIO ATUAL (resolve 99%% dos casos) ---
+if exist "%USERPROFILE%\Documents\%TARGET_FILE%" (
+    set "RL_CONFIG_PATH=%USERPROFILE%\Documents\%TARGET_FILE%"
+) else if exist "%USERPROFILE%\OneDrive\Documents\%TARGET_FILE%" (
+    set "RL_CONFIG_PATH=%USERPROFILE%\OneDrive\Documents\%TARGET_FILE%"
+) else if exist "%USERPROFILE%\OneDrive - Personal\Documents\%TARGET_FILE%" (
+    set "RL_CONFIG_PATH=%USERPROFILE%\OneDrive - Personal\Documents\%TARGET_FILE%"
 )
 
+:: --- FALLBACK: busca em todos os perfis do PC (caso o usuario tenha multiplas contas) ---
+if "!RL_CONFIG_PATH!"=="" (
+    for /d %%U in ("C:\Users\*") do (
+        if exist "%%U\Documents\!TARGET_FILE!" set "RL_CONFIG_PATH=%%U\Documents\!TARGET_FILE!"
+        if exist "%%U\OneDrive\Documents\!TARGET_FILE!" set "RL_CONFIG_PATH=%%U\OneDrive\Documents\!TARGET_FILE!"
+        if exist "%%U\OneDrive - Personal\Documents\!TARGET_FILE!" set "RL_CONFIG_PATH=%%U\OneDrive - Personal\Documents\!TARGET_FILE!"
+    )
+)
+
+:: --- VERIFICACAO FINAL ---
 if "!RL_CONFIG_PATH!"=="" (
     color 0E
-    echo [-] ALVO NAO DETECTADO: O jogo nao foi encontrado. Abra o jogo 1x antes.
+    echo [-] ALVO NAO DETECTADO.
+    echo.
+    echo [!] O arquivo TASystemSettings.ini nao foi encontrado.
+    echo     Isso acontece quando:
+    echo       1. O Rocket League NUNCA foi aberto neste PC.
+    echo       2. A pasta Documents esta no OneDrive com outro nome.
+    echo.
+    echo [?] SOLUCAO:
+    echo     1. Abra o Rocket League ate o menu principal (onde aparece o carro).
+    echo     2. Feche o jogo completamente.
+    echo     3. Rode este script novamente.
+    echo.
+    echo [?] Se o erro persistir, verifique manualmente:
+    echo     Win+R -^> cole: "%USERPROFILE%\Documents\My Games\Rocket League\TAGame\Config"
+    echo.
     pause >nul
     exit /b 1
 )
@@ -78,7 +105,7 @@ set "RL_TARGET=!RL_CONFIG_PATH!"
 :: ============================================================================
 echo [+] FASE 4/4: REDUZINDO ENGINE A BLOCOS MATEMATICOS...
 
-set "PS_SCRIPT=%TEMP%\RL_Tesseract_V19.ps1"
+set "PS_SCRIPT=%TEMP%\RL_Tesseract_V21.ps1"
 if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
 
 > "%PS_SCRIPT%" (
@@ -86,6 +113,7 @@ if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
     echo $f = $env:RL_TARGET
     echo $c = Get-Content $f
     
+    :: Sincronia e FPS
     echo $c = $c -replace '^\s*UncappedFramerate=.*', 'UncappedFramerate=True'
     echo $c = $c -replace '^\s*WaitForGPU=.*', 'WaitForGPU=True'
     echo $c = $c -replace '^\s*OneFrameThreadLag=.*', 'OneFrameThreadLag=True'
@@ -94,6 +122,7 @@ if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
     echo $c = $c -replace '^\s*UseVsync=.*', 'UseVsync=False'
     echo $c = $c -replace '^\s*bSmoothFrameRate=.*', 'bSmoothFrameRate=False'
     
+    :: Texturas e LOD
     echo $c = $c -replace 'MaxLODSize=\d+', 'MaxLODSize=16'
     echo $c = $c -replace 'MinLODSize=\d+', 'MinLODSize=1'
     echo $c = $c -replace 'LODBias=-?\d+', 'LODBias=15'
@@ -103,6 +132,7 @@ if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
     echo $c = $c -replace '^\s*SkeletalMeshLODBias=.*', 'SkeletalMeshLODBias=15'
     echo $c = $c -replace '^\s*ParticleLODBias=.*', 'ParticleLODBias=15'
     
+    :: Cena, fisica e efeitos avancados
     echo $c = $c -replace '^\s*SceneCaptureStreamingMultiplier=.*', 'SceneCaptureStreamingMultiplier=0.000000'
     echo $c = $c -replace '^\s*TessellationAdaptivePixelsPerTriangle=.*', 'TessellationAdaptivePixelsPerTriangle=0.000000'
     echo $c = $c -replace '^\s*bEnableParallelAPEXClothingFetch=.*', 'bEnableParallelAPEXClothingFetch=True'
@@ -128,9 +158,13 @@ if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
     echo $c = $c -replace '^\s*MaxMultiSamples=.*', 'MaxMultiSamples=0'
     echo $c = $c -replace '^\s*DetailMode=.*', 'DetailMode=0'
     echo $c = $c -replace '^\s*bAllowHighQualityMaterials=.*', 'bAllowHighQualityMaterials=False'
+    
+    :: Decals (DynamicDecals=True mantem o circulo da bola)
     echo $c = $c -replace '^\s*StaticDecals=.*', 'StaticDecals=False'
     echo $c = $c -replace '^\s*DynamicDecals=.*', 'DynamicDecals=True'
     echo $c = $c -replace '^\s*UnbatchedDecals=.*', 'UnbatchedDecals=False'
+    
+    :: Pos-processamento
     echo $c = $c -replace '^\s*DepthOfField=.*', 'DepthOfField=False'
     echo $c = $c -replace '^\s*AmbientOcclusion=.*', 'AmbientOcclusion=False'
     echo $c = $c -replace '^\s*Bloom=.*', 'Bloom=False'
@@ -141,6 +175,8 @@ if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
     echo $c = $c -replace '^\s*FogVolumes=.*', 'FogVolumes=False'
     echo $c = $c -replace '^\s*Distortion=.*', 'Distortion=False'
     echo $c = $c -replace '^\s*DropParticleDistortion=.*', 'DropParticleDistortion=False'
+    
+    :: Sombras
     echo $c = $c -replace '^\s*DynamicShadows=.*', 'DynamicShadows=False'
     echo $c = $c -replace '^\s*LightEnvironmentShadows=.*', 'LightEnvironmentShadows=False'
     echo $c = $c -replace '^\s*CompositeDynamicLights=.*', 'CompositeDynamicLights=False'
@@ -154,9 +190,11 @@ if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
     echo $c = $c -replace '^\s*MinShadowResolution=.*', 'MinShadowResolution=16'
     echo $c = $c -replace '^\s*CSMSplitPenumbraScale=.*', 'CSMSplitPenumbraScale=0.000000'
     
+    :: Render Scale
     echo $c = $c -replace '^\s*ScreenPercentage=.*', 'ScreenPercentage=100.000000'
     echo $c = $c -replace '^\s*UpscaleScreenPercentage=.*', 'UpscaleScreenPercentage=True'
     echo $c = $c -replace '^\s*MinimumScreenScale=.*', 'MinimumScreenScale=1.000000'
+    
     echo Set-Content -Path $f -Value $c -Force
 )
 
@@ -176,7 +214,7 @@ echo.
 echo ==============================================================================
 echo [PROJECT TESSERACT - LIMITES QUEBRADOS]
 echo.
-echo O bug de diretorios com acento (como "Usuário") foi obliterado.
+echo O bug de diretorios com acento e OneDrive foi obliterado.
 echo O arquivo foi desbloqueado, envenenado e trancado novamente.
 echo O jogo agora corre nas veias diretas da placa mae.
 echo ==============================================================================
