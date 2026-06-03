@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
 color 0C
-title GUTTYTECH - RL ENGINE NUKER v21.1 (PROJECT TESSERACT FINAL)
+title GUTTYTECH - RL ENGINE NUKER v21.3 (PROJECT TESSERACT FINAL)
 
 :: ============================================================================
 :: ELEVACAO DE PRIVILEGIO (ADMINISTRADOR)
@@ -15,7 +15,7 @@ if errorlevel 1 (
 )
 
 echo +=======================================================+
-echo ^| GUTTYTECH RL NUKER v21.1 - PROJECT TESSERACT FINAL   ^|
+echo ^| GUTTYTECH RL NUKER v21.3 - PROJECT TESSERACT FINAL   ^|
 echo ^| Otimizacao Rocket League + timers/rede (reversivel)  ^|
 echo +=======================================================+
 echo.
@@ -26,15 +26,22 @@ echo.
 echo [+] FASE 1/6: RASTREANDO TASystemSettings.ini...
 
 set "TARGET_REL=My Games\Rocket League\TAGame\Config\TASystemSettings.ini"
+set "TARGET_REL_PT=Meus Jogos\Rocket League\TAGame\Config\TASystemSettings.ini"
 set "RL_CONFIG_PATH="
 set "RL_CONFIG_DIR="
 
+:: --- CAMINHOS PADRAO (99% dos casos) ---
 call :TryConfig "%USERPROFILE%\Documents\%TARGET_REL%" "Documents"
 if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive\Documents\%TARGET_REL%" "OneDrive"
 if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive - Personal\Documents\%TARGET_REL%" "OneDrive Personal"
 if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive - Empresa\Documents\%TARGET_REL%" "OneDrive Empresa"
 if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive - Company\Documents\%TARGET_REL%" "OneDrive Company"
 
+:: --- CAMINHOS LEGADO (Windows PT-BR antigo) ---
+if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\Documents\%TARGET_REL_PT%" "Documents PT-BR"
+if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive\Documents\%TARGET_REL_PT%" "OneDrive PT-BR"
+
+:: --- FALLBACK: todos os perfis do PC ---
 if not defined RL_CONFIG_PATH (
     echo     [*] Buscando em todos os perfis de usuario...
     for /d %%U in ("C:\Users\*") do (
@@ -43,19 +50,47 @@ if not defined RL_CONFIG_PATH (
         if not defined RL_CONFIG_PATH call :TryConfig "%%U\OneDrive - Personal\Documents\%TARGET_REL%" "%%~nxU\OneDrive Personal"
         if not defined RL_CONFIG_PATH call :TryConfig "%%U\OneDrive - Empresa\Documents\%TARGET_REL%" "%%~nxU\OneDrive Empresa"
         if not defined RL_CONFIG_PATH call :TryConfig "%%U\OneDrive - Company\Documents\%TARGET_REL%" "%%~nxU\OneDrive Company"
+        if not defined RL_CONFIG_PATH call :TryConfig "%%U\Documents\%TARGET_REL_PT%" "%%~nxU\Documents PT-BR"
     )
 )
 
+:: --- BUSCA DE EMERGENCIA: procura recursiva no perfil do usuario ---
+if not defined RL_CONFIG_PATH (
+    echo     [*] BUSCA DE EMERGENCIA: procurando no perfil do usuario...
+    echo     (Isso pode demorar 10-30 segundos...)
+    for /f "delims=" %%F in ('dir /s /b "%USERPROFILE%\TASystemSettings.ini" 2^>nul') do (
+        set "RL_CONFIG_PATH=%%F"
+        echo     [+] ENCONTRADO via busca: %%F
+        goto :FoundIni
+    )
+)
+
+:: --- ULTIMO RECURSO: procura em todo C:\ (muito lento, so se necessario) ---
+if not defined RL_CONFIG_PATH (
+    echo     [*] ULTIMO RECURSO: procurando em C:\ (aguarde)...
+    for /f "delims=" %%F in ('dir /s /b "C:\TASystemSettings.ini" 2^>nul') do (
+        set "RL_CONFIG_PATH=%%F"
+        echo     [+] ENCONTRADO em C:\: %%F
+        goto :FoundIni
+    )
+)
+
+:FoundIni
 if not defined RL_CONFIG_PATH (
     color 0E
     echo.
-    echo [-] ERRO: TASystemSettings.ini nao encontrado.
+    echo [-] ERRO: TASystemSettings.ini nao encontrado em lugar nenhum.
     echo.
     echo [!] Abra o Rocket League pelo menos uma vez para gerar o arquivo.
     echo [!] Nenhuma alteracao de sistema ou INI foi feita nesta execucao.
     echo.
     echo [?] Caminho esperado:
-    echo     %USERPROFILE%\Documents\%TARGET_REL%
+    echo     %USERPROFILE%\Documents\My Games\Rocket League\TAGame\Config
+    echo.
+    echo [?] Se voce TEM CERTEZA que abriu o jogo, execute este diagnostico:
+    echo     1. Aperte Win + R
+    echo     2. Cole: cmd /c dir /s /b "%USERPROFILE%\TASystemSettings.ini"
+    echo     3. Se aparecer um caminho, copie e me envie.
     echo.
     pause
     exit /b 1
@@ -89,7 +124,7 @@ echo     [+] Rollback: !RL_ROLLBACK!
 echo.
 
 :: ============================================================================
-:: FASE 3/6: TIMERS / PRIORIDADE / REDE (somente apos INI confirmado)
+:: FASE 3/6: TIMERS / PRIORIDADE / REDE
 :: ============================================================================
 echo [+] FASE 3/6: KERNEL E REDE (bcdedit + registro)...
 
@@ -128,7 +163,7 @@ for /f "usebackq tokens=1*" %%a in (`reg query "HKLM\SYSTEM\CurrentControlSet\Se
     set /a TCP_COUNT+=1
 )
 if !TCP_COUNT! equ 0 (
-    echo     [!] AVISO: Nenhuma interface TCP encontrada no registro
+    echo     [!] AVISO: Nenhuma interface TCP encontrada
     set "SYS_WARN=1"
 ) else (
     echo     [+] Interfaces TCP ajustadas: !TCP_COUNT!
@@ -145,7 +180,7 @@ echo [+] FASE 4/6: DESBLOQUEANDO ARQUIVO...
 
 attrib -r -h -s "!RL_CONFIG_PATH!" >nul 2>&1
 icacls "!RL_CONFIG_PATH!" /grant "%USERNAME%:(F)" /c /q >nul 2>&1
-if errorlevel 1 echo     [!] AVISO: icacls falhou - tentando continuar com o backup intacto
+if errorlevel 1 echo     [!] AVISO: icacls falhou - tentando continuar
 
 set "RL_TARGET=!RL_CONFIG_PATH!"
 echo [+] FASE 4 CONCLUIDA.
@@ -156,7 +191,7 @@ echo.
 :: ============================================================================
 echo [+] FASE 5/6: APLICANDO TWEAKS NO INI...
 
-set "PS_SCRIPT=%TEMP%\GUTTY_RL_Tesseract_v21.2.ps1"
+set "PS_SCRIPT=%TEMP%\GUTTY_RL_Tesseract_v21.3.ps1"
 if exist "%PS_SCRIPT%" del /f /q "%PS_SCRIPT%" >nul 2>&1
 
 call :WritePowerShellScript
@@ -186,9 +221,9 @@ echo [+] FASE 5 CONCLUIDA.
 echo.
 
 :: ============================================================================
-:: FASE 6/6: BLINDAGEM (SOMENTE LEITURA)
+:: FASE 6/6: BLINDAGEM
 :: ============================================================================
-echo [+] FASE 6/6: TRANCANDO ARQUIVO (attrib +r)...
+echo [+] FASE 6/6: TRANCANDO ARQUIVO...
 
 attrib +r "!RL_CONFIG_PATH!" >nul 2>&1
 if errorlevel 1 (
@@ -203,7 +238,7 @@ echo.
 :: FIM
 :: ============================================================================
 color 0A
-echo [+] TESSERACT v21.1 CONCLUIDO COM SUCESSO.
+echo [+] TESSERACT v21.3 CONCLUIDO COM SUCESSO.
 echo.
 echo ==============================================================================
 echo  Backup INI : !RL_BACKUP!
@@ -279,7 +314,7 @@ exit /b 0
 set "RL_TARGET_SAFE=%RL_TARGET%"
 setlocal DisableDelayedExpansion
 (
-    echo # GUTTYTECH RL Tesseract v21.2 - gerado automaticamente
+    echo # GUTTYTECH RL Tesseract v21.3 - gerado automaticamente
     echo $ErrorActionPreference = 'Stop'
     echo.
     echo function Set-IniLine {
@@ -410,9 +445,3 @@ setlocal DisableDelayedExpansion
 ) > "%PS_SCRIPT%"
 endlocal
 exit /b 0
-
-:: ============================================================================
-:: GUTTY-ROLLBACK
-:: Execute: %TEMP%\GUTTY_RL_NUKER_ROLLBACK.bat (como Admin)
-:: Restaura: backup .gutty.bak, remove tweaks TCP, reverte bcdedit principal
-:: ============================================================================
