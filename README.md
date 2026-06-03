@@ -44,21 +44,6 @@ Esse Script destrói essa arquitetura. Ele empurra o jogo para 16-pixels (Modo B
 
 ---
 
-## ⚙️ ARSENAL TÁTICO (O que o Script faz)
-
-### 1. Otimização de Ring 0 (Windows & Rede)
-*   **TCP/IP Hitreg Optimizer:** `TcpAckFrequency=1` e `TCPNoDelay=1`. O Algoritmo de Nagle é morto. Seus comandos chegam ao servidor no mesmo milissegundo do clique (Zero Ghost Hits).
-*   **Morte do Network Throttling:** Remove o limite do Windows de 10 pacotes de rede por milissegundo.
-*   **I.F.E.O. Injection:** O `RocketLeague.exe` é cravado eternamente em "High CPU Priority". O Windows nunca mais deixará processos secundários roubarem ciclos do jogo.
-*   **Timers Amputados:** Desliga `useplatformclock` e `disabledynamictick`. Foco absoluto no processamento sem economia de energia.
-
-### 2. Lobotomia da Unreal Engine 3 (`TASystemSettings.ini`)
-*   **Renderização:** Geometria e texturas travadas em `MaxLODSize=16` (Modo Batata).
-*   **Física APEX Morta:** Cálculos inúteis de CPU para demolições, fragmentos e antenas foram extraídos.
-*   **Decoupling:** `WaitForGPU=False`. Sincronização entre CPU e placa de vídeo quebrada para FPS infinito.
-*   **Bloqueio SID Universal (`*S-1-1-0`):** O script aplica um bloqueio nativo de leitura/escrita no arquivo `.ini`. O OneDrive, a Epic Games e a Steam são fisicamente impedidos de reverter as configurações.
-
-
 ### 🗄️ Registros Oficiais de Auditoria (Links CapFrameX)
 Para provar que não há margem de erro, a telemetria bruta foi subida para os servidores oficiais do CapFrameX. Analise os dados com seus próprios olhos:
 * 📉 **Sessão ANTES (Vanilla):** [Clique aqui para abrir o laudo original](https://www.capframex.com/sessioncollections/e7e2ab39-3c60-4bcb-8bcd-f6adebeba450)
@@ -68,20 +53,13 @@ Para provar que não há margem de erro, a telemetria bruta foi subida para os s
 
 ## 🛠️ COMO APLICAR O PROTOCOLO
 
-### PASSO 1: Steam Launch Options (Obrigatório)
-Antes de rodar o script, vá na sua Steam / Epic Games, clique com o botão direito no Rocket League > Propriedades > Opções de Inicialização (Launch Options). Cole **exatamente** esta linha:
-```text
--nomovie -NOSPLASH -nolog -high -NoVSync -NoForceFeedback -no-stereo-rendering
-```
-*(Nota para teclado/mouse: Adicione `-NoController` no final da linha para zerar o USB Polling Rate).*
-
-### PASSO 2: A Injeção de Código
+### PASSO 1: A Injeção de Código
 1. Baixe o arquivo `RL_GuttyTECH_V21.bat` nos *Releases* deste repositório.
 2. Certifique-se de que o Rocket League e o seu OneDrive estejam **FECHADOS**.
 3. Clique com o botão direito no arquivo `.bat` e selecione **"Executar como Administrador"**.
 4. O script fará a varredura (`Bloodhound Tracker`), encontrará a pasta, quebrará o selo, injetará a matemática e trancará o arquivo novamente.
 
-### PASSO 3: O Reinício
+### PASSO 2: O Reinício
 Reinicie o seu computador imediatamente. As alterações de TCP/IP, HPET e Prioridade de Kernel exigem um reboot para serem aplicadas na placa-mãe.
 
 ---
