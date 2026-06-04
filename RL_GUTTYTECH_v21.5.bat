@@ -2,26 +2,25 @@
 chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
 color 0C
-title GUTTYTECH - RL ENGINE NUKER v21.4 (PROJECT TESSERACT FINAL)
+title GUTTYTECH - RL ENGINE NUKER v21.7 (PROJECT TESSERACT FINAL)
 
 :: ============================================================================
-:: ELEVACAO DE PRIVILEGIO (ADMINISTRADOR)
+:: ELEVACAO DE PRIVILEGIO
 :: ============================================================================
 net session >nul 2>&1
 if errorlevel 1 (
-    echo [+] GUTTYTECH: ELEVANDO PRIVILEGIO...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    echo [+] ELEVANDO PRIVILEGIO...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
 
 echo +=======================================================+
-echo ^| GUTTYTECH RL NUKER v21.4 - PROJECT TESSERACT FINAL   ^|
-echo ^| Otimizacao Rocket League + timers/rede (reversivel)  ^|
+echo ^| GUTTYTECH RL NUKER v21.7 - PROJECT TESSERACT FINAL   ^|
 echo +=======================================================+
 echo.
 
 :: ============================================================================
-:: FASE 1/6: LOCALIZAR TASystemSettings.ini
+:: FASE 1/6: LOCALIZAR INI
 :: ============================================================================
 echo [+] FASE 1/6: RASTREANDO TASystemSettings.ini...
 
@@ -35,7 +34,6 @@ if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive - Empresa\
 if not defined RL_CONFIG_PATH call :TryConfig "%USERPROFILE%\OneDrive - Company\Documents\%TARGET_REL%" "OneDrive Company"
 
 if not defined RL_CONFIG_PATH (
-    echo     [*] Buscando em todos os perfis de usuario...
     for /d %%U in ("C:\Users\*") do (
         if not defined RL_CONFIG_PATH call :TryConfig "%%U\Documents\%TARGET_REL%" "%%~nxU\Documents"
         if not defined RL_CONFIG_PATH call :TryConfig "%%U\OneDrive\Documents\%TARGET_REL%" "%%~nxU\OneDrive"
@@ -46,35 +44,22 @@ if not defined RL_CONFIG_PATH (
 )
 
 if not defined RL_CONFIG_PATH (
-    echo     [*] BUSCA DE EMERGENCIA no perfil do usuario...
     for /f "delims=" %%F in ('dir /s /b "%USERPROFILE%\TASystemSettings.ini" 2^>nul') do (
-        set "RL_CONFIG_PATH=%%F"
-        echo     [+] ENCONTRADO via busca: %%F
-        goto :FoundIni
+        set "RL_CONFIG_PATH=%%F" & goto :FoundIni
     )
 )
 
 if not defined RL_CONFIG_PATH (
-    echo     [*] ULTIMO RECURSO: procurando em C:\...
     for /f "delims=" %%F in ('dir /s /b "C:\TASystemSettings.ini" 2^>nul') do (
-        set "RL_CONFIG_PATH=%%F"
-        echo     [+] ENCONTRADO em C:\: %%F
-        goto :FoundIni
+        set "RL_CONFIG_PATH=%%F" & goto :FoundIni
     )
 )
 
 :FoundIni
 if not defined RL_CONFIG_PATH (
     color 0E
-    echo.
     echo [-] ERRO: TASystemSettings.ini nao encontrado.
-    echo.
-    echo [!] Abra o Rocket League pelo menos uma vez para gerar o arquivo.
-    echo [!] Nenhuma alteracao de sistema ou INI foi feita nesta execucao.
-    echo.
-    echo [?] Caminho esperado:
-    echo     %USERPROFILE%\Documents\%TARGET_REL%
-    echo.
+    echo [!] Abra o Rocket League 1x antes.
     pause
     exit /b 1
 )
@@ -83,21 +68,65 @@ echo [+] ALVO: !RL_CONFIG_PATH!
 echo.
 
 :: ============================================================================
-:: FASE 2/6: BACKUP + ROLLBACK
+:: FASE 2/6: DESTRANCAR ARQUIVO (se foi trancado por execucao anterior)
 :: ============================================================================
-echo [+] FASE 2/6: CRIANDO BACKUP E SCRIPT DE ROLLBACK...
+echo [+] FASE 2/6: DESTRANCANDO ARQUIVO (execucao anterior detectada)...
 
-set "RL_BACKUP=!RL_CONFIG_PATH!.gutty.bak"
+:: --- TAKEOWN: assume posse do arquivo (resolve owner estranho) ---
+takeown /f "!RL_CONFIG_PATH!" >nul 2>&1
+if errorlevel 1 echo     [!] takeown falhou (arquivo pode estar em uso)
+
+:: --- ICACLS: da permissao total para o usuario atual ---
+icacls "!RL_CONFIG_PATH!" /grant "%USERNAME%:(F)" /c /q >nul 2>&1
+icacls "!RL_CONFIG_PATH!" /grant *S-1-1-0:(F) /c /q >nul 2>&1
+
+:: --- ATTRIB: remove read-only, hidden, system ---
+attrib -r -h -s "!RL_CONFIG_PATH!" >nul 2>&1
+
+:: --- TENTATIVA EXTRA: se o arquivo estiver em subpasta protegida ---
+for %%I in ("!RL_CONFIG_PATH!") do (
+    icacls "%%~dpI." /grant "%USERNAME%:(OI)(CI)F" /c /q >nul 2>&1
+    attrib -r -h -s "%%~dpI." >nul 2>&1
+)
+
+echo     [+] Arquivo destrancado.
+echo.
+
+:: ============================================================================
+:: FASE 3/6: BACKUP + ROLLBACK
+:: ============================================================================
+echo [+] FASE 3/6: CRIANDO BACKUP E SCRIPT DE ROLLBACK...
+
+for %%F in ("!RL_CONFIG_PATH!") do set "INI_FILENAME=%%~nxF"
+set "RL_BACKUP=%TEMP%\!INI_FILENAME!.gutty.bak"
 set "RL_ROLLBACK=%TEMP%\GUTTY_RL_NUKER_ROLLBACK.bat"
 
+:: --- TENTA COPIAR COM 3 METODOS ---
+set "BK_OK=0"
+
 copy /y "!RL_CONFIG_PATH!" "!RL_BACKUP!" >nul 2>&1
-if errorlevel 1 (
+if not errorlevel 1 set "BK_OK=1"
+
+if "!BK_OK!"=="0" (
+    xcopy "!RL_CONFIG_PATH!" "!RL_BACKUP!" /Y /R /H >nul 2>&1
+    if not errorlevel 1 set "BK_OK=1"
+)
+
+if "!BK_OK!"=="0" (
+    powershell -NoProfile -Command "Copy-Item -Path '%RL_CONFIG_PATH%' -Destination '%RL_BACKUP%' -Force" >nul 2>&1
+    if not errorlevel 1 set "BK_OK=1"
+)
+
+if "!BK_OK!"=="0" (
     color 0E
     echo [-] ERRO: Nao foi possivel criar backup.
+    echo     O arquivo pode estar em uso por outro programa.
+    echo [!] FECHE O ROCKET LEAGUE COMPLETAMENTE antes de rodar o script.
     echo [!] Abortado.
     pause
     exit /b 1
 )
+
 echo     [+] Backup: !RL_BACKUP!
 
 call :WriteRollbackScript
@@ -105,23 +134,22 @@ echo     [+] Rollback: !RL_ROLLBACK!
 echo.
 
 :: ============================================================================
-:: FASE 3/6: TIMERS / PRIORIDADE / REDE
+:: FASE 4/6: KERNEL E REDE
 :: ============================================================================
-echo [+] FASE 3/6: KERNEL E REDE (bcdedit + registro)...
+echo [+] FASE 4/6: KERNEL E REDE...
 
 set "SYS_WARN=0"
 
 bcdedit /deletevalue useplatformclock >nul 2>&1
-if errorlevel 1 ( echo     [!] AVISO: bcdedit useplatformclock falhou & set "SYS_WARN=1" )
+if errorlevel 1 set "SYS_WARN=1"
 bcdedit /set disabledynamictick yes >nul 2>&1
-if errorlevel 1 ( echo     [!] AVISO: bcdedit disabledynamictick falhou & set "SYS_WARN=1" )
+if errorlevel 1 set "SYS_WARN=1"
 bcdedit /set tscsyncpolicy Enhanced >nul 2>&1
-if errorlevel 1 ( echo     [!] AVISO: bcdedit tscsyncpolicy falhou & set "SYS_WARN=1" )
+if errorlevel 1 set "SYS_WARN=1"
 
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d 40 /f >nul 2>&1
-if errorlevel 1 ( echo     [!] AVISO: Win32PrioritySeparation falhou & set "SYS_WARN=1" )
+if errorlevel 1 set "SYS_WARN=1"
 
-echo     [+] Aplicando TCP por interface (GUID)...
 set "TCP_COUNT=0"
 for /f "usebackq tokens=1*" %%a in (`reg query "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" 2^>nul ^| findstr /r /c:"\\Interfaces\\"`) do (
     set "IFACE_KEY=%%a"
@@ -131,29 +159,16 @@ for /f "usebackq tokens=1*" %%a in (`reg query "HKLM\SYSTEM\CurrentControlSet\Se
     reg add "!IFACE_KEY!" /v "TcpDelAckTicks" /t REG_DWORD /d 0 /f >nul 2>&1
     set /a TCP_COUNT+=1
 )
-if !TCP_COUNT! equ 0 ( echo     [!] AVISO: Nenhuma interface TCP encontrada & set "SYS_WARN=1" ) else ( echo     [+] Interfaces TCP: !TCP_COUNT! )
+if !TCP_COUNT! equ 0 set "SYS_WARN=1"
 
-if "!SYS_WARN!"=="1" echo     [!] Alguns ajustes falharam - rollback disponivel
-echo [+] FASE 3 CONCLUIDA.
-echo.
-
-:: ============================================================================
-:: FASE 4/6: DESBLOQUEIO DO INI
-:: ============================================================================
-echo [+] FASE 4/6: DESBLOQUEANDO ARQUIVO...
-
-attrib -r -h -s "!RL_CONFIG_PATH!" >nul 2>&1
-icacls "!RL_CONFIG_PATH!" /grant "%USERNAME%:(F)" /c /q >nul 2>&1
-if errorlevel 1 echo     [!] AVISO: icacls falhou - continuando
-
-set "RL_TARGET=!RL_CONFIG_PATH!"
+if "!SYS_WARN!"=="1" echo     [!] Alguns ajustes de sistema falharam
 echo [+] FASE 4 CONCLUIDA.
 echo.
 
 :: ============================================================================
-:: FASE 5/6: INJECAO NO INI (POWERSHELL) — EXATAMENTE O SEU
+:: FASE 5/6: INJECAO (POWERSHELL — EXATAMENTE O SEU)
 :: ============================================================================
-echo [+] FASE 5/6: APLICANDO TWEAKS NO INI...
+echo [+] FASE 5/6: APLICANDO TWEAKS...
 
 set "PS_SCRIPT=%TEMP%\RL_Tesseract_V21.ps1"
 if exist "%PS_SCRIPT%" del "%PS_SCRIPT%"
@@ -243,9 +258,7 @@ del "%PS_SCRIPT%" >nul 2>&1
 
 if not "!PS_ERR!"=="0" (
     color 0E
-    echo.
-    echo [-] ERRO: PowerShell falhou.
-    echo [+] Restaurando backup...
+    echo [-] ERRO: PowerShell falhou. Restaurando backup...
     copy /y "!RL_BACKUP!" "!RL_CONFIG_PATH!" >nul 2>&1
     if errorlevel 1 (
         echo [-] Restauracao falhou. Faca manualmente:
@@ -278,13 +291,11 @@ echo.
 :: FIM
 :: ============================================================================
 color 0A
-echo [+] TESSERACT v21.4 CONCLUIDO COM SUCESSO.
+echo [+] TESSERACT v21.7 CONCLUIDO.
 echo.
 echo ==============================================================================
 echo  Backup INI : !RL_BACKUP!
 echo  Rollback   : !RL_ROLLBACK!
-echo.
-echo  Reinicie o PC para aplicar bcdedit/timers/rede.
 echo ==============================================================================
 echo.
 pause
@@ -319,9 +330,13 @@ setlocal DisableDelayedExpansion
     echo     exit /b 1
     echo ^)
     echo.
+    echo echo [+] Destrancando arquivo...
+    echo takeown /f "%RB_CFG%" ^>nul 2^>^&1
+    echo attrib -r -h -s "%RB_CFG%" ^>nul 2^>^&1
+    echo icacls "%RB_CFG%" /grant "%USERNAME%:(F)" /c /q ^>nul 2^>^&1
+    echo.
     echo echo [+] Restaurando INI...
     echo if exist "%RB_BK%" ^(
-    echo     attrib -r -h -s "%RB_CFG%" ^>nul 2^>^&1
     echo     copy /y "%RB_BK%" "%RB_CFG%" ^>nul
     echo     if errorlevel 1 ^( echo [-] Falha ao restaurar INI ^& pause ^& exit /b 1 ^)
     echo     echo [+] INI restaurado.
