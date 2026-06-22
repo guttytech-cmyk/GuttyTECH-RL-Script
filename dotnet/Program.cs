@@ -39,7 +39,7 @@ internal static class Program
             Ui.PanelLine(Ui.C("X  TASystemSettings.ini nao encontrado.", Ui.Red));
             Ui.PanelLine(Ui.C("Abra o Rocket League uma vez e rode de novo.", Ui.Gray));
             Ui.PanelBottom();
-            Ui.PressEnter();
+            Ui.EnterButton();
             return 1;
         }
 
@@ -50,7 +50,7 @@ internal static class Program
             mode = mode switch { "1" => "COMPLETO", "2" => "CRIADOR", "3" => "REMOVER", _ => mode };
             bool keepOpen = args.Length > 1 && args[1].Equals("/keepopen", StringComparison.OrdinalIgnoreCase);
             int rc = Dispatch(mode, keepOpen);
-            if (keepOpen) Ui.PressEnter();
+            if (keepOpen) Ui.EnterButton();
             return rc;
         }
 
@@ -60,9 +60,9 @@ internal static class Program
             ShowMenu();
             switch (Console.ReadLine()?.Trim())
             {
-                case "1": Dispatch("COMPLETO", true); Ui.PressEnter(); break;
-                case "2": Dispatch("CRIADOR", true); Ui.PressEnter(); break;
-                case "3": Dispatch("REMOVER", true); Ui.PressEnter(); break;
+                case "1": Dispatch("COMPLETO", true); Ui.EnterButton(); break;
+                case "2": Dispatch("CRIADOR", true); Ui.EnterButton(); break;
+                case "3": Dispatch("REMOVER", true); Ui.EnterButton(); break;
                 case "4": Ui.ShowCursor(); Goodbye(); return 0;
             }
         }
@@ -115,7 +115,8 @@ internal static class Program
     private static int Apply(string mode, bool interactive)
     {
         if (!CheckGame(interactive)) return 1;
-        Ui.SectionTitle("APLICANDO MODO " + mode, mode == "COMPLETO" ? Ui.Red : Ui.Cyan);
+        var acc = Ui.ModeColor(mode);
+        if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(acc); Ui.TitleBar("APLICANDO MODO " + mode, acc); }
         if (!WriteTest()) return 1;
 
         EnsureOriginalBackup();
@@ -124,35 +125,52 @@ internal static class Program
         string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
         string content = ApplyDisplay(template, disp);
 
-        Ui.Step("Backup de seguranca", () => { Backup(); return true; });
-        Ui.Step("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
-        bool wrote = Ui.Step("Gravando otimizacao", () =>
+        if (interactive)
+        {
+            Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
+            Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
+            if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
+            Ui.StepAnimated("Protegendo (somente-leitura)", () => { try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { } return true; });
+        }
+        else
+        {
+            Backup();
+            Unlock(_cfg!);
+            if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
+            try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { }
+        }
+
+        Log($"Aplicado {mode}.");
+        if (interactive) Ui.CompletionSuccess(mode, acc, BackupDir, ChecklistFor(mode));
+        return 0;
+    }
+
+    private static bool DoWrite(string content, string mode)
+    {
+        try
         {
             if (File.Exists(_cfg!)) File.Delete(_cfg!);
             File.WriteAllText(_cfg!, content, new UTF8Encoding(false));
             return File.ReadAllText(_cfg!).Contains("GUTTYTECH-RL-OPTIMIZER=" + mode);
-        });
-        if (!wrote) return FailOrElevate(mode, interactive);
-        Ui.Step("Protegendo (somente-leitura)", () => { try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { } return true; });
-        Log($"Aplicado {mode}.");
-        SuccessPanel(mode);
-        return 0;
+        }
+        catch { return false; }
     }
+
+    private static (string label, string value)[] ChecklistFor(string mode) => mode == "COMPLETO"
+        ? new[] { ("Render", "Performance"), ("Textura", "Performance"), ("Anti-Alias", "Desligado"), ("V-Sync", "Desligado"), ("Efeitos", "Sombras/Luz/Clima OFF") }
+        : new[] { ("Render", "Alta Qualidade"), ("Textura", "Alta Qualidade"), ("Sombras", "Dinamicas OFF"), ("Efeitos", "MotionBlur/DoF/Bloom OFF"), ("V-Sync", "Desligado") };
 
     // -------------------------------------------------------------- Remover
     private static int Remover(bool interactive)
     {
         if (!CheckGame(interactive)) return 1;
-        Ui.SectionTitle("REMOVENDO / RESTAURANDO", Ui.Amber);
+        if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(Ui.MAmber); Ui.TitleBar("REMOVENDO / RESTAURANDO", Ui.MAmber); }
         if (!WriteTest()) return 1;
 
-        Ui.Step("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
-        Ui.Step("Backup de seguranca", () => { Backup(); return true; });
-
-        try
+        bool fromOriginal = File.Exists(OrigBackup);
+        bool Restore()
         {
-            bool fromOriginal = File.Exists(OrigBackup);
-            Ui.Step(fromOriginal ? "Restaurando seu original" : "Restaurando padrao de fabrica", () =>
+            try
             {
                 if (fromOriginal)
                 {
@@ -168,16 +186,31 @@ internal static class Program
                 }
                 try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { }
                 return true;
-            });
-            Log("REMOVER concluido.");
-            Ui.Gap();
-            Ui.PanelTop("CONCLUIDO");
-            Ui.PanelLine(Ui.C("» Configuracao restaurada e arquivo DESTRAVADO.", Ui.Green));
-            Ui.PanelLine(Ui.C("Sua resolucao foi mantida. O jogo volta a gerenciar o arquivo.", Ui.Gray));
-            Ui.PanelBottom();
-            return 0;
+            }
+            catch { return false; }
         }
-        catch { return FailOrElevate("REMOVER", interactive); }
+
+        if (interactive)
+        {
+            Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
+            Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
+            if (!Ui.StepAnimated(fromOriginal ? "Restaurando seu original" : "Restaurando padrao de fabrica", Restore))
+                return FailOrElevate("REMOVER", interactive);
+            Log("REMOVER concluido.");
+            Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", new[]
+            {
+                "Configuracao restaurada e arquivo DESTRAVADO.",
+                "Sua resolucao foi mantida; o jogo volta a gerenciar o arquivo."
+            });
+        }
+        else
+        {
+            Unlock(_cfg!);
+            Backup();
+            if (!Restore()) return FailOrElevate("REMOVER", interactive);
+            Log("REMOVER concluido.");
+        }
+        return 0;
     }
 
     // -------------------------------------------------------------- Find INI
@@ -405,43 +438,15 @@ internal static class Program
         return 1;
     }
 
-    // -------------------------------------------------------------- Panels de saida
-    private static void SuccessPanel(string mode)
-    {
-        Ui.Gap();
-        Ui.PanelTop("CONCLUIDO");
-        Ui.PanelLine(Ui.B("» MODO " + mode + " aplicado com sucesso!", Ui.Green));
-        Ui.PanelLine(Ui.C("Arquivo travado (read-only) e sua resolucao preservada.", Ui.Gray));
-        Ui.PanelLine(Ui.C("Backups: " + FitPath(BackupDir, 58), Ui.DimC));
-        Ui.PanelBlank();
-        Ui.PanelLine(Ui.B("AJUSTE O JOGO 1 VEZ  (Opcoes > Video):", Ui.White));
-        if (mode == "COMPLETO")
-        {
-            Ui.PanelLine(Ui.Field("  Render", Ui.C("Performance", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  Textura", Ui.C("Performance", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  Anti-Alias", Ui.C("Desligado", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  V-Sync", Ui.C("Desligado", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  Efeitos", Ui.C("Sombras/Luz/Clima -> tudo OFF", Ui.Gray)));
-        }
-        else
-        {
-            Ui.PanelLine(Ui.Field("  Render", Ui.C("Alta Qualidade", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  Textura", Ui.C("Alta Qualidade", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  Sombras", Ui.C("Dinamicas -> Desligado", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  Efeitos", Ui.C("Motion Blur/DoF/Bloom -> OFF", Ui.Gray)));
-            Ui.PanelLine(Ui.Field("  V-Sync", Ui.C("Desligado", Ui.Gray)));
-        }
-        Ui.PanelBottom();
-    }
-
+    // -------------------------------------------------------------- Painel de falha
     private static void FailPanel()
     {
-        Ui.Gap();
-        Ui.PanelTop("FALHA");
-        Ui.PanelLine(Ui.C("X Nao consegui aplicar. Seu arquivo NAO foi corrompido.", Ui.Red));
-        Ui.PanelLine(Ui.C("Ha backup em: " + FitPath(BackupDir, 56), Ui.Gray));
-        Ui.PanelLine(Ui.C("Feche o jogo e cheque antivirus / Acesso Controlado a Pastas.", Ui.Gray));
-        Ui.PanelBottom();
+        Ui.CompletionMessage(Ui.MRed, "FALHA", new[]
+        {
+            "Nao consegui aplicar. Seu arquivo NAO foi corrompido.",
+            "Backup em: " + FitPath(BackupDir, 45),
+            "Cheque antivirus / Acesso Controlado a Pastas."
+        });
     }
 
     private static void Goodbye()

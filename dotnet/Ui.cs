@@ -3,7 +3,7 @@ using System.Text;
 namespace GuttyRL;
 
 /// <summary>Camada visual ANSI true-color (paleta GUTTYTECH). Banner, paineis, badges, steps.</summary>
-internal static class Ui
+internal static partial class Ui
 {
     // ---- ANSI base ----
     public const string Reset = "\x1b[0m";
