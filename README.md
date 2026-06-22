@@ -10,7 +10,7 @@
 
 **Otimizador de `TASystemSettings.ini` · 3 modos · Launch Options Steam/Epic · 1 arquivo `.exe`**
 
-[Website](https://guttytech.com) · [Contato](mailto:admin@guttytech.com)
+[Website](https://guttytech.com) · [Contato](https://guttytech.com/comunidade)
 
 </div>
 
