@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GuttyRL</AssemblyName>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Product>GUTTYTECH RL INI Optimizer</Product>
+    <AssemblyTitle>GUTTYTECH RL INI Optimizer</AssemblyTitle>
+    <Company>GUTTYTECH</Company>
+    <Version>22.0.0</Version>
+    <FileVersion>22.0.0.0</FileVersion>
+    <!-- AOT-friendly: nenhuma reflexao dinamica. Templates embutidos como const string. -->
+    <IsTrimmable>true</IsTrimmable>
+  </PropertyGroup>
+
+</Project>

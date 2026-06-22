@@ -2,12 +2,13 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0A0A0A&height=120&section=header&text=ROCKET%20LEAGUE%20GUTTYTECH&fontSize=36&fontColor=E50A0A&animation=fadeIn" alt="RL GuttyTECH" />
 
-[![Version](https://img.shields.io/badge/Version-V21_Omega-E50A0A?style=for-the-badge)](https://guttytech.com)
+[![Version](https://img.shields.io/badge/Version-v22.2_TESSERACT-E50A0A?style=for-the-badge)](https://guttytech.com)
 [![Platform](https://img.shields.io/badge/Platform-Windows_10%20%7C%2011-0078D4?style=for-the-badge&logo=windows)](https://guttytech.com)
 [![Engine](https://img.shields.io/badge/Engine-Unreal_Engine_3-121212?style=for-the-badge)](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script)
-[![Status](https://img.shields.io/badge/Status-Stable_Extreme-00C853?style=for-the-badge)](https://guttytech.com)
+[![.NET](https://img.shields.io/badge/.NET_9-single--file-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com)
+[![Anti-Cheat](https://img.shields.io/badge/Easy_Anti--Cheat-safe-00C853?style=for-the-badge)](https://www.easy.ac)
 
-**Ring-0 registry · UE3 TASystemSettings · HPET kill · Network throttle off**
+**Otimizador de `TASystemSettings.ini` · 3 modos · Launch Options Steam/Epic · 1 arquivo `.exe`**
 
 [Website](https://guttytech.com) · [Commander](https://github.com/guttytech-cmyk/Commander) · [Contato](mailto:admin@guttytech.com)
 
@@ -15,11 +16,51 @@
 
 ---
 
-> **AVISO KERNEL:** O `RL_GUTTYTECH` altera registro em Ring 0, desativa Network Throttling, remove HPET e ajusta `TASystemSettings.ini` da Unreal Engine 3. Foco absoluto em frametime reto e DPC latency minima.
+> **v22.2 TESSERACT** — otimizador de Rocket League (Unreal Engine 3) focado e **seguro**: mexe apenas no `TASystemSettings.ini` do jogo. Sem `bcdedit`, sem tweaks de TCP/rede, sem registro do sistema. Roda em qualquer PC Windows 10/11, sem instalar nada.
+
+## Inicio rapido
+
+1. Baixe o **`GuttyRL.exe`** na aba [Releases](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script/releases).
+2. Feche o Rocket League.
+3. De 2 cliques no `.exe` e escolha um modo:
+
+| Opcao | Modo | Para quem |
+|:---:|------|-----------|
+| `[1]` | **COMPLETO** | FPS maximo, graficos minimos (competitivo / PC fraco) |
+| `[2]` | **CRIADOR** | Otimizado sem destruir o visual (streamers / YouTubers) |
+| `[3]` | **REMOVER** | Restaura o original / padrao de fabrica |
+| `[4]` | **LAUNCH OPTIONS** | Copia o melhor comando de inicializacao (Steam/Epic) pro clipboard |
+
+---
+
+## Modos
+
+- **COMPLETO** — texturas 16px, LOD maximo, sombras/efeitos OFF + 6 otimizacoes extras (draw distance, texture streaming, decals, motion-blur skinning, LOD bias de skeletal/particulas).
+- **CRIADOR** — texturas 1024px com anisotropico 16, reflexos/iluminacao/HDR preservados; corta o que pesa e pouco aparece (sombras dinamicas, AO, motion blur, DoF).
+- **REMOVER** — restaura o backup do seu `.ini` original (ou o stock), preservando sua resolucao, e destrava o arquivo.
+
+> Em todos os modos a sua **resolucao e modo de tela sao preservados** (nada de tela preta) e o `.ini` e travado em somente-leitura pra otimizacao nao sumir. O REMOVER destrava.
+
+---
+
+## Launch Options (Steam / Epic)
+
+O menu `[4]` copia pro clipboard o comando validado e mostra onde colar:
+
+```
+-nomovie -NOSPLASH -high
+```
+
+- `-nomovie` / `-NOSPLASH` -> pulam intro/splash (boot mais rapido)
+- `-high` -> prioridade Alta (tire se der stutter/estalo em PC fraco)
+
+> No RL, launch options quase nao mudam FPS — o ganho real e o `.ini` + Opcoes > Video. Flags como `-NoVSync`, `-nolog`, `-NoSteamVR`, `-USEALLAVAILABLECORES` e `-malloc=system` sao placebo/no-op na engine do RL e ficam de fora. Tudo seguro com o **Easy Anti-Cheat** (obrigatorio no online desde a Season 22).
 
 ---
 
 ## Benchmarks — CapFrameX
+
+> Medicao do stack **V21 OMEGA** (Ring-0 + INI, hoje preservado em [`legacy/`](legacy/)). A v22.2 entrega a camada de **INI** desses ganhos de forma segura, sem tocar no sistema.
 
 **Hardware:** Intel Core i9-12900KF · NVIDIA GeForce RTX 4090
 
@@ -40,33 +81,44 @@
 
 ---
 
-## O que o script faz
+## Por que a UE3 engasga
 
-| Camada | Acao |
-|--------|------|
-| **UE3** | `AllowPerFrameSleep=False`, `OneFrameThreadLag=False`, `bSmoothFrameRate=False` |
-| **Timer** | HPET / Dynamic Tick desativados via registro |
-| **Rede** | Nagle, RSC, throttling de rede neutralizados |
-| **GPU** | Prioridade de fila e latencia reduzida no driver path |
+A Unreal Engine 3 forca texture streaming, GC sincrono, limitadores de frame e `OneFrameThreadLag` — micro-stutters de ate **150ms** no frametime. Os modos do GuttyRL atacam esses gargalos no nivel de config do jogo.
 
 ---
 
-## Uso
+## Build (opcional)
+
+O `.exe` e gerado na sua maquina (precisa do .NET 9 SDK) — os clientes so executam:
 
 ```batch
-:: Executar como Administrador
-RL_GUTTYTECH_v21.5.bat
+build_exe.bat
 ```
 
-1. Feche o Rocket League e o Epic/Steam
-2. Execute o `.bat` como **Administrador**
-3. Reinicie o PC antes da primeira sessao pos-tweak
+Gera um `GuttyRL.exe` **single-file** (~10,5 MB) com os 3 templates de `.ini` embutidos. Sem dependencias no cliente.
 
 ---
 
-## Por que a UE3 engasga (padrao)
+## Estrutura
 
-A Unreal Engine 3 forca texture streaming, GC sincrono, limitadores de frame e `OneFrameThreadLag` — micro-stutters de ate **150ms** no frametime. Este payload remove esses gargalos no nivel de config e registro.
+```
+dotnet/         codigo C# (.NET 9) do GuttyRL.exe
+templates/      INI_COMPLETO / INI_CRIADOR / INI_STOCK_REFERENCE
+build_exe.bat   recompila o .exe
+README.txt      manual do usuario (vai junto pro cliente)
+CHANGELOG.md    historico de versoes
+legacy/         RL_GUTTYTECH_v21.5.bat (script Ring-0 antigo)
+```
+
+---
+
+## Seguranca
+
+- Mexe so no `TASystemSettings.ini` (config do jogo) — **nao** toca no Windows.
+- Backup automatico antes de cada alteracao (`%USERPROFILE%\GuttyTECH\RL-Optimizer-v22\Backups`).
+- Rollback instantaneo (opcao `[3]`).
+- Flags de launch validadas contra o Easy Anti-Cheat.
+- O `legacy/RL_GUTTYTECH_v21.5.bat` faz tweaks de Ring-0/registro e exige Administrador — use por conta propria.
 
 ---
 
