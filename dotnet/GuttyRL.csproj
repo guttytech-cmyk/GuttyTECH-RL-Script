@@ -5,14 +5,14 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>GuttyRL</AssemblyName>
+    <AssemblyName>GuttyTECH_RL</AssemblyName>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <InvariantGlobalization>true</InvariantGlobalization>
     <Product>GUTTYTECH RL INI Optimizer</Product>
     <AssemblyTitle>GUTTYTECH RL INI Optimizer</AssemblyTitle>
     <Company>GUTTYTECH</Company>
-    <Version>22.0.0</Version>
-    <FileVersion>22.0.0.0</FileVersion>
+    <Version>22.3.0</Version>
+    <FileVersion>22.3.0.0</FileVersion>
     <!-- AOT-friendly: nenhuma reflexao dinamica. Templates embutidos como const string. -->
     <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>

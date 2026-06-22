@@ -1,4 +1,4 @@
-# GUTTYTECH — Rocket League INI Optimizer v22.2
+# GUTTYTECH — Rocket League INI Optimizer v22.3
 
 > **O que é:** um `.exe` único (~10,5 MB) que otimiza o `TASystemSettings.ini` do Rocket League (Unreal Engine 3).  
 > **O que NÃO é:** não mexe no Windows, registro, rede, HPET nem TCP. Isso ficou no script antigo em [`legacy/RL_GUTTYTECH_v21.5.bat`](legacy/RL_GUTTYTECH_v21.5.bat).
@@ -138,6 +138,9 @@ Para streamers/criadores — bonito na câmera, mas mais leve que o stock:
 | Fog volumes | **ON** | OFF |
 | Decals estáticos | **ON** | OFF |
 | Decals dinâmicos (pneu) | **ON** | ON |
+| Indicador da bola (laterais/cantos) | **ON** (v22.3) | OFF |
+| `UnbatchedDecals` | **ON** | OFF |
+| `bEnableForegroundShadowsOnWorld` | **ON** | OFF |
 | `MaxDrawDistanceScale` | **1** (normal) | **0** |
 | `OnlyStreamInTextures` | **False** | **True** |
 | Sombras dinâmicas | **OFF** (ganho de FPS) | OFF |
@@ -187,7 +190,7 @@ No menu `[4]`, o app **copia automaticamente** pro clipboard:
 
 ---
 
-## 10. O QUE O v22.2 NÃO FAZ (diferente do v21)
+## 10. O QUE O v22.3 NÃO FAZ (diferente do v21)
 
 O script antigo (`legacy/RL_GUTTYTECH_v21.5.bat`) também mexia em:
 
@@ -196,9 +199,7 @@ O script antigo (`legacy/RL_GUTTYTECH_v21.5.bat`) também mexia em:
 - Prioridade de fila GPU no registro  
 - Modo econômico do processador  
 
-**O v22.2 não faz nada disso.** Só o `TASystemSettings.ini`. Mais seguro, roda sem admin, não quebra Secure Boot/BitLocker, e funciona em qualquer PC onde o v21 falhava.
-
-Para tweaks de sistema operacional, use o **[GuttyTECH Commander](https://github.com/guttytech-cmyk/Commander)**.
+**O v22.3 não faz nada disso.** Só o `TASystemSettings.ini`. Mais seguro, roda sem admin, não quebra Secure Boot/BitLocker, e funciona em qualquer PC onde o v21 falhava.
 
 ---
 
@@ -212,5 +213,5 @@ Para tweaks de sistema operacional, use o **[GuttyTECH Commander](https://github
 
 ---
 
-*GUTTYTECH — TESSERACT v22.2*  
+*GUTTYTECH — TESSERACT v22.3*  
 *"Você vai otimizar o jogo ou vai continuar sofrendo por culpa da engine burra do jogo?"*

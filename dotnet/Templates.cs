@@ -719,12 +719,12 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.0
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=True
 DynamicDecals=True
-UnbatchedDecals=False
+UnbatchedDecals=True
 DecalCullDistanceScale=1.000000
 DynamicLights=True
 DynamicShadows=False
@@ -804,7 +804,7 @@ PreShadowResolutionFactor=0.500000
 bEnableBranchingPCFShadows=False
 bAllowHardwareShadowFiltering=False
 TessellationAdaptivePixelsPerTriangle=48.000000
-bEnableForegroundShadowsOnWorld=False
+bEnableForegroundShadowsOnWorld=True
 bEnableForegroundSelfShadowing=False
 bAllowWholeSceneDominantShadows=False
 bUseConservativeShadowBounds=False

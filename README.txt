@@ -1,5 +1,5 @@
 ================================================================================
-  GUTTYTECH - ROCKET LEAGUE INI OPTIMIZER  v22.2  (TESSERACT)
+  GUTTYTECH - ROCKET LEAGUE INI OPTIMIZER  v22.3  (TESSERACT)
 ================================================================================
 
 Otimizador do arquivo TASystemSettings.ini do Rocket League (Unreal Engine 3),
@@ -23,13 +23,13 @@ JEITO A - Pasta + .bat  (mais compativel, recomendado):
   4. Escolha 1, 2 ou 3 no menu. Pronto.
 
 JEITO B - Executavel unico (RECOMENDADO pra mandar pro cliente):
-  - Mande SO o "GuttyRL.exe". E um app de console .NET 9 autossuficiente:
+  - Mande SO o "GuttyTECH_RL.exe". E um app de console .NET 9 autossuficiente:
       * Arquivo unico (os 3 templates estao embutidos dentro dele).
       * O cliente NAO precisa ter .NET instalado, nem a pasta "templates".
       * Da 2 cliques -> abre a janela do menu (igual ao .bat).
   - Na 1a vez pode aparecer o SmartScreen ("Windows protegeu o seu PC"):
     Mais informacoes -> Executar assim mesmo.
-  - Para (re)gerar o GuttyRL.exe na SUA maquina: de 2 cliques em "build_exe.bat"
+  - Para (re)gerar o GuttyTECH_RL.exe na SUA maquina: de 2 cliques em "build_exe.bat"
     (precisa do .NET 9 SDK instalado SO na sua maquina de build, nao no cliente).
 
 MODO AVANCADO (linha de comando / automacao):
@@ -89,7 +89,9 @@ CRIADOR:
   - Mantem: reflexos no carro, materiais HQ, folhas, fog, iluminacao do campo,
     HDR (FloatingPointRenderTargets), Apex Cloth (bandeiras/capas).
   - Remove o que pesa e pouco aparece: sombras dinamicas, AO, distorcao,
-    radial blur, decals "unbatched", fraturas.
+    radial blur, fraturas.
+  - v22.3: mantem indicador da bola nas laterais/cantos (UnbatchedDecals +
+    ForegroundShadowsOnWorld ligados; sombras dinamicas continuam OFF).
   - UncappedFramerate=True, WaitForGPU=True.
   -> Continua bonito pro publico, mas roda muito mais leve.
 
@@ -178,7 +180,7 @@ Se aparecer "[X] Nao consigo gravar na pasta do jogo":
   2. A v21 usava 'bcdedit' (falha com Secure Boot/BitLocker, podia pedir chave
      de recuperacao). REMOVIDO.
   3. A v21 mexia em TCP/registro do sistema todo. REMOVIDO (o .ini sozinho
-     entrega o ganho de FPS; tweaks de SO sao responsabilidade do Commander).
+     entrega o ganho de FPS).
   4. A v21 forcava 1920x1080/Tela Cheia e depois trancava o arquivo -> tela
      preta/crash em monitores diferentes. A v22 PRESERVA a sua resolucao.
   5. O bug do PowerShell (usava $env:RL_TARGET sem nunca definir) -> nao
@@ -197,6 +199,11 @@ Se aparecer "[X] Nao consigo gravar na pasta do jogo":
 P: Troquei de modo e quero voltar.
 R: E so rodar de novo e escolher outro modo. Ele destrava, aplica e trava
    sozinho. Pra voltar ao original, use o REMOVER.
+
+P: A sombra/marca da bola some nas laterais do campo (modo CRIADOR).
+R: Reaplique o CRIADOR com a v22.3 ou mais nova. O template agora liga
+   UnbatchedDecals e bEnableForegroundShadowsOnWorld (sem ligar sombras
+   dinamicas). Se ainda sumir, confira World Detail = Alto no jogo.
 
 P: Quero sombra dinamica no MODO CRIADOR (gravacao cinematografica).
 R: Abra templates\INI_CRIADOR.txt, troque "DynamicShadows=False" por
@@ -224,5 +231,5 @@ R: NAO e o otimizador nem o .ini (o .ini fica igual a uma config normal de FPS).
    Documents\My Games\Rocket League\TAGame\Cache\ e libere o RL/Epic no antivirus.
 
 ================================================================================
-  GUTTYTECH - TESSERACT v22.2
+  GUTTYTECH - TESSERACT v22.3
 ================================================================================

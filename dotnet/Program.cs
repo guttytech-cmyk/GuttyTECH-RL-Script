@@ -6,7 +6,7 @@ namespace GuttyRL;
 
 internal static class Program
 {
-    private const string Version = "v22.2";
+    private const string Version = "v22.3";
 
     private static readonly string GuttyDir =
         Path.Combine(
@@ -74,7 +74,7 @@ internal static class Program
         if (mode == "REMOVER") return Remover(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
-        Console.WriteLine(Ui.C("  Use: GuttyRL.exe [COMPLETO | CRIADOR | REMOVER]", Ui.Gray));
+        Console.WriteLine(Ui.C("  Use: GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER]", Ui.Gray));
         return 2;
     }
 
@@ -523,7 +523,7 @@ internal static class Program
         }
         catch
         {
-            Console.WriteLine(Ui.C("  X Nao consegui elevar. Rode o GuttyRL.exe como administrador.", Ui.Red));
+            Console.WriteLine(Ui.C("  X Nao consegui elevar. Rode o GuttyTECH_RL.exe como administrador.", Ui.Red));
         }
         return 1;
     }
