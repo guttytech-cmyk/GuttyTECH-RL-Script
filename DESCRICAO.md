@@ -198,8 +198,6 @@ O script antigo (`legacy/RL_GUTTYTECH_v21.5.bat`) também mexia em:
 
 **O v22.2 não faz nada disso.** Só o `TASystemSettings.ini`. Mais seguro, roda sem admin, não quebra Secure Boot/BitLocker, e funciona em qualquer PC onde o v21 falhava.
 
-Para tweaks de sistema operacional, use o **[GuttyTECH Commander](https://github.com/guttytech-cmyk/Commander)**.
-
 ---
 
 ## Segurança e rollback

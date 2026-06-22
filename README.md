@@ -10,7 +10,7 @@
 
 **Otimizador de `TASystemSettings.ini` · 3 modos · Launch Options Steam/Epic · 1 arquivo `.exe`**
 
-[Website](https://guttytech.com) · [Commander](https://github.com/guttytech-cmyk/Commander) · [Contato](mailto:admin@guttytech.com)
+[Website](https://guttytech.com) · [Contato](mailto:admin@guttytech.com)
 
 </div>
 
@@ -111,7 +111,6 @@ README.txt      manual do usuario (vai junto pro cliente)
 <div align="center">
 
 [![GuttyTECH](https://img.shields.io/badge/GuttyTECH-guttytech.com-E50A0A?style=for-the-badge)](https://guttytech.com)
-[![Suite completa](https://img.shields.io/badge/Arsenal-Commander-121212?style=for-the-badge)](https://github.com/guttytech-cmyk/Commander)
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=E50A0A&height=70&section=footer&fontSize=14&fontColor=0A0A0A" alt="footer" />
 

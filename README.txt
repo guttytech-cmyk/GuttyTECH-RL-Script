@@ -178,7 +178,7 @@ Se aparecer "[X] Nao consigo gravar na pasta do jogo":
   2. A v21 usava 'bcdedit' (falha com Secure Boot/BitLocker, podia pedir chave
      de recuperacao). REMOVIDO.
   3. A v21 mexia em TCP/registro do sistema todo. REMOVIDO (o .ini sozinho
-     entrega o ganho de FPS; tweaks de SO sao responsabilidade do Commander).
+     entrega o ganho de FPS).
   4. A v21 forcava 1920x1080/Tela Cheia e depois trancava o arquivo -> tela
      preta/crash em monitores diferentes. A v22 PRESERVA a sua resolucao.
   5. O bug do PowerShell (usava $env:RL_TARGET sem nunca definir) -> nao
