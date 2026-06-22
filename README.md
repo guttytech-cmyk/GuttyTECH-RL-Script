@@ -56,8 +56,6 @@ O menu `[4]` copia pro clipboard o comando validado e mostra onde colar:
 - `-nomovie` / `-NOSPLASH` -> pulam intro/splash (boot mais rapido)
 - `-high` -> prioridade Alta (tire se der stutter/estalo em PC fraco)
 
-> No RL, launch options quase nao mudam FPS — o ganho real e o `.ini` + Opcoes > Video. Flags como `-NoVSync`, `-nolog`, `-NoSteamVR`, `-USEALLAVAILABLECORES` e `-malloc=system` sao placebo/no-op na engine do RL e ficam de fora. Tudo seguro com o **Easy Anti-Cheat** (obrigatorio no online desde a Season 22).
-
 ---
 
 ## Benchmarks — CapFrameX
@@ -108,8 +106,6 @@ dotnet/         codigo C# (.NET 9) do GuttyRL.exe
 templates/      INI_COMPLETO / INI_CRIADOR / INI_STOCK_REFERENCE
 build_exe.bat   recompila o .exe
 README.txt      manual do usuario (vai junto pro cliente)
-CHANGELOG.md    historico de versoes
-legacy/         RL_GUTTYTECH_v21.5.bat (script Ring-0 antigo)
 ```
 
 ---
