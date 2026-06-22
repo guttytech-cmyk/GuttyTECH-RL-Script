@@ -87,18 +87,6 @@ A Unreal Engine 3 forca texture streaming, GC sincrono, limitadores de frame e `
 
 ---
 
-## Build (opcional)
-
-O `.exe` e gerado na sua maquina (precisa do .NET 9 SDK) — os clientes so executam:
-
-```batch
-build_exe.bat
-```
-
-Gera um `GuttyRL.exe` **single-file** (~10,5 MB) com os 3 templates de `.ini` embutidos. Sem dependencias no cliente.
-
----
-
 ## Estrutura
 
 ```
