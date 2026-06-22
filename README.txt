@@ -170,7 +170,16 @@ R: O arquivo esta travado (somente-leitura). Rode o REMOVER, ajuste a
    resolucao no jogo, e aplique o modo de novo (ele vai preservar a nova res).
 
 P: Posso editar os valores?
-R: Sim. Os modos sao os arquivos em "templates\". Edite e aplique de novo.
+R: Sim. Os modos sao os arquivos em "templates\". Edite e rode o build_exe.bat
+   de novo pra regerar o .exe (o .bat ja usa os .txt direto).
+
+P: Apareceu "LIMITE DE CHAMADA ATINGIDO" ou "nao conectado ao Epic Online Services".
+R: NAO e o otimizador nem o .ini (o .ini fica igual a uma config normal de FPS).
+   E um limite TEMPORARIO da propria Epic, disparado quando o jogo faz muitas
+   reconexoes em pouco tempo - tipico de quem fica abrindo/fechando o RL varias
+   vezes seguidas testando. Solucao: feche o RL, espere 10-15 min, sincronize o
+   relogio do Windows, e reabra UMA vez. Some sozinho. Se persistir: apague a pasta
+   Documents\My Games\Rocket League\TAGame\Cache\ e libere o RL/Epic no antivirus.
 
 ================================================================================
   GUTTYTECH - TESSERACT v22.0
