@@ -1,24 +1,29 @@
-# GuttyTECH standard .gitignore
-.DS_Store
-Thumbs.db
-*.user
-*.suo
-.vs/
+# Executavel gerado pelo build (regenere com build_exe.bat) - .NET single-file
+GuttyTECH_RL.exe
+GuttyRL.exe
+
+# Artefatos de build .NET
+dotnet/bin/
+dotnet/obj/
+dotnet/publish/
 bin/
 obj/
-node_modules/
-dist/
-.env
-.env.*
-!.env.example
-*.log
-*.pfx
-*.pem
-secrets.json
-
-# GuttyRL (.NET single-file optimizer)
-GuttyRL.exe
 publish/
+
+# Artefatos de IDE (Visual Studio / Rider)
+.vs/
+*.user
+*.suo
+
+# Backups e arquivos de runtime (nao versionar)
 *.bak
-log.txt
 _apply.tmp
+_debug*.txt
+*.sed
+log.txt
+
+# Lixo de SO / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+*~

@@ -3,6 +3,14 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3] — 2026-06-23
+### Corrigido
+- **CRIADOR:** indicador da bola (círculo branco + sombra no chão) voltou a aparecer nas laterais/cantos do campo.
+  - `UnbatchedDecals=True` e `bEnableForegroundShadowsOnWorld=True` no template CRIADOR.
+  - Sombras dinâmicas continuam OFF (sem custo de FPS das dynamic shadows).
+### Alterado
+- Executável renomeado para **`GuttyTECH_RL.exe`** (nome oficial do release no GitHub).
+
 ## [v22.2] — 2026-06-22
 ### Adicionado
 - **Launch Options helper** (Menu → `[4]`): telas dedicadas para **Steam** e **Epic**, com passo a passo de onde colar.
