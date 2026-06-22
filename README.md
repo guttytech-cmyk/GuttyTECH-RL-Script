@@ -16,8 +16,6 @@
 
 ---
 
-> **v22.2 TESSERACT** — otimizador de Rocket League (Unreal Engine 3) focado e **seguro**: mexe apenas no `TASystemSettings.ini` do jogo. Sem `bcdedit`, sem tweaks de TCP/rede, sem registro do sistema. Roda em qualquer PC Windows 10/11, sem instalar nada.
-
 ## Inicio rapido
 
 1. Baixe o **`GuttyRL.exe`** na aba [Releases](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script/releases).
@@ -42,19 +40,6 @@
 - **REMOVER** — restaura o backup do seu `.ini` original (ou o stock), preservando sua resolucao, e destrava o arquivo.
 
 > Em todos os modos a sua **resolucao e modo de tela sao preservados** (nada de tela preta) e o `.ini` e travado em somente-leitura pra otimizacao nao sumir. O REMOVER destrava.
-
----
-
-## Launch Options (Steam / Epic)
-
-O menu `[4]` copia pro clipboard o comando validado e mostra onde colar:
-
-```
--nomovie -NOSPLASH -high
-```
-
-- `-nomovie` / `-NOSPLASH` -> pulam intro/splash (boot mais rapido)
-- `-high` -> prioridade Alta (tire se der stutter/estalo em PC fraco)
 
 ---
 
@@ -84,17 +69,6 @@ O menu `[4]` copia pro clipboard o comando validado e mostra onde colar:
 ## Por que a UE3 engasga
 
 A Unreal Engine 3 forca texture streaming, GC sincrono, limitadores de frame e `OneFrameThreadLag` — micro-stutters de ate **150ms** no frametime. Os modos do GuttyRL atacam esses gargalos no nivel de config do jogo.
-
----
-
-## Estrutura
-
-```
-dotnet/         codigo C# (.NET 9) do GuttyRL.exe
-templates/      INI_COMPLETO / INI_CRIADOR / INI_STOCK_REFERENCE
-build_exe.bat   recompila o .exe
-README.txt      manual do usuario (vai junto pro cliente)
-```
 
 ---
 
