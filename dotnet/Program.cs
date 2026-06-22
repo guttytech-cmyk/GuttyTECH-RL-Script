@@ -6,7 +6,7 @@ namespace GuttyRL;
 
 internal static class Program
 {
-    private const string Version = "v22.0";
+    private const string Version = "v22.2";
 
     private static readonly string GuttyDir =
         Path.Combine(
@@ -63,7 +63,8 @@ internal static class Program
                 case "1": Dispatch("COMPLETO", true); Ui.EnterButton(); break;
                 case "2": Dispatch("CRIADOR", true); Ui.EnterButton(); break;
                 case "3": Dispatch("REMOVER", true); Ui.EnterButton(); break;
-                case "4": Ui.ShowCursor(); Goodbye(); return 0;
+                case "4": LaunchOptions(); break;
+                case "5": Ui.ShowCursor(); Goodbye(); return 0;
             }
         }
     }
@@ -100,16 +101,105 @@ internal static class Program
         Ui.PanelLine(Card("1", "COMPLETO", "FPS maximo - graficos minimos", Ui.Red));
         Ui.PanelLine(Card("2", "CRIADOR", "Otimizado - visual preservado", Ui.Cyan));
         Ui.PanelLine(Card("3", "REMOVER", "Restaurar original / stock", Ui.Amber));
-        Ui.PanelLine(Card("4", "SAIR", "fechar o GuttyRL", Ui.DimC));
+        Ui.PanelLine(Card("4", "LAUNCH OPT", "comando p/ Steam/Epic (copiar)", Ui.Cyan));
+        Ui.PanelLine(Card("5", "SAIR", "fechar o GuttyRL", Ui.DimC));
         Ui.PanelBottom();
-        Ui.Prompt("Escolha (1-4)");
+        Ui.Prompt("Escolha (1-5)");
     }
 
     private static string Card(string n, string title, string desc, (int r, int g, int b) c)
-        => Ui.C("[" + n + "]", c) + " " + Ui.C("▌", c) + " " + Ui.B(title.PadRight(9), Ui.White) + "  " + Ui.C(desc, Ui.DimC);
+        => Ui.C("[" + n + "]", c) + " " + Ui.C("▌", c) + " " + Ui.B(title.PadRight(11), Ui.White) + "  " + Ui.C(desc, Ui.DimC);
 
     private static string FitPath(string p, int max)
         => p.Length <= max ? p : "..." + p[^(max - 3)..];
+
+    // -------------------------------------------------------------- Launch Options
+    private const string SteamLaunch = "-nomovie -NOSPLASH -high";
+    private const string EpicLaunch = "-nomovie -NOSPLASH -high";
+
+    private static void LaunchOptions()
+    {
+        while (true)
+        {
+            Ui.HideCursor();
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MCyan);
+            Ui.TitleBar("LAUNCH OPTIONS - ROCKET LEAGUE", Ui.MCyan);
+            Console.WriteLine();
+            Ui.LaunchParam("[1]", Ui.MCyan, "STEAM", "como colar na Steam (passo a passo)");
+            Ui.LaunchParam("[2]", Ui.MCyan, "EPIC GAMES", "como colar na Epic (passo a passo)");
+            Ui.LaunchParam("[3]", Ui.DarkGray, "VOLTAR", "menu principal");
+            Ui.Prompt("Escolha (1-3)");
+            switch (Console.ReadLine()?.Trim())
+            {
+                case "1": ShowPlatform("STEAM", SteamLaunch, true); break;
+                case "2": ShowPlatform("EPIC GAMES", EpicLaunch, false); break;
+                case "3": return;
+            }
+        }
+    }
+
+    private static void ShowPlatform(string platform, string cmd, bool isSteam)
+    {
+        Ui.HideCursor();
+        Ui.Cls();
+        Ui.MiniBannerIfTall(Ui.MCyan);
+        Ui.TitleBar(platform + " - COMO ADICIONAR", Ui.MCyan);
+
+        string[] steps = isSteam
+            ? new[]
+            {
+                "1. Abra a Steam e clique direito em Rocket League",
+                "2. Propriedades > Geral > Opcoes de Inicializacao",
+                "3. Cole (Ctrl+V) o comando abaixo e feche"
+            }
+            : new[]
+            {
+                "1. Abra o Epic Games Launcher > Biblioteca",
+                "2. Tres pontinhos no Rocket League > Gerenciar",
+                "3. Marque 'Argumentos de linha de comando adicionais'",
+                "4. Cole (Ctrl+V) o comando abaixo e salve"
+            };
+        Ui.StepsPanel("PASSO A PASSO", steps, Ui.MCyan);
+
+        Ui.CodeBox(cmd);
+        Ui.CopyStatus(CopyToClipboard(cmd));
+
+        Ui.LaunchHeading("Incluido (real e validado):");
+        Ui.LaunchParam("+", Ui.OkGreen, "-nomovie", "pula os videos de intro (boot rapido)");
+        Ui.LaunchParam("+", Ui.OkGreen, "-NOSPLASH", "pula a tela de splash (boot rapido)");
+        Ui.LaunchParam("+", Ui.OkGreen, "-high", "prioridade Alta - tire se der stutter/estalo");
+
+        Ui.LaunchHeading("Fora do comando (placebo/no-op no RL):");
+        Ui.LaunchParam("x", Ui.MRed, "-NoVSync", "inutil - o INI do GuttyRL ja desliga o V-Sync");
+        Ui.LaunchParam("x", Ui.MRed, "-nolog", "o RL ignora; ganho de FPS = zero");
+        Ui.LaunchParam("x", Ui.MRed, "-NoSteamVR", "no-op - o RL nao tem VR (nem na Steam)");
+        Ui.LaunchParam("x", Ui.MRed, "-no-stereo-rendering", "placebo - RL nao renderiza em estereo");
+        Ui.LaunchParam("x", Ui.MRed, "-USEALLAVAILABLECORES", "no RL e no-op - nao muda FPS");
+
+        Ui.LaunchHeading("Opcional (cole a mao se quiser):");
+        Ui.LaunchParam("~", Ui.MAmber, "-NoForceFeedback", "MATA a vibracao do controle");
+
+        Ui.LaunchNote("No RL, launch option quase nao muda FPS: o ganho real e o INI + Opcoes>Video.");
+        Ui.LaunchNote("Tudo seguro com o Easy Anti-Cheat (EAC) do RL.");
+        Ui.EnterButton();
+    }
+
+    private static bool CopyToClipboard(string text)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("clip.exe")
+            { RedirectStandardInput = true, UseShellExecute = false, CreateNoWindow = true };
+            using var p = Process.Start(psi);
+            if (p is null) return false;
+            p.StandardInput.Write(text);
+            p.StandardInput.Close();
+            p.WaitForExit(3000);
+            return p.ExitCode == 0;
+        }
+        catch { return false; }
+    }
 
     // -------------------------------------------------------------- Apply
     private static int Apply(string mode, bool interactive)

@@ -178,4 +178,48 @@ internal static partial class Ui
         Console.WriteLine(m + Fg(BtnBorder) + "└" + new string('─', bw) + "┘" + Reset);
         try { Console.ReadLine(); } catch { }
     }
+
+    // ---- Launch Options: caixa de comando estilo terminal (verde no escuro) ----
+    public static void CodeBox(string text)
+    {
+        string m = CMar;
+        Console.WriteLine(m + Fg(DarkGray) + "┌" + new string('─', CW) + "┐" + Reset);
+        int pad = CW - text.Length - 2; if (pad < 0) pad = 0;
+        Console.WriteLine(m + Fg(DarkGray) + "│" + Bg((26, 26, 26)) + " \x1b[1m" + Fg(OkGreen) + text + "\x1b[22m" + new string(' ', pad) + " " + Reset + Fg(DarkGray) + "│" + Reset);
+        Console.WriteLine(m + Fg(DarkGray) + "└" + new string('─', CW) + "┘" + Reset);
+    }
+
+    public static void CopyStatus(bool ok)
+    {
+        string m = CMar;
+        if (ok)
+            Console.WriteLine(m + "  " + Fg(OkGreen) + "\x1b[1m> Copiado!\x1b[22m" + Reset + Fg(LightGray) + " cole com " + Reset + Fg(White) + "Ctrl+V" + Reset + Fg(LightGray) + " no campo da plataforma." + Reset);
+        else
+            Console.WriteLine(m + "  " + Fg(MAmber) + "! Copia automatica falhou" + Reset + Fg(LightGray) + " - selecione o texto acima e Ctrl+C." + Reset);
+    }
+
+    public static void LaunchHeading(string text)
+    {
+        Console.WriteLine();
+        Console.WriteLine(CMar + "\x1b[1m" + Fg(LightGray) + text + "\x1b[22m" + Reset);
+    }
+
+    public static void LaunchParam(string sym, (int r, int g, int b) color, string label, string desc)
+    {
+        Console.WriteLine(CMar + "  " + Fg(color) + sym + Reset + " " + Fg(White) + label.PadRight(22) + Reset + Fg(DarkGray) + desc + Reset);
+    }
+
+    public static void LaunchNote(string text)
+    {
+        Console.WriteLine();
+        Console.WriteLine(CMar + Fg(DarkGray) + text + Reset);
+    }
+
+    public static void StepsPanel(string title, string[] steps, (int r, int g, int b) acc)
+    {
+        var c = new List<string> { "" };
+        foreach (var s in steps) c.Add("  " + Raw(s, LightGray));
+        c.Add("");
+        DrawPanelTitled(acc, title, c, reveal: false);
+    }
 }

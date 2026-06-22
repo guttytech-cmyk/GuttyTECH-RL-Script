@@ -1,5 +1,5 @@
 ================================================================================
-  GUTTYTECH - ROCKET LEAGUE INI OPTIMIZER  v22.0  (TESSERACT)
+  GUTTYTECH - ROCKET LEAGUE INI OPTIMIZER  v22.2  (TESSERACT)
 ================================================================================
 
 Otimizador do arquivo TASystemSettings.ini do Rocket League (Unreal Engine 3),
@@ -8,6 +8,8 @@ com 3 modos e 1 clique. Funciona em qualquer PC com Windows 10/11.
   [1] COMPLETO  -> FPS maximo, graficos minimos. Para competitivo / PC fraco.
   [2] CRIADOR   -> Otimizado SEM destruir o visual. Para streamers/YouTubers.
   [3] REMOVER   -> Restaura o original (ou o padrao de fabrica) e destrava.
+  [4] LAUNCH OPTIONS -> Copia o melhor comando de inicializacao (Steam/Epic)
+                        pro clipboard; voce so cola na plataforma.
 
 
 --------------------------------------------------------------------------------
@@ -99,6 +101,46 @@ REMOVER:
 
 
 --------------------------------------------------------------------------------
+ LAUNCH OPTIONS  (comando de inicializacao - Steam / Epic)
+--------------------------------------------------------------------------------
+
+No menu, a opcao [4] LAUNCH OPTIONS copia pro clipboard o melhor comando de
+inicializacao (pesquisado e validado). Steam e Epic usam o MESMO comando:
+
+      -nomovie -NOSPLASH -high
+
+  STEAM: botao direito no RL > Propriedades > Geral > Opcoes de Inicializacao
+  EPIC:  Biblioteca > 3 pontinhos no RL > Gerenciar >
+         "Argumentos de linha de comando adicionais"
+  (cole com Ctrl+V e confirme)
+
+IMPORTANTE: no Rocket League as launch options quase NAO mudam FPS. O ganho real
+vem do INI (que o GuttyRL aplica) + Opcoes > Video. As flags abaixo so ajudam no
+tempo de boot e na prioridade do processo.
+
+O que cada flag faz:
+  -nomovie     pula os videos de intro       (boot mais rapido)
+  -NOSPLASH    pula a tela de splash          (boot mais rapido)
+  -high        prioridade Alta do processo    (TIRE se der stutter ou estalo de
+                                               audio - acontece em alguns PCs)
+
+Fora do comando - placebo/no-op no RL (a pesquisa confirmou):
+  -NoVSync               o RL ignora; o V-Sync ja vai OFF pelo proprio INI.
+  -nolog                 sem efeito util; ganho de FPS = zero.
+  -NoSteamVR             no-op: o RL nao tem plugin de VR (nem na Steam).
+  -no-stereo-rendering   placebo: o RL nao renderiza em estereo.
+  -USEALLAVAILABLECORES  no RL e no-op (a engine ja gerencia as threads).
+  -malloc=system         o RL (UE3) ignora; sem efeito.
+
+Opcional (cole A MAO se quiser):
+  -NoForceFeedback   MATA a vibracao do controle (so se voce nao quer rumble).
+
+Todas seguras com o Easy Anti-Cheat (EAC), obrigatorio no online desde a Season
+22. NAO use "Play without Easy Anti-Cheat" pra jogar ranqueada/online - essa
+opcao e so pra treino offline / LAN.
+
+
+--------------------------------------------------------------------------------
  BACKUPS E SEGURANCA
 --------------------------------------------------------------------------------
 
@@ -182,5 +224,5 @@ R: NAO e o otimizador nem o .ini (o .ini fica igual a uma config normal de FPS).
    Documents\My Games\Rocket League\TAGame\Cache\ e libere o RL/Epic no antivirus.
 
 ================================================================================
-  GUTTYTECH - TESSERACT v22.0
+  GUTTYTECH - TESSERACT v22.2
 ================================================================================

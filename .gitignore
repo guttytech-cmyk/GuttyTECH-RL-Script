@@ -5,6 +5,14 @@ GuttyRL.exe
 dotnet/bin/
 dotnet/obj/
 dotnet/publish/
+bin/
+obj/
+publish/
+
+# Artefatos de IDE (Visual Studio / Rider)
+.vs/
+*.user
+*.suo
 
 # Backups e arquivos de runtime (nao versionar)
 *.bak
