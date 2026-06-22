@@ -1,0 +1,20 @@
+# Executavel gerado pelo build (regenere com build_exe.bat) - .NET single-file
+GuttyRL.exe
+
+# Artefatos de build .NET
+dotnet/bin/
+dotnet/obj/
+dotnet/publish/
+
+# Backups e arquivos de runtime (nao versionar)
+*.bak
+_apply.tmp
+_debug*.txt
+*.sed
+log.txt
+
+# Lixo de SO / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+*~
