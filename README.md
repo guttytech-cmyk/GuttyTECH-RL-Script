@@ -31,6 +31,8 @@
 | `[3]` | **REMOVER** | Restaura o original / padrao de fabrica |
 | `[4]` | **LAUNCH OPTIONS** | Copia o melhor comando de inicializacao (Steam/Epic) pro clipboard |
 
+> **Descricao completa (tudo que o .exe faz, linha por linha):** [**DESCRICAO.md**](DESCRICAO.md)
+
 ---
 
 ## Modos
