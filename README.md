@@ -39,8 +39,6 @@
 - **CRIADOR** — texturas 1024px com anisotropico 16, reflexos/iluminacao/HDR preservados; corta o que pesa e pouco aparece (sombras dinamicas, AO, motion blur, DoF).
 - **REMOVER** — restaura o backup do seu `.ini` original (ou o stock), preservando sua resolucao, e destrava o arquivo.
 
-> Em todos os modos a sua **resolucao e modo de tela sao preservados** (nada de tela preta) e o `.ini` e travado em somente-leitura pra otimizacao nao sumir. O REMOVER destrava.
-
 ---
 
 ## Benchmarks — CapFrameX
