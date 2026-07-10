@@ -172,6 +172,33 @@ Se aparecer "[X] Nao consigo gravar na pasta do jogo":
 
 
 --------------------------------------------------------------------------------
+ ABRE E FECHA NA HORA?  (crash silencioso no startup)
+--------------------------------------------------------------------------------
+
+Se o GuttyTECH_RL.exe (ou GuttyRL.exe) abre e fecha imediatamente:
+
+  1) EXTRAIA DO ZIP antes de rodar. Nao execute de dentro do arquivo compactado.
+
+  2) ABRA O ROCKET LEAGUE 1 VEZ para criar o TASystemSettings.ini, depois rode
+     o otimizador de novo. Sem o INI o app mostra erro e pede ENTER.
+
+  3) ATUALIZE O WINDOWS (Configuracoes > Windows Update). Versoes antigas do
+     Win10/11 podem crashar apps .NET 9 self-contained (fecha sem mensagem).
+
+  4) LIBERE NO ANTIVIRUS / Acesso Controlado a Pastas:
+     - O .exe single-file extrai arquivos temporarios na 1a execucao.
+     - Bloqueio do %TEMP% ou do .exe = fecha na hora.
+     - Libere o GuttyTECH_RL.exe nas excecoes do Defender/antivirus.
+
+  5) PC ARM ou 32-bit: o .exe e so win-x64. Use Windows 64-bit (x64).
+
+  6) LOG DE CRASH: %USERPROFILE%\GuttyTECH\RL-Optimizer-v22\crash.log
+     Se existir, mande no Discord para suporte.
+
+  Alternativa: use o GuttyRL.bat (modo pasta) se tiver a pasta templates junto.
+
+
+--------------------------------------------------------------------------------
  POR QUE A v22 FUNCIONA ONDE A v21 FALHAVA
 --------------------------------------------------------------------------------
 

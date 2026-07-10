@@ -6,7 +6,7 @@ namespace GuttyRL;
 
 internal static class Program
 {
-    private const string Version = "v22.3";
+    private const string Version = "v22.3.1";
 
     private static readonly string GuttyDir =
         Path.Combine(
@@ -25,6 +25,12 @@ internal static class Program
 
     private static int Main(string[] args)
     {
+        StartupGuard.Install();
+        return StartupGuard.Run(() => Run(args));
+    }
+
+    private static int Run(string[] args)
+    {
         try { Console.Title = "GUTTYTECH - RL INI OPTIMIZER " + Version; } catch { }
         bool ansi = Vt.Enable();
         Ui.Init(ansi);
@@ -38,6 +44,7 @@ internal static class Program
             Ui.PanelTop("ERRO");
             Ui.PanelLine(Ui.C("X  TASystemSettings.ini nao encontrado.", Ui.Red));
             Ui.PanelLine(Ui.C("Abra o Rocket League uma vez e rode de novo.", Ui.Gray));
+            Ui.PanelLine(Ui.C("Caminho esperado: Documents\\My Games\\Rocket League\\...", Ui.DimC));
             Ui.PanelBottom();
             Ui.EnterButton();
             return 1;
@@ -50,7 +57,7 @@ internal static class Program
             mode = mode switch { "1" => "COMPLETO", "2" => "CRIADOR", "3" => "REMOVER", _ => mode };
             bool keepOpen = args.Length > 1 && args[1].Equals("/keepopen", StringComparison.OrdinalIgnoreCase);
             int rc = Dispatch(mode, keepOpen);
-            if (keepOpen) Ui.EnterButton();
+            if (keepOpen || rc != 0) Ui.EnterButton();
             return rc;
         }
 
