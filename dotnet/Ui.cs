@@ -32,13 +32,28 @@ internal static partial class Ui
         try { Console.OutputEncoding = Encoding.UTF8; } catch { }
         try
         {
-            int w = Math.Clamp(98, 84, Math.Max(84, Console.LargestWindowWidth));
-            int h = Math.Clamp(36, 28, Math.Max(28, Console.LargestWindowHeight));
-            try { Console.SetBufferSize(Math.Max(w, Console.BufferWidth), Math.Max(1000, Console.BufferHeight)); } catch { }
-            Console.SetWindowSize(w, h);
-            try { Console.SetBufferSize(w, Math.Max(1000, Console.BufferHeight)); } catch { }
+            int maxW = SafeLargestWindowWidth();
+            int maxH = SafeLargestWindowHeight();
+            int w = Math.Clamp(98, 72, Math.Max(72, maxW));
+            int h = Math.Clamp(36, 24, Math.Max(24, maxH));
+            if (w <= maxW && h <= maxH)
+            {
+                try { Console.SetBufferSize(Math.Max(w, Console.BufferWidth), Math.Max(500, Console.BufferHeight)); } catch { }
+                try { Console.SetWindowSize(w, h); } catch { }
+                try { Console.SetBufferSize(w, Math.Max(500, Console.BufferHeight)); } catch { }
+            }
         }
         catch { }
+    }
+
+    private static int SafeLargestWindowWidth()
+    {
+        try { return Math.Max(72, Console.LargestWindowWidth); } catch { return 98; }
+    }
+
+    private static int SafeLargestWindowHeight()
+    {
+        try { return Math.Max(24, Console.LargestWindowHeight); } catch { return 36; }
     }
 
     public static string Fg((int r, int g, int b) c) => _ansi ? $"\x1b[38;2;{c.r};{c.g};{c.b}m" : "";
@@ -109,7 +124,7 @@ internal static partial class Ui
         string sub = "R O C K E T   L E A G U E   ·   I N I   O P T I M I Z E R";
         int spad = Math.Max(2, (WinW - sub.Length - 18) / 2);
         Console.WriteLine();
-        Console.WriteLine(new string(' ', spad) + C(sub, Gray) + "   " + Bg(Red) + Fg(White) + " v22.3 " + Reset + " " + C("TESSERACT", RedHi));
+        Console.WriteLine(new string(' ', spad) + C(sub, Gray) + "   " + Bg(Red) + Fg(White) + " v22.3.1 " + Reset + " " + C("TESSERACT", RedHi));
         Console.WriteLine();
     }
 
@@ -120,7 +135,7 @@ internal static partial class Ui
         string m = new(' ', pad);
         Console.WriteLine();
         Console.WriteLine(m + Bold + Gradient(word, RedHi, RedLo) + Reset);
-        Console.WriteLine(m + C("RL INI OPTIMIZER", Gray) + "  " + Bg(Red) + Fg(White) + " v22.3 " + Reset + " " + C("TESSERACT", RedHi));
+        Console.WriteLine(m + C("RL INI OPTIMIZER", Gray) + "  " + Bg(Red) + Fg(White) + " v22.3.1 " + Reset + " " + C("TESSERACT", RedHi));
         Console.WriteLine();
     }
 
@@ -223,7 +238,7 @@ internal static partial class Ui
         ShowCursor();
         string m = new(' ', Margin);
         Console.Write("\n" + m + C("  pressione ", DimC) + B("ENTER", White) + C(" para continuar", DimC) + "  ");
-        try { Console.ReadLine(); } catch { }
+        WaitForEnter();
     }
 
     public static void SectionTitle(string text, (int r, int g, int b) accent)

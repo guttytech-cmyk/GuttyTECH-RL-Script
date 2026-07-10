@@ -176,7 +176,24 @@ internal static partial class Ui
         int pad = bw - plain.Length; if (pad < 0) pad = 0;
         Console.WriteLine(m + Fg(BtnBorder) + "│" + Bg(BtnBg) + Fg(White) + "  pressione " + RawB("ENTER", WarnYel) + Fg(White) + " para continuar  " + new string(' ', pad) + Reset + Fg(BtnBorder) + "│" + Reset);
         Console.WriteLine(m + Fg(BtnBorder) + "└" + new string('─', bw) + "┘" + Reset);
-        try { Console.ReadLine(); } catch { }
+        WaitForEnter();
+    }
+
+    private static void WaitForEnter()
+    {
+        try
+        {
+            while (true)
+            {
+                var key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Enter)
+                    return;
+            }
+        }
+        catch
+        {
+            StartupGuard.WaitForUser();
+        }
     }
 
     // ---- Launch Options: caixa de comando estilo terminal (verde no escuro) ----

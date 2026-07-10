@@ -29,7 +29,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\dotnet\gen_templates
 if errorlevel 1 ( color 0E & echo  [X] Falha ao gerar Templates.cs & pause & exit /b 1 )
 
 echo  [+] Compilando GuttyTECH_RL.exe ^(single-file^)... pode levar ~1 min na 1a vez.
-dotnet publish "%ROOT%\dotnet\GuttyRL.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:NoWarn=CA1416 -o "%ROOT%\dotnet\publish" --nologo
+::  PublishTrimmed=false: trimming quebrava startup em varios PCs (fecha na hora).
+dotnet publish "%ROOT%\dotnet\GuttyRL.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=false -p:NoWarn=CA1416 -o "%ROOT%\dotnet\publish" --nologo
 
 if not exist "%ROOT%\dotnet\publish\GuttyTECH_RL.exe" (
     color 0E
