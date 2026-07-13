@@ -6,7 +6,7 @@ namespace GuttyRL;
 
 internal static class Program
 {
-    private const string Version = "v22.3.2";
+    private const string Version = "v22.3.3";
 
     private static readonly string GuttyDir =
         Path.Combine(
@@ -246,7 +246,7 @@ internal static class Program
         }
 
         Log($"Aplicado {mode}.");
-        if (interactive) Ui.CompletionSuccess(mode, acc, BackupDir, ChecklistFor(mode));
+        if (interactive) Ui.CompletionSuccess(mode, acc, BackupDir);
         return 0;
     }
 
@@ -260,10 +260,6 @@ internal static class Program
         }
         catch { return false; }
     }
-
-    private static (string label, string value)[] ChecklistFor(string mode) => mode == "COMPLETO"
-        ? new[] { ("Render", "Performance"), ("Textura", "Performance"), ("Anti-Alias", "Desligado"), ("V-Sync", "Desligado"), ("Efeitos", "Sombras/Luz/Clima OFF") }
-        : new[] { ("Render", "Alta Qualidade"), ("Textura", "Alta Qualidade"), ("Sombras", "Dinamicas OFF"), ("Efeitos", "MotionBlur/DoF/Bloom OFF"), ("V-Sync", "Desligado") };
 
     // -------------------------------------------------------------- Remover
     private static int Remover(bool interactive)

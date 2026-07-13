@@ -421,23 +421,6 @@ echo  [+] Arquivo travado (somente-leitura) para o jogo nao sobrescrever.
 echo  [+] Sua resolucao/modo de tela foram preservados.
 echo  [+] Backups em: %BK_DIR%
 echo.
-echo  [i] AJUSTE O JOGO 1 VEZ - em Opcoes ^> Video, deixe assim:
-echo %~1| findstr /i "COMPLETO" >nul 2>&1
-if not errorlevel 1 (
-    echo      - Qualidade de Render ..... Performance
-    echo      - Detalhe de Textura ...... Performance
-    echo      - Anti-Aliasing ........... Desligado
-    echo      - Sincronizacao Vertical .. Desligado
-    echo      - Sombras/Luz/Clima/Desfoque .. TUDO desligado
-) else (
-    echo      - Qualidade de Render ..... Alta Qualidade
-    echo      - Detalhe de Textura ...... Alta Qualidade
-    echo      - Sombras Dinamicas ....... Desligado
-    echo      - Motion Blur/Prof.Campo/Bloom .. Desligado
-    echo      - Sincronizacao Vertical .. Desligado
-)
-echo      [detalhes completos no README.txt]
-echo.
 call :Pause
 color 0C
 exit /b 0

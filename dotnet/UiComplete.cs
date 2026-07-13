@@ -119,8 +119,8 @@ internal static partial class Ui
         Console.WriteLine(m + Fg(acc) + "╰" + new string('─', CW) + "╯" + Reset);
     }
 
-    // ---- painel CONCLUIDO + checklist in-game ----
-    public static void CompletionSuccess(string mode, (int r, int g, int b) acc, string backupPath, (string label, string value)[] checklist)
+    // ---- painel CONCLUIDO ----
+    public static void CompletionSuccess(string mode, (int r, int g, int b) acc, string backupPath)
     {
         var c = new List<string>
         {
@@ -135,18 +135,6 @@ internal static partial class Ui
             ""
         };
         DrawPanel(acc, c, reveal: true);
-
-        if (checklist is { Length: > 0 })
-        {
-            Console.WriteLine();
-            var k = new List<string> { "" };
-            foreach (var (label, value) in checklist)
-                k.Add("  " + Raw("▸ ", acc) + Raw(label.PadRight(12), White) + Raw("→  ", DarkGray) + Raw(value, LightGray));
-            k.Add("");
-            k.Add("  " + RawB("! ", WarnYel) + Raw("Faca isso 1x por modo - o INI faz o resto.", WarnYel));
-            k.Add("");
-            DrawPanelTitled(acc, "AJUSTE O JOGO 1 VEZ  (Opcoes > Video)", k, reveal: true);
-        }
     }
 
     // ---- painel de conclusao simples (REMOVER, falhas) ----
