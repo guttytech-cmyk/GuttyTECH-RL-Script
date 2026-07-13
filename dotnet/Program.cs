@@ -6,7 +6,7 @@ namespace GuttyRL;
 
 internal static class Program
 {
-    private const string Version = "v22.3.1";
+    private const string Version = "v22.3.2";
 
     private static readonly string GuttyDir =
         Path.Combine(
@@ -76,10 +76,18 @@ internal static class Program
         }
     }
 
+    private static int RunHeal(bool interactive)
+    {
+        if (_cfg is null) return 1;
+        bool ok = FolderAccess.RunHealMode(_cfg, interactive);
+        return ok ? 0 : 1;
+    }
+
     private static int Dispatch(string mode, bool interactive)
     {
         if (mode == "REMOVER") return Remover(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
+        if (mode == "HEAL") return RunHeal(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
         Console.WriteLine(Ui.C("  Use: GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER]", Ui.Gray));
         return 2;
@@ -214,7 +222,7 @@ internal static class Program
         if (!CheckGame(interactive)) return 1;
         var acc = Ui.ModeColor(mode);
         if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(acc); Ui.TitleBar("APLICANDO MODO " + mode, acc); }
-        if (!WriteTest()) return 1;
+        if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
 
         EnsureOriginalBackup();
         string dsrc = File.Exists(OrigBackup) ? OrigBackup : _cfg!;
@@ -262,7 +270,7 @@ internal static class Program
     {
         if (!CheckGame(interactive)) return 1;
         if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(Ui.MAmber); Ui.TitleBar("REMOVENDO / RESTAURANDO", Ui.MAmber); }
-        if (!WriteTest()) return 1;
+        if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
 
         bool fromOriginal = File.Exists(OrigBackup);
         bool Restore()
@@ -392,28 +400,6 @@ internal static class Program
 
     private static Process[] GetRl()
     { try { return Process.GetProcessesByName("RocketLeague"); } catch { return Array.Empty<Process>(); } }
-
-    private static bool WriteTest()
-    {
-        try
-        {
-            string dir = Path.GetDirectoryName(_cfg!)!;
-            string t = Path.Combine(dir, "gutty_wtest.tmp");
-            File.WriteAllText(t, "test");
-            File.Delete(t);
-            return true;
-        }
-        catch
-        {
-            Ui.Gap();
-            Ui.PanelTop("SEM ACESSO A PASTA");
-            Ui.PanelLine(Ui.C("Nao consigo gravar na pasta do jogo.", Ui.Red));
-            Ui.PanelLine(Ui.C("Causa provavel: Acesso Controlado a Pastas (Defender)", Ui.Gray));
-            Ui.PanelLine(Ui.C("ou antivirus. Veja a secao Antivirus do README.", Ui.Gray));
-            Ui.PanelBottom();
-            return false;
-        }
-    }
 
     private static void Unlock(string path)
     {
