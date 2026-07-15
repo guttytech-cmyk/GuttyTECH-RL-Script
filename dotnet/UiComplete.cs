@@ -130,7 +130,9 @@ internal static partial class Ui
             "",
             "  " + Raw("» ", acc) + Raw("MODO " + mode + " aplicado com ", White) + RawB("sucesso", OkGreen) + Raw("!", White),
             "",
-            "  " + Raw("Arquivo travado (read-only) e resolucao preservada.", LightGray),
+            "  " + Raw(mode == "CRIADOR"
+                ? "Graficos ajustaveis no jogo; otimizacao do criador mantida."
+                : "Menu de video sincronizado. Abra o RL — sem tutorial.", LightGray),
             "  " + Raw("Backups: " + Trunc(backupPath, CW - 13), DarkGray),
             ""
         };
@@ -198,9 +200,10 @@ internal static partial class Ui
     {
         string m = CMar;
         if (ok)
-            Console.WriteLine(m + "  " + Fg(OkGreen) + "\x1b[1m> Copiado!\x1b[22m" + Reset + Fg(LightGray) + " cole com " + Reset + Fg(White) + "Ctrl+V" + Reset + Fg(LightGray) + " no campo da plataforma." + Reset);
+            Console.WriteLine(m + "  " + Fg(OkGreen) + "\x1b[1m> Copiado para a area de transferencia!\x1b[22m" + Reset
+                + Fg(LightGray) + "  Cole com " + Reset + Fg(White) + "Ctrl+V" + Reset + Fg(LightGray) + " no launcher." + Reset);
         else
-            Console.WriteLine(m + "  " + Fg(MAmber) + "! Copia automatica falhou" + Reset + Fg(LightGray) + " - selecione o texto acima e Ctrl+C." + Reset);
+            Console.WriteLine(m + "  " + Fg(MAmber) + "! Nao copiou sozinho" + Reset + Fg(LightGray) + " — selecione o comando abaixo e Ctrl+C." + Reset);
     }
 
     public static void LaunchHeading(string text)

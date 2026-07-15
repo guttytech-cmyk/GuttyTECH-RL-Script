@@ -6,6 +6,10 @@ GuttyRL.exe
 dotnet/bin/
 dotnet/obj/
 dotnet/publish/
+dotnet/publish-fixed/
+dotnet/publish-trimmed/
+tools/__pycache__/
+tools/pydeps/
 bin/
 obj/
 publish/

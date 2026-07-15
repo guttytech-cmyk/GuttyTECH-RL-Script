@@ -16,6 +16,8 @@ internal static class FolderAccess
         Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
     };
 
+    public static bool CanWriteToDirectory(string dir) => ProbeWrite(dir);
+
     public static bool EnsureWriteAccess(string iniPath, bool interactive)
     {
         string dir = Path.GetDirectoryName(iniPath)!;
@@ -28,10 +30,10 @@ internal static class FolderAccess
     }
 
     /// <summary>Modo HEAL elevado: libera Defender + ACL e testa gravacao.</summary>
-    public static bool RunHealMode(string iniPath, bool interactive)
+    public static bool RunHealMode(string iniPath, bool interactive, bool showBanner = true)
     {
         string dir = Path.GetDirectoryName(iniPath)!;
-        if (interactive)
+        if (interactive && showBanner)
         {
             Ui.Cls();
             Ui.MiniBannerIfTall(Ui.MAmber);
@@ -244,7 +246,7 @@ internal static class FolderAccess
 
         try
         {
-            var psi = new ProcessStartInfo(exe, "HEAL /keepopen")
+            var psi = new ProcessStartInfo(exe, "CORRIGIR /keepopen")
             {
                 UseShellExecute = true,
                 Verb = "runas"

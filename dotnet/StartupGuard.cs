@@ -8,21 +8,12 @@ namespace GuttyRL;
 [SupportedOSPlatform("windows")]
 internal static class StartupGuard
 {
-    private static readonly string GuttyDir =
-        Path.Combine(
-            Environment.GetEnvironmentVariable("GUTTYRL_HOME") is { Length: > 0 } home
-                ? home
-                : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "GuttyTECH", "RL-Optimizer-v22");
-
-    private static string CrashLog => Path.Combine(GuttyDir, "crash.log");
-
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern int MessageBoxW(nint hWnd, string text, string caption, uint type);
 
     public static void Install()
     {
-        try { Directory.CreateDirectory(GuttyDir); } catch { }
+        try { Directory.CreateDirectory(AppMeta.GuttyDir); } catch { }
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
@@ -34,6 +25,15 @@ internal static class StartupGuard
 
         try
         {
+            if (!OperatingSystem.IsWindows())
+            {
+                ReportFatal(
+                    "Este GuttyRL e exclusivo para Windows.\n\n" +
+                    $"SO detectado: {Environment.OSVersion}",
+                    null);
+                Environment.Exit(3);
+            }
+
             if (RuntimeInformation.ProcessArchitecture != Architecture.X64)
             {
                 ReportFatal(
@@ -45,6 +45,9 @@ internal static class StartupGuard
             }
         }
         catch { }
+
+        WarnIfRunningFromTemp();
+        AppMeta.Log($"Startup {AppMeta.Version} | {Environment.ProcessPath ?? "(exe)"}");
     }
 
     public static int Run(Func<int> main)
@@ -88,7 +91,7 @@ internal static class StartupGuard
         sb.AppendLine($"Exe: {Environment.ProcessPath ?? "(desconhecido)"}");
         sb.AppendLine();
 
-        try { File.AppendAllText(CrashLog, sb.ToString()); } catch { }
+        try { File.AppendAllText(AppMeta.CrashLog, sb.ToString()); } catch { }
 
         try
         {
@@ -98,7 +101,7 @@ internal static class StartupGuard
             if (ex is not null) Console.WriteLine(ex.Message);
             Console.WriteLine();
             Console.WriteLine("Log salvo em:");
-            Console.WriteLine(CrashLog);
+            Console.WriteLine(AppMeta.CrashLog);
             Console.WriteLine();
             Console.WriteLine("Se abriu e fechou na hora sem ver nada:");
             Console.WriteLine("  1) Extraia o .exe do ZIP antes de rodar (nao rode de dentro do ZIP).");
@@ -112,11 +115,25 @@ internal static class StartupGuard
             try
             {
                 MessageBoxW(0,
-                    title + "\n\n" + (ex?.Message ?? "") + "\n\nLog: " + CrashLog,
+                    title + "\n\n" + (ex?.Message ?? "") + "\n\nLog: " + AppMeta.CrashLog,
                     "GUTTYTECH - GuttyRL",
                     0x10);
             }
             catch { }
         }
+    }
+
+    private static void WarnIfRunningFromTemp()
+    {
+        string? exe = Environment.ProcessPath;
+        if (string.IsNullOrWhiteSpace(exe)) return;
+
+        string full = Path.GetFullPath(exe);
+        if (!full.Contains(@"\Temp\", StringComparison.OrdinalIgnoreCase)
+            && !full.Contains(@"\INetCache\", StringComparison.OrdinalIgnoreCase)
+            && !full.Contains(@"\AppData\Local\Temp\", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        AppMeta.Log("AVISO: exe parece estar em pasta temporaria (ZIP/edge). Extraia antes de usar.");
     }
 }

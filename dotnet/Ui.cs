@@ -124,7 +124,7 @@ internal static partial class Ui
         string sub = "R O C K E T   L E A G U E   ·   I N I   O P T I M I Z E R";
         int spad = Math.Max(2, (WinW - sub.Length - 18) / 2);
         Console.WriteLine();
-        Console.WriteLine(new string(' ', spad) + C(sub, Gray) + "   " + Bg(Red) + Fg(White) + " v22.3.3 " + Reset + " " + C("TESSERACT", RedHi));
+        Console.WriteLine(new string(' ', spad) + C(sub, Gray) + "   " + Bg(Red) + Fg(White) + " " + AppMeta.Version + " " + Reset + " " + C("TESSERACT", RedHi));
         Console.WriteLine();
     }
 
@@ -135,7 +135,7 @@ internal static partial class Ui
         string m = new(' ', pad);
         Console.WriteLine();
         Console.WriteLine(m + Bold + Gradient(word, RedHi, RedLo) + Reset);
-        Console.WriteLine(m + C("RL INI OPTIMIZER", Gray) + "  " + Bg(Red) + Fg(White) + " v22.3.3 " + Reset + " " + C("TESSERACT", RedHi));
+        Console.WriteLine(m + C("RL INI OPTIMIZER", Gray) + "  " + Bg(Red) + Fg(White) + " " + AppMeta.Version + " " + Reset + " " + C("TESSERACT", RedHi));
         Console.WriteLine();
     }
 

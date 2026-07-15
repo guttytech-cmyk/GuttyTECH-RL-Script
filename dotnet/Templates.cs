@@ -3,14 +3,14 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.0
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.19
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
 DynamicDecals=True
 UnbatchedDecals=False
-DecalCullDistanceScale=0.000000
-DynamicLights=True
+DecalCullDistanceScale=1.000000
+DynamicLights=False
 DynamicShadows=False
 LightEnvironmentShadows=False
 CompositeDynamicLights=False
@@ -34,10 +34,10 @@ LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=False
 OneFrameThreadLag=True
-WaitForGPU=True
+WaitForGPU=False
 UseVsync=False
 CustomFPS=0
-UpscaleScreenPercentage=True
+UpscaleScreenPercentage=False
 UpscaleTargetFramerateDocked=60.000000
 UpscaleTargetFramerateUndocked=60.000000
 MinimumScreenScale=1.000000
@@ -57,7 +57,7 @@ bAllowSeparateTranslucency=False
 bAllowPostprocessMLAA=False
 bAllowHighQualityMaterials=False
 bUseTranslucentArenaShaders=False
-MaxFilterBlurSampleCount=16
+MaxFilterBlurSampleCount=2
 SkeletalMeshLODBias=100
 ParticleLODBias=100
 DetailMode=0
@@ -67,15 +67,15 @@ MaxAnisotropy=0
 MaxMultiSamples=0
 bAllowD3D9MSAA=False
 bAllowTemporalAA=False
-TemporalAA_MinDepth=500.000000
-TemporalAA_StartDepthVelocityScale=100.000000
+TemporalAA_MinDepth=0.000000
+TemporalAA_StartDepthVelocityScale=0.000000
 MinShadowResolution=16
 MinPreShadowResolution=8
 MaxShadowResolution=16
-MobileShadowTextureResolution=1120
+MobileShadowTextureResolution=16
 MaxWholeSceneDominantShadowResolution=16
-ShadowFadeResolution=32
-PreShadowFadeResolution=16
+ShadowFadeResolution=1
+PreShadowFadeResolution=1
 ShadowFadeExponent=0.250000
 ResX=1920
 ResY=1080
@@ -93,23 +93,23 @@ bEnableForegroundShadowsOnWorld=False
 bEnableForegroundSelfShadowing=False
 bAllowWholeSceneDominantShadows=False
 bUseConservativeShadowBounds=False
-ShadowFilterRadius=2.000000
-ShadowDepthBias=0.012000
-PerObjectShadowTransition=60.000000
-PerSceneShadowTransition=600.000000
+ShadowFilterRadius=0.000000
+ShadowDepthBias=1.000000
+PerObjectShadowTransition=0.000000
+PerSceneShadowTransition=0.000000
 CSMSplitPenumbraScale=0.000000
-CSMSplitSoftTransitionDistanceScale=4.000000
-CSMSplitDepthBiasScale=0.500000
+CSMSplitSoftTransitionDistanceScale=0.000000
+CSMSplitDepthBiasScale=0.000000
 CSMMinimumFOV=40.000000
 CSMFOVRoundFactor=4.000000
-UnbuiltWholeSceneDynamicShadowRadius=20000.000000
-UnbuiltNumWholeSceneDynamicShadowCascades=3
-WholeSceneShadowUnbuiltInteractionThreshold=50
+UnbuiltWholeSceneDynamicShadowRadius=0.000000
+UnbuiltNumWholeSceneDynamicShadowCascades=1
+WholeSceneShadowUnbuiltInteractionThreshold=0
 bAllowFracturedDamage=False
 NumFracturedPartsScale=0.000000
 FractureDirectSpawnChanceScale=0.000000
 FractureRadialSpawnChanceScale=0.000000
-FractureCullDistanceScale=1.000000
+FractureCullDistanceScale=0.000000
 bForceCPUAccessToGPUSkinVerts=false
 bDisableSkeletalInstanceWeights=False
 HighPrecisionGBuffers=False
@@ -119,9 +119,9 @@ SecondaryDisplayMaximumHeight=720
 AllowPerFrameSleep=True
 AllowPerFrameYield=True
 MobileFeatureLevel=0
-MobileFog=True
+MobileFog=False
 MobileHeightFog=False
-MobileSpecular=True
+MobileSpecular=False
 MobileBumpOffset=True
 MobileNormalMapping=True
 MobileEnvMapping=True
@@ -151,10 +151,10 @@ MobileEnableMSAA=False
 MobileContentScaleFactor=1.0
 MobileVertexScratchBufferSize=150
 MobileIndexScratchBufferSize=10
-MobileLightShaftScale=2.0
-MobileLightShaftFirstPass=0.5
-MobileLightShaftSecondPass=1.0
-MobileModShadows=True
+MobileLightShaftScale=0
+MobileLightShaftFirstPass=0
+MobileLightShaftSecondPass=0
+MobileModShadows=False
 MobileTiltShift=False
 MobileMaxMemory=300
 MobilePostProcessBlurAmount=32.0
@@ -165,10 +165,10 @@ MobileTiltShiftTransitionWidth=0.5
 MobileMaxShadowRange=500.0
 MobileBloomTint=(R=1.0,G=0.75,B=0.0,A=1.0)
 MobileClearDepthBetweenDPG=False
-MobileSceneDepthResolveForShadows=TRUE
+MobileSceneDepthResolveForShadows=FALSE
 MobileLandscapeLODBias=15
 MobileUseShaderGroupForStartupObjects=FALSE
-MobileMinimizeFogShaders=FALSE
+MobileMinimizeFogShaders=TRUE
 MobileFXAAQuality=0
 ApexLODResourceBudget=1000000000000000000000.0
 ApexDestructionMaxChunkIslandCount=0
@@ -186,10 +186,10 @@ ApexGRBFrictionSolverPosIterCount=3;
 ApexGRBFrictionSolverVelIterCount=3;
 ApexGRBSkinWidth=0.025
 ApexGRBMaxLinearAcceleration=1000000.0
-bEnableParallelAPEXClothingFetch=True
+bEnableParallelAPEXClothingFetch=False
 bApexClothingAsyncFetchResults=False
 ApexClothingAvgSimFrequencyWindow=60
-ApexClothingAllowAsyncCooking=True
+ApexClothingAllowAsyncCooking=False
 ApexClothingAllowApexWorkBetweenSubsteps=FALSE
 TEXTUREGROUP_World=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)
 TEXTUREGROUP_WorldNormalMap=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)
@@ -219,7 +219,7 @@ TEXTUREGROUP_Terrain_Weightmap=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilt
 TEXTUREGROUP_ImageBasedReflection=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point,MipGenSettings=TMGS_Blur5)
 TEXTUREGROUP_Bokeh=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)
 TEXTUREGROUP_Pitch=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)
-FullEffectIntensity=True
+FullEffectIntensity=False
 bAllowBetterModulatedShadows=FALSE
 UncappedFramerate=True
 bSmoothFrameRate=False
@@ -243,13 +243,13 @@ BasedOn=SystemSettings
 [SystemSettingsScreenshot]
 BasedOn=SystemSettings
 MaxAnisotropy=0
-ShadowFilterQualityBias=1
+ShadowFilterQualityBias=0
 MinShadowResolution=16
 ShadowFadeResolution=1
-MinPreShadowResolution=16
+MinPreShadowResolution=8
 PreShadowFadeResolution=1
 ShadowTexelsPerPixel=0.000000
-PreShadowResolutionFactor=1.0
+PreShadowResolutionFactor=0.5
 MaxShadowResolution=16
 MaxWholeSceneDominantShadowResolution=16
 CompositeDynamicLights=False
@@ -297,7 +297,7 @@ DirectionalLightmaps=False
 DynamicLights=False
 SHSecondaryLighting=False
 StaticDecals=False
-DynamicDecals=True
+DynamicDecals=False
 UnbatchedDecals=False
 MotionBlur=False
 MotionBlurPause=False
@@ -312,7 +312,7 @@ MaxAnisotropy=0
 bAllowLightShafts=False
 MobileModShadows=False
 MobileClearDepthBetweenDPG=False
-MaxFilterBlurSampleCount=4
+MaxFilterBlurSampleCount=2
 DynamicShadows=False
 MobileMaxMemory=300
 MobileLandscapeLODBias=15
@@ -397,7 +397,7 @@ Bloom=False
 Distortion=False
 FilteredDistortion=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 MobileClearDepthBetweenDPG=True
 DirectionalLightmaps=False
@@ -411,7 +411,7 @@ bMobileUsingHighResolutionTiming=False
 BasedOn=SystemSettingsMobileTextureBias
 LensFlares=False
 DetailMode=0
-MobileEnableMSAA=True
+MobileEnableMSAA=False
 MobileMaxMemory=100
 bMobileUsingHighResolutionTiming=False
 MobileLandscapeLODBias=15
@@ -425,25 +425,25 @@ MobileLandscapeLODBias=15
 
 [SystemSettingsIPhone4S]
 BasedOn=SystemSettingsMobile
-MobileEnableMSAA=True
+MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.025
 MobileContentScaleFactor=2.0
 MaxShadowResolution=16
-MobileShadowTextureResolution=256
+MobileShadowTextureResolution=16
 
 [SystemSettingsIPhone5]
 BasedOn=SystemSettingsMobile
-MobileEnableMSAA=True
+MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.025
 MobileContentScaleFactor=2.0
 MaxShadowResolution=16
-MobileShadowTextureResolution=1024
+MobileShadowTextureResolution=16
 AllowRadialBlur=False
 
 [SystemSettingsIPodTouch4]
@@ -456,14 +456,14 @@ MobileLandscapeLODBias=15
 
 [SystemSettingsIPodTouch5]
 BasedOn=SystemSettingsMobile
-MobileEnableMSAA=True
+MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.025
 MobileContentScaleFactor=2.0
 MaxShadowResolution=16
-MobileShadowTextureResolution=256
+MobileShadowTextureResolution=16
 
 [SystemSettingsIPad]
 BasedOn=SystemSettingsMobileTextureBias
@@ -483,35 +483,35 @@ MobileContentScaleFactor=0.9375
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=1.0
 MaxShadowResolution=16
-MobileShadowTextureResolution=256
+MobileShadowTextureResolution=16
 
 [SystemSettingsIPad3]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=1.40625
 MaxShadowResolution=16
-MobileShadowTextureResolution=256
+MobileShadowTextureResolution=16
 MobileMaxMemory=500
 
 [SystemSettingsIPad4]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=2.0
 MaxShadowResolution=16
-MobileShadowTextureResolution=512
+MobileShadowTextureResolution=16
 MobileMaxMemory=500
 AllowRadialBlur=False
 
@@ -519,12 +519,12 @@ AllowRadialBlur=False
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
-MobileModShadows=True
+MobileModShadows=False
 DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=1.0
 MaxShadowResolution=16
-MobileShadowTextureResolution=256
+MobileShadowTextureResolution=16
 
 [SystemSettingsIPad2_Detail]
 BasedOn=SystemSettingsIPad2
@@ -719,22 +719,22 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.14
 [SystemSettings]
 UseDirectSound=True
-StaticDecals=True
+StaticDecals=False
 DynamicDecals=True
 UnbatchedDecals=True
 DecalCullDistanceScale=1.000000
-DynamicLights=True
+DynamicLights=False
 DynamicShadows=False
 LightEnvironmentShadows=False
 CompositeDynamicLights=False
 SHSecondaryLighting=False
-DirectionalLightmaps=True
+DirectionalLightmaps=False
 MotionBlur=False
 MotionBlurPause=False
-MotionBlurSkinning=1
+MotionBlurSkinning=0
 DepthOfField=False
 AmbientOcclusion=False
 Bloom=False
@@ -745,9 +745,9 @@ DropParticleDistortion=False
 bAllowDownsampledTranslucency=False
 SpeedTreeLeaves=True
 SpeedTreeFronds=True
-OnlyStreamInTextures=False
+OnlyStreamInTextures=True
 LensFlares=False
-FogVolumes=True
+FogVolumes=False
 FloatingPointRenderTargets=True
 OneFrameThreadLag=True
 WaitForGPU=True
@@ -772,14 +772,14 @@ bAllowSeparateTranslucency=False
 bAllowPostprocessMLAA=False
 bAllowHighQualityMaterials=True
 bUseTranslucentArenaShaders=True
-MaxFilterBlurSampleCount=16
+MaxFilterBlurSampleCount=2
 SkeletalMeshLODBias=0
 ParticleLODBias=0
 DetailMode=2
 MaxDrawDistanceScale=1
 ShadowFilterQualityBias=0
 MaxAnisotropy=16
-MaxMultiSamples=1
+MaxMultiSamples=0
 bAllowD3D9MSAA=False
 bAllowTemporalAA=False
 TemporalAA_MinDepth=500.000000
@@ -798,12 +798,12 @@ AutoDetectDesktopResolution=False
 Borderless=False
 AllowApexCloth=true
 ScreenPercentage=100.000000
-SceneCaptureStreamingMultiplier=1.000000
+SceneCaptureStreamingMultiplier=0.000000
 ShadowTexelsPerPixel=0.000000
 PreShadowResolutionFactor=0.500000
 bEnableBranchingPCFShadows=False
 bAllowHardwareShadowFiltering=False
-TessellationAdaptivePixelsPerTriangle=48.000000
+TessellationAdaptivePixelsPerTriangle=0.000000
 bEnableForegroundShadowsOnWorld=True
 bEnableForegroundSelfShadowing=False
 bAllowWholeSceneDominantShadows=False
@@ -824,7 +824,7 @@ bAllowFracturedDamage=False
 NumFracturedPartsScale=0.000000
 FractureDirectSpawnChanceScale=0.000000
 FractureRadialSpawnChanceScale=0.000000
-FractureCullDistanceScale=1.000000
+FractureCullDistanceScale=0.000000
 bForceCPUAccessToGPUSkinVerts=false
 bDisableSkeletalInstanceWeights=false
 HighPrecisionGBuffers=False
@@ -1004,7 +1004,7 @@ ResY=720
 BasedOn=SystemSettings
 bAllowWholeSceneDominantShadows=False
 bAllowLightShafts=False
-DetailMode=1
+DetailMode=0
 
 [SystemSettingsMobile]
 BasedOn=SystemSettings
@@ -1012,7 +1012,7 @@ Fullscreen=True
 DirectionalLightmaps=False
 DynamicLights=False
 SHSecondaryLighting=False
-StaticDecals=True
+StaticDecals=False
 DynamicDecals=False
 UnbatchedDecals=False
 MotionBlur=FALSE
@@ -1022,7 +1022,7 @@ AmbientOcclusion=FALSE
 Bloom=FALSE
 Distortion=FALSE
 FilteredDistortion=FALSE
-DropParticleDistortion=TRUE
+DropParticleDistortion=False
 FloatingPointRenderTargets=FALSE
 MaxAnisotropy=2
 bAllowLightShafts=FALSE
@@ -1126,8 +1126,8 @@ bMobileUsingHighResolutionTiming=False
 [SystemSettingsIPhone3GS]
 BasedOn=SystemSettingsMobileTextureBias
 LensFlares=False
-DetailMode=1
-MobileEnableMSAA=True
+DetailMode=0
+MobileEnableMSAA=False
 MobileMaxMemory=100
 bMobileUsingHighResolutionTiming=False
 MobileLandscapeLodBias=2
@@ -1141,8 +1141,8 @@ MobileLandscapeLodBias=1
 
 [SystemSettingsIPhone4S]
 BasedOn=SystemSettingsMobile
-MobileEnableMSAA=True
-bAllowLightShafts=True
+MobileEnableMSAA=False
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=False
 ShadowDepthBias=0.025
@@ -1152,8 +1152,8 @@ MobileShadowTextureResolution=256
 
 [SystemSettingsIPhone5]
 BasedOn=SystemSettingsMobile
-MobileEnableMSAA=True
-bAllowLightShafts=True
+MobileEnableMSAA=False
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=False
 ShadowDepthBias=0.025
@@ -1172,8 +1172,8 @@ MobileLandscapeLodBias=2
 
 [SystemSettingsIPodTouch5]
 BasedOn=SystemSettingsMobile
-MobileEnableMSAA=True
-bAllowLightShafts=True
+MobileEnableMSAA=False
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=False
 ShadowDepthBias=0.025
@@ -1198,7 +1198,7 @@ MobileContentScaleFactor=0.9375
 [SystemSettingsIPad2]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
-bAllowLightShafts=True
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=False
 ShadowDepthBias=0.016
@@ -1209,7 +1209,7 @@ MobileShadowTextureResolution=256
 [SystemSettingsIPad3]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
-bAllowLightShafts=True
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=True
 ShadowDepthBias=0.016
@@ -1221,7 +1221,7 @@ MobileMaxMemory=500
 [SystemSettingsIPad4]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
-bAllowLightShafts=True
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=True
 ShadowDepthBias=0.016
@@ -1234,7 +1234,7 @@ AllowRadialBlur=True
 [SystemSettingsIPadMini]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
-bAllowLightShafts=True
+bAllowLightShafts=False
 MobileModShadows=True
 DynamicShadows=False
 ShadowDepthBias=0.016
@@ -1409,7 +1409,7 @@ TEXTUREGROUP_ColorLookupTable=(MinLODSize=1,MaxLODSize=2048,LODBias=0)
 
 [SystemSettingsProfileDetailLow]
 BasedOn=SystemSettings
-DetailMode=2
+DetailMode=0
 AmbientOcclusion=False
 DepthOfField=False
 Bloom=False

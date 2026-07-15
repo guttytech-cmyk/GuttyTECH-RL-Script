@@ -3,6 +3,21 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.19] — 2026-07-15
+### Corrigido
+- **COMPLETO:** indicador circular branco sob a bola (gameplay) restaurado.
+  - `DynamicDecals=True` e `DecalCullDistanceScale=1.0` no INI principal.
+  - Save patch: `WorldDetail=Quality`, `bUseBallIndicator=True`.
+- **COMPLETO:** menu de vídeo Epic sincronizado via patch do `.save` (sem tutorial).
+  - `EffectIntensity=EI_Low`, textura/partículas/mundo no potato, FPS uncapped (`MaxFPS=10000`).
+  - Purga apenas `RLSettingsData` (preserva progresso).
+- **CRIADOR:** grama SpeedTree (`Leaves`/`Fronds`) restaurada no template.
+- **Save codec:** enums `ByteProperty` corrigidos no `nixwrap` (`save_codec.py`).
+
+### Adicionado
+- `tools/` (patch Python + wheel nixwrap) copiado junto ao exe no build.
+- `CompletoForce`, `CriadorForce`, `VideoSettingsSync`, `IniAudit` (AUDIT).
+
 ## [v22.3] — 2026-06-23
 ### Corrigido
 - **CRIADOR:** indicador da bola (círculo branco + sombra no chão) voltou a aparecer nas laterais/cantos do campo.

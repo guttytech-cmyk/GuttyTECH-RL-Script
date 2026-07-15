@@ -6,22 +6,30 @@ namespace GuttyRL;
 
 internal static class Program
 {
-    private const string Version = "v22.3.3";
-
-    private static readonly string GuttyDir =
-        Path.Combine(
-            Environment.GetEnvironmentVariable("GUTTYRL_HOME") is { Length: > 0 } home
-                ? home
-                : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "GuttyTECH", "RL-Optimizer-v22");
-    private static string BackupDir => Path.Combine(GuttyDir, "Backups");
-    private static string OrigBackup => Path.Combine(BackupDir, "TASystemSettings.original.ini");
-    private static string LogFile => Path.Combine(GuttyDir, "log.txt");
-
     private static readonly string[] DisplayKeys =
         { "ResX", "ResY", "Fullscreen", "Borderless", "AutoDetectDesktopResolution" };
 
+    // Chaves ligadas ao menu Video do RL — preservadas no CRIADOR (in-game ou re-aplicar).
+    private static readonly string[] CriadorUserKeys =
+    {
+        "UseVsync",
+        "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage",
+        "DetailMode", "ParticleLODBias", "SkeletalMeshLODBias", "MaxDrawDistanceScale", "MaxAnisotropy",
+        "FullEffectIntensity",
+        "bAllowHighQualityMaterials", "bUseTranslucentArenaShaders",
+        "AmbientOcclusion", "DepthOfField", "Bloom", "bAllowLightShafts", "LensFlares",
+        "DynamicShadows", "LightEnvironmentShadows", "CompositeDynamicLights",
+        "MotionBlur", "MotionBlurPause", "MotionBlurSkinning",
+        "FogVolumes",
+        "bAllowD3D9MSAA", "MaxMultiSamples", "bAllowTemporalAA", "bAllowPostprocessMLAA", "MobileFXAAQuality",
+        "UncappedFramerate", "bSmoothFrameRate", "CustomFPS", "AllowPerFrameSleep",
+        "Distortion", "FilteredDistortion", "DropParticleDistortion", "AllowRadialBlur",
+        "AllowSubsurfaceScattering",
+        "AllowImageReflections", "AllowImageReflectionShadowing", "AllowApexCloth",
+    };
+
     private static string? _cfg;
+    private static bool? _cfgWritable;
 
     private static int Main(string[] args)
     {
@@ -31,10 +39,24 @@ internal static class Program
 
     private static int Run(string[] args)
     {
-        try { Console.Title = "GUTTYTECH - RL INI OPTIMIZER " + Version; } catch { }
+        try
+        {
+            Console.CancelKeyPress += (_, e) => { e.Cancel = true; Environment.Exit(0); };
+            Console.Title = "GUTTYTECH - RL INI OPTIMIZER " + AppMeta.Version;
+        }
+        catch { }
+
         bool ansi = Vt.Enable();
         Ui.Init(ansi);
-        try { Directory.CreateDirectory(BackupDir); } catch { }
+        try { Directory.CreateDirectory(AppMeta.BackupDir); } catch { }
+
+        if (args.Length > 0 && args[0].Equals("AUDIT", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine("[*] Auditando templates embutidos...");
+            int rc = IniAudit.Run();
+            Console.WriteLine(rc == 0 ? "[+] Audit OK." : $"[X] Audit FALHOU ({rc} problema(s) reportados acima).");
+            return rc;
+        }
 
         _cfg = FindIni();
         if (_cfg is null)
@@ -43,18 +65,32 @@ internal static class Program
             Ui.Banner(false);
             Ui.PanelTop("ERRO");
             Ui.PanelLine(Ui.C("X  TASystemSettings.ini nao encontrado.", Ui.Red));
-            Ui.PanelLine(Ui.C("Abra o Rocket League uma vez e rode de novo.", Ui.Gray));
+            Ui.PanelLine(Ui.C(MissingIniHint(), Ui.Gray));
             Ui.PanelLine(Ui.C("Caminho esperado: Documents\\My Games\\Rocket League\\...", Ui.DimC));
+            Ui.PanelLine(Ui.C("Override: set GUTTYRL_INI=caminho\\completo\\TASystemSettings.ini", Ui.DimC));
             Ui.PanelBottom();
+            AppMeta.Log("INI nao encontrado.");
             Ui.EnterButton();
             return 1;
         }
+
+        AppMeta.Log($"INI: {_cfg}");
+        RefreshWritableCache();
 
         // Modo nao-interativo (e relancamento elevado): GuttyRL.exe COMPLETO [/keepopen]
         if (args.Length > 0)
         {
             string mode = args[0].Trim('/', '-').ToUpperInvariant();
-            mode = mode switch { "1" => "COMPLETO", "2" => "CRIADOR", "3" => "REMOVER", _ => mode };
+            mode = mode switch
+            {
+                "1" => "COMPLETO",
+                "2" => "CRIADOR",
+                "3" => "REMOVER",
+                "5" => "CORRIGIR",
+                "6" => "CORRIGIR",
+                "HEAL" => "CORRIGIR",
+                _ => mode
+            };
             bool keepOpen = args.Length > 1 && args[1].Equals("/keepopen", StringComparison.OrdinalIgnoreCase);
             int rc = Dispatch(mode, keepOpen);
             if (keepOpen || rc != 0) Ui.EnterButton();
@@ -71,23 +107,113 @@ internal static class Program
                 case "2": Dispatch("CRIADOR", true); Ui.EnterButton(); break;
                 case "3": Dispatch("REMOVER", true); Ui.EnterButton(); break;
                 case "4": LaunchOptions(); break;
-                case "5": Ui.ShowCursor(); Goodbye(); return 0;
+                case "5": CorrigirErros(true); Ui.EnterButton(); break;
+                case "6": Ui.ShowCursor(); Goodbye(); return 0;
             }
         }
     }
 
-    private static int RunHeal(bool interactive)
+    private static int RunHeal(bool interactive) => CorrigirErros(interactive);
+
+    private static int CorrigirErros(bool interactive)
     {
         if (_cfg is null) return 1;
-        bool ok = FolderAccess.RunHealMode(_cfg, interactive);
-        return ok ? 0 : 1;
+
+        if (interactive)
+        {
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MAmber);
+            Ui.TitleBar("CORRIGIR ERROS", Ui.MAmber);
+            Ui.StepsPanel("ESTA OPCAO TENTA CORRIGIR", new[]
+            {
+                "Rocket League aberto (impede gravar ao fechar)",
+                "Arquivo INI travado (read-only / ACL de script antigo)",
+                "Pasta bloqueada (Defender / Acesso Controlado)",
+                "Caminho do .ini errado (OneDrive / outro perfil)",
+                "Falta de permissao (eleva admin via UAC se precisar)"
+            }, Ui.MAmber);
+        }
+
+        if (GetRl().Length > 0)
+        {
+            if (interactive)
+            {
+                Ui.Gap();
+                Ui.PanelTop("ROCKET LEAGUE ABERTO");
+                Ui.PanelLine(Ui.C("O jogo sobrescreve o .ini ao fechar.", Ui.Gray));
+                Ui.PanelBottom();
+                Ui.Prompt("Fechar o jogo agora? (S/N)");
+                if (IsYes(Console.ReadLine()))
+                {
+                    foreach (var p in GetRl()) { try { p.Kill(); } catch { } }
+                    for (int i = 0; i < 4; i++)
+                    {
+                        Thread.Sleep(500);
+                        if (GetRl().Length == 0) break;
+                    }
+                }
+            }
+            else if (GetRl().Length > 0)
+                return 1;
+        }
+
+        bool UnlockIni()
+        {
+            try { Unlock(_cfg!); return true; } catch { return false; }
+        }
+
+        bool RefreshIniPath()
+        {
+            var found = FindIni();
+            if (found is null) return false;
+            _cfg = found;
+            return true;
+        }
+
+        if (interactive)
+        {
+            Ui.StepAnimated("Destravando TASystemSettings.ini", UnlockIni);
+            Ui.StepAnimated("Re-localizando arquivo do jogo", RefreshIniPath);
+        }
+        else
+        {
+            UnlockIni();
+            RefreshIniPath();
+        }
+
+        bool ok = FolderAccess.RunHealMode(_cfg!, interactive, showBanner: false);
+        RefreshWritableCache();
+
+        if (interactive)
+        {
+            if (ok && IsCfgWritable())
+            {
+                Ui.CompletionMessage(Ui.OkGreen, "CORRIGIDO", new[]
+                {
+                    "Consegui gravar na pasta do jogo.",
+                    "Arquivo: " + FitPath(_cfg!, 48),
+                    "Aplique COMPLETO ou CRIADOR de novo."
+                });
+            }
+            else if (!ok)
+            {
+                Ui.CompletionMessage(Ui.MRed, "AINDA COM ERRO", new[]
+                {
+                    "Nao consegui liberar tudo automaticamente.",
+                    "Siga o guia do Defender/antivirus acima.",
+                    "Ou rode o GuttyTECH_RL.exe como administrador."
+                });
+            }
+        }
+
+        return ok && IsCfgWritable() ? 0 : 1;
     }
 
     private static int Dispatch(string mode, bool interactive)
     {
         if (mode == "REMOVER") return Remover(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
-        if (mode == "HEAL") return RunHeal(interactive);
+        if (mode is "CORRIGIR" or "HEAL") return CorrigirErros(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
         Console.WriteLine(Ui.C("  Use: GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER]", Ui.Gray));
         return 2;
@@ -99,9 +225,12 @@ internal static class Program
         Ui.HideCursor();
         Ui.Cls();
         Ui.Banner(false);
+        RefreshWritableCache();
 
         var (label, locked, cat) = ReadState();
         var dot = cat == 2 ? Ui.Green : cat == 1 ? Ui.Amber : Ui.Gray;
+        bool writable = IsCfgWritable();
+        bool rlOpen = GetRl().Length > 0;
 
         Ui.PanelTop("ALVO");
         Ui.PanelLine(Ui.Field("Arquivo", Ui.C(FitPath(_cfg!, 58), Ui.Gray)));
@@ -109,17 +238,28 @@ internal static class Program
         string trava = locked ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Amber, "NAO");
         string adm = IsAdmin() ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Gray, "nao necessario");
         Ui.PanelLine(Ui.Field("Protegido", trava + "    " + Ui.C("Admin ", Ui.DimC) + adm));
+        string writeLabel = writable ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Red, "BLOQUEADO");
+        Ui.PanelLine(Ui.Field("Gravacao", writeLabel));
+        if (rlOpen)
+            Ui.PanelLine(Ui.Field("Jogo", Ui.Dot(Ui.Amber, "Rocket League ABERTO")));
         Ui.PanelBottom();
         Ui.Gap();
 
         Ui.PanelTop("MODOS");
-        Ui.PanelLine(Card("1", "COMPLETO", "FPS maximo - graficos minimos", Ui.Red));
-        Ui.PanelLine(Card("2", "CRIADOR", "Otimizado - visual preservado", Ui.Cyan));
-        Ui.PanelLine(Card("3", "REMOVER", "Restaurar original / stock", Ui.Amber));
-        Ui.PanelLine(Card("4", "LAUNCH OPT", "comando p/ Steam/Epic (copiar)", Ui.Cyan));
-        Ui.PanelLine(Card("5", "SAIR", "fechar o GuttyRL", Ui.DimC));
+        MenuOption("1", "COMPLETO", "FPS MAXIMO - grafico de batata", Ui.Red);
+        MenuOption("2", "CRIADOR DE CONTEUDO", "Aplica todas as otimizacoes possiveis mantendo o visual bonito", Ui.Cyan);
+        MenuOption("3", "REMOVER", "Restaura os arquivos pro padrao/original", Ui.Amber);
+        MenuOption("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
+        MenuOption("5", "CORRIGIR ERROS", "Corrige falhas que impedem o script de aplicar", Ui.Amber);
+        MenuOption("6", "SAIR", "Fechar o GuttyRL", Ui.DimC);
         Ui.PanelBottom();
-        Ui.Prompt("Escolha (1-5)");
+        Ui.Prompt("Escolha (1-6)");
+    }
+
+    private static void MenuOption(string n, string title, string desc, (int r, int g, int b) c)
+    {
+        Ui.PanelLine(Ui.C("[" + n + "]", c) + " " + Ui.C("|", c) + " " + Ui.B(title, Ui.White));
+        Ui.PanelLine(Ui.C("     " + desc, Ui.DimC));
     }
 
     private static string Card(string n, string title, string desc, (int r, int g, int b) c)
@@ -129,8 +269,9 @@ internal static class Program
         => p.Length <= max ? p : "..." + p[^(max - 3)..];
 
     // -------------------------------------------------------------- Launch Options
-    private const string SteamLaunch = "-nomovie -NOSPLASH -high";
-    private const string EpicLaunch = "-nomovie -NOSPLASH -high";
+    // Pesquisado/validado no RL (UE3): boot + micro-FPS in-game. EAC-safe para online.
+    private const string LaunchRecommended = "-nomovie -NOSPLASH -nomansky +mat_antialias 0 -high";
+    private const string LaunchNoPriority = "-nomovie -NOSPLASH -nomansky +mat_antialias 0";
 
     private static void LaunchOptions()
     {
@@ -139,7 +280,7 @@ internal static class Program
             Ui.HideCursor();
             Ui.Cls();
             Ui.MiniBannerIfTall(Ui.MCyan);
-            Ui.TitleBar("LAUNCH OPTIONS - ROCKET LEAGUE", Ui.MCyan);
+            Ui.TitleBar("COMANDO DE INICIALIZACAO", Ui.MCyan);
             Console.WriteLine();
             Ui.LaunchParam("[1]", Ui.MCyan, "STEAM", "como colar na Steam (passo a passo)");
             Ui.LaunchParam("[2]", Ui.MCyan, "EPIC GAMES", "como colar na Epic (passo a passo)");
@@ -147,8 +288,8 @@ internal static class Program
             Ui.Prompt("Escolha (1-3)");
             switch (Console.ReadLine()?.Trim())
             {
-                case "1": ShowPlatform("STEAM", SteamLaunch, true); break;
-                case "2": ShowPlatform("EPIC GAMES", EpicLaunch, false); break;
+                case "1": ShowPlatform("STEAM", LaunchRecommended, true); break;
+                case "2": ShowPlatform("EPIC GAMES", LaunchRecommended, false); break;
                 case "3": return;
             }
         }
@@ -159,44 +300,36 @@ internal static class Program
         Ui.HideCursor();
         Ui.Cls();
         Ui.MiniBannerIfTall(Ui.MCyan);
-        Ui.TitleBar(platform + " - COMO ADICIONAR", Ui.MCyan);
+        Ui.TitleBar(platform + " - COMANDO DE INICIALIZACAO", Ui.MCyan);
 
         string[] steps = isSteam
             ? new[]
             {
-                "1. Abra a Steam e clique direito em Rocket League",
-                "2. Propriedades > Geral > Opcoes de Inicializacao",
-                "3. Cole (Ctrl+V) o comando abaixo e feche"
+                "1. Steam > botao direito no Rocket League > Propriedades",
+                "2. Geral > Opcoes de Inicializacao",
+                "3. Cole (Ctrl+V) e feche — NAO use %command%"
             }
             : new[]
             {
-                "1. Abra o Epic Games Launcher > Biblioteca",
-                "2. Tres pontinhos no Rocket League > Gerenciar",
-                "3. Marque 'Argumentos de linha de comando adicionais'",
-                "4. Cole (Ctrl+V) o comando abaixo e salve"
+                "1. Epic > Biblioteca > ... no Rocket League > Gerenciar",
+                "2. Marque 'Argumentos de linha de comando adicionais'",
+                "3. Cole (Ctrl+V) o comando e salve"
             };
         Ui.StepsPanel("PASSO A PASSO", steps, Ui.MCyan);
 
-        Ui.CodeBox(cmd);
+        Ui.Gap();
+        Ui.LaunchHeading("COPIAR E COLAR");
         Ui.CopyStatus(CopyToClipboard(cmd));
+        Ui.CodeBox(cmd);
 
-        Ui.LaunchHeading("Incluido (real e validado):");
-        Ui.LaunchParam("+", Ui.OkGreen, "-nomovie", "pula os videos de intro (boot rapido)");
-        Ui.LaunchParam("+", Ui.OkGreen, "-NOSPLASH", "pula a tela de splash (boot rapido)");
-        Ui.LaunchParam("+", Ui.OkGreen, "-high", "prioridade Alta - tire se der stutter/estalo");
+        Ui.LaunchHeading("O que cada flag faz");
+        Ui.LaunchParam("+", Ui.OkGreen, "-nomovie", "pula intro");
+        Ui.LaunchParam("+", Ui.OkGreen, "-NOSPLASH", "pula splash");
+        Ui.LaunchParam("+", Ui.OkGreen, "-nomansky", "ceu leve");
+        Ui.LaunchParam("+", Ui.OkGreen, "+mat_antialias 0", "AA zero");
+        Ui.LaunchParam("+", Ui.OkGreen, "-high", "prioridade alta (tire se estalar)");
+        Ui.LaunchNote("Sem -high: " + LaunchNoPriority);
 
-        Ui.LaunchHeading("Fora do comando (placebo/no-op no RL):");
-        Ui.LaunchParam("x", Ui.MRed, "-NoVSync", "inutil - o INI do GuttyRL ja desliga o V-Sync");
-        Ui.LaunchParam("x", Ui.MRed, "-nolog", "o RL ignora; ganho de FPS = zero");
-        Ui.LaunchParam("x", Ui.MRed, "-NoSteamVR", "no-op - o RL nao tem VR (nem na Steam)");
-        Ui.LaunchParam("x", Ui.MRed, "-no-stereo-rendering", "placebo - RL nao renderiza em estereo");
-        Ui.LaunchParam("x", Ui.MRed, "-USEALLAVAILABLECORES", "no RL e no-op - nao muda FPS");
-
-        Ui.LaunchHeading("Opcional (cole a mao se quiser):");
-        Ui.LaunchParam("~", Ui.MAmber, "-NoForceFeedback", "MATA a vibracao do controle");
-
-        Ui.LaunchNote("No RL, launch option quase nao muda FPS: o ganho real e o INI + Opcoes>Video.");
-        Ui.LaunchNote("Tudo seguro com o Easy Anti-Cheat (EAC) do RL.");
         Ui.EnterButton();
     }
 
@@ -225,29 +358,81 @@ internal static class Program
         if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
 
         EnsureOriginalBackup();
-        string dsrc = File.Exists(OrigBackup) ? OrigBackup : _cfg!;
-        var disp = ReadDisplay(dsrc);
+        var disp = ReadDisplay(_cfg!);
         string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
         string content = ApplyDisplay(template, disp);
+        if (mode == "COMPLETO")
+            content = CompletoForce.Apply(content);
+        else
+            content = CriadorForce.Apply(content);
+        if (mode == "CRIADOR" && File.Exists(_cfg!))
+        {
+            var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
+            content = ApplySectionOverrides(content, user);
+        }
+
+        bool LockCfg() { if (mode == "CRIADOR") return true; try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { } return true; }
 
         if (interactive)
         {
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
-            Ui.StepAnimated("Protegendo (somente-leitura)", () => { try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { } return true; });
+            if (mode == "COMPLETO")
+            {
+                if (!Ui.StepAnimated("Sincronizando menu de video (Epic)", () => VideoSettingsSync.SyncForCompleto(_cfg!, interactive)))
+                {
+                    Ui.CompletionMessage(acc, "AVISO", new[]
+                    {
+                        "INI gravado, mas o save Epic nao foi purgado.",
+                        "Feche o RL e rode COMPLETO de novo.",
+                    });
+                    return 1;
+                }
+            }
+            if (mode == "CRIADOR")
+                Ui.StepAnimated("Mantendo graficos ajustaveis", () => { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; });
+            else
+                Ui.StepAnimated("Protegendo (somente-leitura)", LockCfg);
         }
         else
         {
             Backup();
             Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
-            try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { }
+            if (mode == "COMPLETO" && !VideoSettingsSync.SyncForCompleto(_cfg!, interactive)) return 1;
+            if (mode != "CRIADOR") LockCfg();
         }
 
         Log($"Aplicado {mode}.");
-        if (interactive) Ui.CompletionSuccess(mode, acc, BackupDir);
+        RefreshWritableCache();
+        if (interactive) Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
         return 0;
+    }
+
+    private static void RefreshWritableCache()
+    {
+        if (_cfg is null) { _cfgWritable = null; return; }
+        try { _cfgWritable = FolderAccess.CanWriteToDirectory(Path.GetDirectoryName(_cfg!)!); }
+        catch { _cfgWritable = false; }
+    }
+
+    private static bool IsCfgWritable()
+    {
+        if (_cfgWritable is bool b) return b;
+        RefreshWritableCache();
+        return _cfgWritable == true;
+    }
+
+    private static string MissingIniHint()
+    {
+        foreach (var root in DocumentRoots())
+        {
+            string cfgDir = Path.Combine(root, @"My Games\Rocket League\TAGame\Config");
+            if (Directory.Exists(cfgDir))
+                return "A pasta do jogo existe, mas o .ini sumiu. Abra o Rocket League 1x.";
+        }
+        return "Abra o Rocket League uma vez para ele criar o arquivo e rode de novo.";
     }
 
     private static bool DoWrite(string content, string mode)
@@ -268,7 +453,7 @@ internal static class Program
         if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(Ui.MAmber); Ui.TitleBar("REMOVENDO / RESTAURANDO", Ui.MAmber); }
         if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
 
-        bool fromOriginal = File.Exists(OrigBackup);
+        bool fromOriginal = File.Exists(AppMeta.OrigBackup);
         bool Restore()
         {
             try
@@ -276,7 +461,7 @@ internal static class Program
                 if (fromOriginal)
                 {
                     if (File.Exists(_cfg!)) File.Delete(_cfg!);
-                    File.Copy(OrigBackup, _cfg!, true);
+                    File.Copy(AppMeta.OrigBackup, _cfg!, true);
                 }
                 else
                 {
@@ -298,6 +483,7 @@ internal static class Program
             if (!Ui.StepAnimated(fromOriginal ? "Restaurando seu original" : "Restaurando padrao de fabrica", Restore))
                 return FailOrElevate("REMOVER", interactive);
             Log("REMOVER concluido.");
+            RefreshWritableCache();
             Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", new[]
             {
                 "Configuracao restaurada e arquivo DESTRAVADO.",
@@ -310,6 +496,7 @@ internal static class Program
             Backup();
             if (!Restore()) return FailOrElevate("REMOVER", interactive);
             Log("REMOVER concluido.");
+            RefreshWritableCache();
         }
         return 0;
     }
@@ -320,28 +507,96 @@ internal static class Program
         string? ov = Environment.GetEnvironmentVariable("GUTTYRL_INI");
         if (!string.IsNullOrEmpty(ov) && SafeExists(ov)) return ov;
 
-        const string rel = @"My Games\Rocket League\TAGame\Config\TASystemSettings.ini";
-        var tried = new List<string>();
-        void Add(string p) { if (!string.IsNullOrEmpty(p)) tried.Add(p); }
+        var tried = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in DocumentRoots())
+        {
+            string p = Path.Combine(root, AppMeta.IniRelative);
+            if (tried.Add(p) && SafeExists(p)) return p;
+        }
 
-        Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), rel));
         string up = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        Add(Path.Combine(up, "Documents", rel));
-        Add(Path.Combine(up, "OneDrive", "Documents", rel));
-        Add(Path.Combine(up, "OneDrive - Personal", "Documents", rel));
-        Add(Path.Combine(up, "OneDrive - Pessoal", "Documents", rel));
-
-        foreach (var p in tried) if (SafeExists(p)) return p;
-
         try
         {
             string usersRoot = Path.GetDirectoryName(up)!;
             foreach (var u in Directory.GetDirectories(usersRoot))
-                foreach (var sub in new[] { "Documents", @"OneDrive\Documents", @"OneDrive - Personal\Documents" })
+            {
+                foreach (var root in DocumentRootsForUser(u))
                 {
-                    string p = Path.Combine(u, sub, rel);
-                    if (SafeExists(p)) return p;
+                    string p = Path.Combine(root, AppMeta.IniRelative);
+                    if (tried.Add(p) && SafeExists(p)) return p;
                 }
+            }
+        }
+        catch { }
+
+        return FindIniDeepSearch(up);
+    }
+
+    private static IEnumerable<string> DocumentRoots()
+        => DocumentRootsForUser(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+
+    private static IEnumerable<string> DocumentRootsForUser(string userProfile)
+    {
+        var roots = new List<string>();
+        void Add(string? p)
+        {
+            if (string.IsNullOrWhiteSpace(p)) return;
+            try
+            {
+                if (Directory.Exists(p))
+                    roots.Add(Path.GetFullPath(p));
+            }
+            catch { }
+        }
+
+        string current = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (userProfile.Equals(current, StringComparison.OrdinalIgnoreCase))
+            Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+
+        Add(Path.Combine(userProfile, "Documents"));
+
+        if (userProfile.Equals(current, StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (string env in new[] { "OneDrive", "OneDriveCommercial", "OneDriveConsumer" })
+            {
+                string? od = Environment.GetEnvironmentVariable(env);
+                if (string.IsNullOrWhiteSpace(od)) continue;
+                Add(Path.Combine(od, "Documents"));
+                Add(od);
+            }
+        }
+
+        Add(Path.Combine(userProfile, "OneDrive", "Documents"));
+        Add(Path.Combine(userProfile, "OneDrive - Personal", "Documents"));
+        Add(Path.Combine(userProfile, "OneDrive - Pessoal", "Documents"));
+
+        try
+        {
+            foreach (var d in Directory.GetDirectories(userProfile, "OneDrive*"))
+                Add(Path.Combine(d, "Documents"));
+        }
+        catch { }
+
+        return roots.Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string? FindIniDeepSearch(string userProfile)
+    {
+        try
+        {
+            var opts = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                MaxRecursionDepth = 10,
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.ReparsePoint
+            };
+            foreach (var p in Directory.EnumerateFiles(userProfile, "TASystemSettings.ini", opts))
+            {
+                if (p.Contains(@"Rocket League\", StringComparison.OrdinalIgnoreCase)
+                    || p.Contains(@"TAGame\Config\", StringComparison.OrdinalIgnoreCase))
+                    return p;
+            }
         }
         catch { }
         return null;
@@ -388,8 +643,11 @@ internal static class Program
         Ui.Prompt("Fechar o jogo agora? (S/N)");
         if (!IsYes(Console.ReadLine())) return false;
         foreach (var p in GetRl()) { try { p.Kill(); } catch { } }
-        Thread.Sleep(1500);
-        if (GetRl().Length == 0) return true;
+        for (int i = 0; i < 4; i++)
+        {
+            Thread.Sleep(500);
+            if (GetRl().Length == 0) return true;
+        }
         Console.WriteLine(Ui.C("  Nao consegui fechar. Feche manualmente.", Ui.Red));
         return false;
     }
@@ -420,14 +678,14 @@ internal static class Program
 
     private static void EnsureOriginalBackup()
     {
-        if (File.Exists(OrigBackup)) return;
+        if (File.Exists(AppMeta.OrigBackup)) return;
         try
         {
             string text = File.ReadAllText(_cfg!);
             if (text.Contains("GUTTYTECH-RL-OPTIMIZER=") || text.Contains("MaxLODSize=16"))
             { Log("Arquivo atual ja otimizado; original nao capturado - usar stock no REMOVER."); return; }
-            File.Copy(_cfg!, OrigBackup, true);
-            try { File.SetAttributes(OrigBackup, FileAttributes.Normal); } catch { }
+            File.Copy(_cfg!, AppMeta.OrigBackup, true);
+            try { File.SetAttributes(AppMeta.OrigBackup, FileAttributes.Normal); } catch { }
             Log("Backup original pristino criado.");
         }
         catch { }
@@ -438,7 +696,7 @@ internal static class Program
         try
         {
             string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            File.Copy(_cfg!, Path.Combine(BackupDir, $"TASystemSettings.{ts}.bak"), true);
+            File.Copy(_cfg!, Path.Combine(AppMeta.BackupDir, $"TASystemSettings.{ts}.bak"), true);
         }
         catch { }
     }
@@ -465,8 +723,34 @@ internal static class Program
         return d;
     }
 
-    private static string ApplyDisplay(string templateText, Dictionary<string, string> disp)
+    private static string ApplyDisplay(string templateText, Dictionary<string, string> disp) =>
+        ApplySectionOverrides(templateText, disp);
+
+    private static Dictionary<string, string> ReadSectionOverrides(string file, string[] keys, bool textureGroups)
     {
+        var keySet = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
+        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            bool inSs = false;
+            foreach (var line in File.ReadAllLines(file))
+            {
+                if (line.StartsWith('[')) { inSs = line.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase); continue; }
+                if (!inSs) continue;
+                int eq = line.IndexOf('=');
+                if (eq <= 0) continue;
+                string key = line[..eq];
+                if (!d.ContainsKey(key) && (keySet.Contains(key) || (textureGroups && key.StartsWith("TEXTUREGROUP_", StringComparison.OrdinalIgnoreCase))))
+                    d[key] = line[(eq + 1)..];
+            }
+        }
+        catch { }
+        return d;
+    }
+
+    private static string ApplySectionOverrides(string templateText, Dictionary<string, string> overrides)
+    {
+        if (overrides.Count == 0) return templateText;
         var sb = new StringBuilder();
         bool inSs = false;
         var done = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -480,9 +764,8 @@ internal static class Program
                 if (eq > 0)
                 {
                     string key = raw[..eq];
-                    foreach (var dk in DisplayKeys)
-                        if (key.Equals(dk, StringComparison.OrdinalIgnoreCase) && disp.TryGetValue(dk, out var v) && done.Add(dk))
-                            outLine = dk + "=" + v;
+                    if (overrides.TryGetValue(key, out var v) && done.Add(key))
+                        outLine = key + "=" + v;
                 }
             }
             sb.Append(outLine).Append("\r\n");
@@ -523,7 +806,7 @@ internal static class Program
         Ui.CompletionMessage(Ui.MRed, "FALHA", new[]
         {
             "Nao consegui aplicar. Seu arquivo NAO foi corrompido.",
-            "Backup em: " + FitPath(BackupDir, 45),
+            "Backup em: " + FitPath(AppMeta.BackupDir, 45),
             "Cheque antivirus / Acesso Controlado a Pastas."
         });
     }
@@ -535,8 +818,7 @@ internal static class Program
         Ui.Gap();
     }
 
-    private static void Log(string msg)
-    { try { File.AppendAllText(LogFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}{Environment.NewLine}"); } catch { } }
+    private static void Log(string msg) => AppMeta.Log(msg);
 
     private static bool IsYes(string? s) => string.Equals(s?.Trim(), "S", StringComparison.OrdinalIgnoreCase);
 }

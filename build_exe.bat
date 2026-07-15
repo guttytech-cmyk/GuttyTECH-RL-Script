@@ -31,6 +31,11 @@ if errorlevel 1 ( color 0E & echo  [X] Falha ao gerar Templates.cs & pause & exi
 echo  [+] Compilando GuttyTECH_RL.exe ^(single-file^)... pode levar ~1 min na 1a vez.
 ::  PublishTrimmed=false: trimming quebrava startup em varios PCs (fecha na hora).
 dotnet publish "%ROOT%\dotnet\GuttyRL.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=false -p:NoWarn=CA1416 -o "%ROOT%\dotnet\publish" --nologo
+if errorlevel 1 ( color 0E & echo  [X] Compilacao falhou. & pause & exit /b 1 )
+
+echo  [+] Auditando templates...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\dotnet\audit_templates.ps1" -Root "%ROOT%"
+if errorlevel 1 ( color 0E & echo  [X] Audit dos templates falhou. & pause & exit /b 1 )
 
 if not exist "%ROOT%\dotnet\publish\GuttyTECH_RL.exe" (
     color 0E
@@ -40,6 +45,8 @@ if not exist "%ROOT%\dotnet\publish\GuttyTECH_RL.exe" (
 )
 
 copy /y "%ROOT%\dotnet\publish\GuttyTECH_RL.exe" "%ROOT%\GuttyTECH_RL.exe" >nul
+if not exist "%ROOT%\dotnet\publish\tools" mkdir "%ROOT%\dotnet\publish\tools"
+xcopy /y /e /i "%ROOT%\tools\*" "%ROOT%\dotnet\publish\tools\" >nul 2>&1
 
 color 0A
 echo.
