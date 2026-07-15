@@ -24,6 +24,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo  [+] Gerando bundle Python embutido (1a vez baixa ~12 MB)...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\dotnet\build_embed_bundle.ps1" -Root "%ROOT%"
+if errorlevel 1 ( color 0E & echo  [X] Falha ao gerar embed-bundle.zip & pause & exit /b 1 )
+
 echo  [+] Regenerando Templates.cs a partir de templates\ ...
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\dotnet\gen_templates.ps1" -Root "%ROOT%"
 if errorlevel 1 ( color 0E & echo  [X] Falha ao gerar Templates.cs & pause & exit /b 1 )
@@ -45,14 +49,12 @@ if not exist "%ROOT%\dotnet\publish\GuttyTECH_RL.exe" (
 )
 
 copy /y "%ROOT%\dotnet\publish\GuttyTECH_RL.exe" "%ROOT%\GuttyTECH_RL.exe" >nul
-if not exist "%ROOT%\dotnet\publish\tools" mkdir "%ROOT%\dotnet\publish\tools"
-xcopy /y /e /i "%ROOT%\tools\*" "%ROOT%\dotnet\publish\tools\" >nul 2>&1
 
 color 0A
 echo.
 echo  [+] PRONTO: %ROOT%\GuttyTECH_RL.exe
 echo  [+] Arquivo UNICO e autossuficiente - mande so ele pros clientes.
-echo  [+] Abre uma janela de menu ao dar 2 cliques (nao precisa de .NET no cliente).
+echo  [+] Python + patch .save embutidos (extrai 1x em %%USERPROFILE%%\GuttyTECH).
 echo.
 pause
 exit /b 0

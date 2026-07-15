@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.20] — 2026-07-15
+### Alterado
+- **Runtime embutido:** Python 3.11 + nixwrap + patch `.save` dentro do `GuttyTECH_RL.exe`.
+  - Cliente baixa **apenas o exe** (~80 MB); extrai 1× em `%USERPROFILE%\GuttyTECH\RL-Optimizer-v22\runtime\`.
+  - Sem `tools.zip`, sem Python instalado no PC.
+
 ## [v22.3.19] — 2026-07-15
 ### Corrigido
 - **COMPLETO:** indicador circular branco sob a bola (gameplay) restaurado.
@@ -15,8 +21,8 @@ Formato baseado em *Keep a Changelog*; datas em UTC.
 - **Save codec:** enums `ByteProperty` corrigidos no `nixwrap` (`save_codec.py`).
 
 ### Adicionado
-- `tools/` (patch Python + wheel nixwrap) copiado junto ao exe no build.
 - `CompletoForce`, `CriadorForce`, `VideoSettingsSync`, `IniAudit` (AUDIT).
+- Build `embed-bundle.zip` (Python embed + nixwrap) embutido no exe.
 
 ## [v22.3] — 2026-06-23
 ### Corrigido

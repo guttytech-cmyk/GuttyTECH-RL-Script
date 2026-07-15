@@ -8,6 +8,9 @@ dotnet/obj/
 dotnet/publish/
 dotnet/publish-fixed/
 dotnet/publish-trimmed/
+dotnet/embed/
+dotnet/embed-bundle.zip
+dotnet/.embed-stamp
 tools/__pycache__/
 tools/pydeps/
 bin/
