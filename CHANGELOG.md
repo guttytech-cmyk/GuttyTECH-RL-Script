@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.23] — 2026-07-16
+### Revertido
+- Hotfixes v22.3.21/v22.3.22 de loading infinito — problema persistiu no PC do cliente mesmo após REMOVER.
+- Script restaurado ao estado da **v22.3.20** (templates + `CompletoForce`).
+
 ## [v22.3.22] — 2026-07-16
 ### Corrigido
 - **Loading infinito / "Não está respondendo":** `OnlyStreamInTextures=False` restaurado (CRIADOR e COMPLETO).

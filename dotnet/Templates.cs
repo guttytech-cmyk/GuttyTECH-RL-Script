@@ -3,7 +3,7 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.22
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.19
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -29,7 +29,7 @@ DropParticleDistortion=False
 bAllowDownsampledTranslucency=False
 SpeedTreeLeaves=False
 SpeedTreeFronds=False
-OnlyStreamInTextures=False
+OnlyStreamInTextures=True
 LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=False
@@ -719,7 +719,7 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.22
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.14
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -745,7 +745,7 @@ DropParticleDistortion=False
 bAllowDownsampledTranslucency=False
 SpeedTreeLeaves=True
 SpeedTreeFronds=True
-OnlyStreamInTextures=False
+OnlyStreamInTextures=True
 LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=True

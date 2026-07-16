@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.22
+;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.19
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -24,7 +24,7 @@ DropParticleDistortion=False
 bAllowDownsampledTranslucency=False
 SpeedTreeLeaves=False
 SpeedTreeFronds=False
-OnlyStreamInTextures=False
+OnlyStreamInTextures=True
 LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=False
