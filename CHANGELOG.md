@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.25] — 2026-07-16
+### Alterado
+- `WaitForGPU=False` (padrao stock) em COMPLETO e CRIADOR.
+
 ## [v22.3.24] — 2026-07-16
 ### Corrigido
 - **COMPLETO e CRIADOR:** baixar resolução ou qualidade de renderização (escala 3D) no menu sem tela preta / janela minúscula.
