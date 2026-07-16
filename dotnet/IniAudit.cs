@@ -38,6 +38,8 @@ internal static class IniAudit
         new("SystemSettings", "bAllowHighQualityMaterials", "^(?i)false$", "materiais HQ desligados"),
         new("SystemSettings", "DynamicShadows", "^(?i)true$", "sombras dinamicas ligadas"),
         new("SystemSettings", "MotionBlur", "^(?i)true$", "motion blur ligado"),
+        new("SystemSettings", "MobileFog", "^(?i)true$", "efeitos de clima ligados"),
+        new("SystemSettings", "UncappedFramerate", "^(?i)false$", "FPS capped no template"),
     };
 
     private static readonly Rule[] CompletoPostForceRules =

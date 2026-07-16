@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.33] — 2026-07-16
+### Corrigido
+- **Menu Epic regressou:** clima ligado, FPS 60, raios de luz — CRIADOR tinha `MobileFog=True` no template.
+- **VideoLockedKeys:** clima/raios/FPS nunca mais preservados do INI corrompido pelo jogo.
+- **Patch .save reativado** (só flags de video/FPS; CRIADOR não mexe em qualidade de render).
+- Sem apagar save, sem purgar RLSettingsData — presets do carro preservados.
+
 ## [v22.3.32] — 2026-07-16
 ### Corrigido
 - **Presets do carro sumindo:** COMPLETO/CRIADOR agora mexem **só no INI** — não tocam no save Epic.

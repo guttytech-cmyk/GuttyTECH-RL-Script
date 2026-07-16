@@ -13,11 +13,18 @@ internal static class Program
     private static readonly string[] VideoScaleKeys =
         { "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage" };
 
-    // Frame pacing — sempre do template (nunca preservar corrompido pelo jogo).
+    // Frame pacing + efeitos que o jogo reescreve — sempre do template (nunca preservar).
     private static readonly string[] FramePacingKeys =
     {
         "WaitForGPU", "OneFrameThreadLag", "AllowPerFrameSleep", "AllowPerFrameYield",
         "UncappedFramerate", "bSmoothFrameRate", "CustomFPS",
+    };
+
+    private static readonly string[] VideoLockedKeys =
+    {
+        "bAllowLightShafts", "MobileFog", "MobileHeightFog",
+        "MobileLightShaftScale", "MobileLightShaftFirstPass", "MobileLightShaftSecondPass",
+        "MobileModShadows", "MobileMinimizeFogShaders",
     };
 
     // Chaves ligadas ao menu Video do RL — preservadas no CRIADOR (in-game ou re-aplicar).
@@ -26,9 +33,8 @@ internal static class Program
         "UseVsync",
         "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage",
         "DetailMode", "ParticleLODBias", "SkeletalMeshLODBias", "MaxDrawDistanceScale", "MaxAnisotropy",
-        "FullEffectIntensity",
         "bAllowHighQualityMaterials", "bUseTranslucentArenaShaders",
-        "AmbientOcclusion", "DepthOfField", "Bloom", "bAllowLightShafts", "LensFlares",
+        "AmbientOcclusion", "DepthOfField", "Bloom", "LensFlares",
         "DynamicShadows", "LightEnvironmentShadows", "CompositeDynamicLights",
         "MotionBlur", "MotionBlurPause", "MotionBlurSkinning",
         "FogVolumes",
@@ -408,6 +414,8 @@ internal static class Program
 
         var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);
         content = ApplySectionOverrides(content, pacing);
+        var locked = ReadSectionOverridesFromText(template, VideoLockedKeys, textureGroups: false);
+        content = ApplySectionOverrides(content, locked);
 
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
@@ -416,6 +424,15 @@ internal static class Program
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
+            if (!Ui.StepAnimated("Sincronizando menu de video (Epic)", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
+            {
+                Ui.CompletionMessage(acc, "AVISO", new[]
+                {
+                    "INI gravado, mas o menu Epic nao sincronizou.",
+                    "Feche o RL e rode o modo de novo.",
+                });
+                return 1;
+            }
             if (mode == "CRIADOR" || mode == "COMPLETO")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
         }
@@ -424,6 +441,7 @@ internal static class Program
             Backup();
             Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
+            if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)) return 1;
             UnlockCfg();
         }
 

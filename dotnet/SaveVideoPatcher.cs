@@ -5,7 +5,7 @@ namespace GuttyRL;
 /// <summary>Patch .save Epic (VideoSettingsSavePC + EffectIntensity) via runtime Python embutido.</summary>
 internal static class SaveVideoPatcher
 {
-    public static bool PatchSaveDirectory(string saveDir)
+    public static bool PatchSaveDirectory(string saveDir, string mode)
     {
         if (!Directory.Exists(saveDir))
         {
@@ -20,13 +20,14 @@ internal static class SaveVideoPatcher
         }
 
         string scriptPath = Path.Combine(toolsDir, "patch_save_video.py");
+        string modeArg = mode.Equals("CRIADOR", StringComparison.OrdinalIgnoreCase) ? "criador" : "completo";
 
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = pythonExe,
-                Arguments = $"\"{scriptPath}\" \"{saveDir}\"",
+                Arguments = $"\"{scriptPath}\" --mode {modeArg} \"{saveDir}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

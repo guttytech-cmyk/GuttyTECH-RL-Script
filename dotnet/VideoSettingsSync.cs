@@ -2,10 +2,10 @@ using System.Diagnostics;
 
 namespace GuttyRL;
 
-/// <summary>RL Epic: backup do .save antes do COMPLETO. Purga RLSettingsData so no REMOVER (quebra EOS se apagar ao aplicar).</summary>
+/// <summary>Backup + patch seguro do .save Epic (so video/FPS). Nao apaga save nem RLSettingsData.</summary>
 internal static class VideoSettingsSync
 {
-    public static bool SyncForCompleto(string iniPath, bool interactive)
+    public static bool SyncVideoSave(string iniPath, string mode, bool interactive)
     {
         if (!CheckGameClosed(interactive)) return false;
 
@@ -13,14 +13,17 @@ internal static class VideoSettingsSync
         if (tagame is null) return false;
         string saveDir = Path.Combine(tagame, "SaveDataEpic", "DBE_Production");
 
-        return BackupSaves(saveDir);
+        bool ok = true;
+        ok &= BackupSaves(saveDir);
+        ok &= SaveVideoPatcher.PatchSaveDirectory(saveDir, mode);
+        return ok;
     }
 
     private static bool CheckGameClosed(bool interactive)
     {
         if (GetRl().Length == 0) return true;
         if (!interactive) return false;
-        Ui.Prompt("Feche o Rocket League para o backup do save. Fechar agora? (S/N)");
+        Ui.Prompt("Feche o Rocket League para sincronizar o menu. Fechar agora? (S/N)");
         if (!IsYes(Console.ReadLine())) return false;
         foreach (var p in GetRl()) { try { p.Kill(); } catch { } }
         Thread.Sleep(1500);
