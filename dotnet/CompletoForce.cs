@@ -60,7 +60,6 @@ internal static class CompletoForce
         ["MobileLightShaftSecondPass"] = "0",
         ["TemporalAA_MinDepth"] = "0.000000",
         ["TemporalAA_StartDepthVelocityScale"] = "0.000000",
-        ["UpscaleScreenPercentage"] = "False",
     };
 
     public static string Apply(string iniText)

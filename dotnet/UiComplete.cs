@@ -132,7 +132,7 @@ internal static partial class Ui
             "",
             "  " + Raw(mode == "CRIADOR"
                 ? "Graficos ajustaveis no jogo; otimizacao do criador mantida."
-                : "Menu de video sincronizado. Abra o RL — sem tutorial.", LightGray),
+                : "Menu de video sincronizado. Resolucao/escala 3D ajustaveis no jogo.", LightGray),
             "  " + Raw("Backups: " + Trunc(backupPath, CW - 13), DarkGray),
             ""
         };

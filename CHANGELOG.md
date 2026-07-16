@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.24] — 2026-07-16
+### Corrigido
+- **COMPLETO e CRIADOR:** baixar resolução ou qualidade de renderização (escala 3D) no menu sem tela preta / janela minúscula.
+  - `UpscaleScreenPercentage=True` no COMPLETO; `CompletoForce` não força mais upscale off.
+  - COMPLETO deixa o INI gravável e preserva `ScreenPercentage` / upscale ao re-aplicar.
+  - PC fraco pode usar menu Vídeo para render quality + resolução em ambos os modos.
+
 ## [v22.3.23] — 2026-07-16
 ### Revertido
 - Hotfixes v22.3.21/v22.3.22 de loading infinito — problema persistiu no PC do cliente mesmo após REMOVER.

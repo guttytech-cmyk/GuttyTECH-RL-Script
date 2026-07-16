@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.19
+;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.24
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -32,7 +32,7 @@ OneFrameThreadLag=True
 WaitForGPU=False
 UseVsync=False
 CustomFPS=0
-UpscaleScreenPercentage=False
+UpscaleScreenPercentage=True
 UpscaleTargetFramerateDocked=60.000000
 UpscaleTargetFramerateUndocked=60.000000
 MinimumScreenScale=1.000000

@@ -9,6 +9,10 @@ internal static class Program
     private static readonly string[] DisplayKeys =
         { "ResX", "ResY", "Fullscreen", "Borderless", "AutoDetectDesktopResolution" };
 
+    // Escala 3D / upscale — preservadas ao re-aplicar (PC fraco pode baixar no menu).
+    private static readonly string[] VideoScaleKeys =
+        { "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage" };
+
     // Chaves ligadas ao menu Video do RL — preservadas no CRIADOR (in-game ou re-aplicar).
     private static readonly string[] CriadorUserKeys =
     {
@@ -365,13 +369,21 @@ internal static class Program
             content = CompletoForce.Apply(content);
         else
             content = CriadorForce.Apply(content);
-        if (mode == "CRIADOR" && File.Exists(_cfg!))
+        if (File.Exists(_cfg!))
         {
-            var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
-            content = ApplySectionOverrides(content, user);
+            if (mode == "CRIADOR")
+            {
+                var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
+                content = ApplySectionOverrides(content, user);
+            }
+            else
+            {
+                var scale = ReadSectionOverrides(_cfg!, VideoScaleKeys, textureGroups: false);
+                content = ApplySectionOverrides(content, scale);
+            }
         }
 
-        bool LockCfg() { if (mode == "CRIADOR") return true; try { File.SetAttributes(_cfg!, FileAttributes.ReadOnly); } catch { } return true; }
+        bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
         if (interactive)
         {
@@ -390,10 +402,8 @@ internal static class Program
                     return 1;
                 }
             }
-            if (mode == "CRIADOR")
-                Ui.StepAnimated("Mantendo graficos ajustaveis", () => { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; });
-            else
-                Ui.StepAnimated("Protegendo (somente-leitura)", LockCfg);
+            if (mode == "CRIADOR" || mode == "COMPLETO")
+                Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
         }
         else
         {
@@ -401,7 +411,7 @@ internal static class Program
             Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
             if (mode == "COMPLETO" && !VideoSettingsSync.SyncForCompleto(_cfg!, interactive)) return 1;
-            if (mode != "CRIADOR") LockCfg();
+            UnlockCfg();
         }
 
         Log($"Aplicado {mode}.");
