@@ -3,12 +3,15 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.22] — 2026-07-16
+### Corrigido
+- **Loading infinito / "Não está respondendo":** `OnlyStreamInTextures=False` restaurado (CRIADOR e COMPLETO).
+  - Regressão introduzida no CRIADOR entre v22.3.1 e v22.3.20; streaming de texturas travava boot DX11 em alguns PCs.
+- Revertido hotfix v22.3.21 (`CompletoForce`/`WaitForGPU`) — não resolveu o caso reportado.
+
 ## [v22.3.21] — 2026-07-16
 ### Corrigido
-- **COMPLETO:** loading infinito / "Não está respondendo" em alguns PCs após v22.3.20.
-  - `WaitForGPU=True` e `UpscaleScreenPercentage=True` restaurados no template principal.
-  - `CompletoForce` não força mais `TEXTUREGROUP_*` em perfis derivados — só em `[SystemSettings]`.
-  - Seções mobile/legacy (`Android`, `IPhone`, `IPad`, `Mobile`, `ProfileDetail*`) excluídas do force agressivo.
+- **COMPLETO:** tentativa de fix loading via `WaitForGPU` + `CompletoForce` restrito (revertido em v22.3.22).
 
 ## [v22.3.20] — 2026-07-15
 ### Alterado

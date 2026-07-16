@@ -3,7 +3,7 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.21
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.22
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -29,15 +29,15 @@ DropParticleDistortion=False
 bAllowDownsampledTranslucency=False
 SpeedTreeLeaves=False
 SpeedTreeFronds=False
-OnlyStreamInTextures=True
+OnlyStreamInTextures=False
 LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=False
 OneFrameThreadLag=True
-WaitForGPU=True
+WaitForGPU=False
 UseVsync=False
 CustomFPS=0
-UpscaleScreenPercentage=True
+UpscaleScreenPercentage=False
 UpscaleTargetFramerateDocked=60.000000
 UpscaleTargetFramerateUndocked=60.000000
 MinimumScreenScale=1.000000
@@ -719,7 +719,7 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.14
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.22
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -745,7 +745,7 @@ DropParticleDistortion=False
 bAllowDownsampledTranslucency=False
 SpeedTreeLeaves=True
 SpeedTreeFronds=True
-OnlyStreamInTextures=True
+OnlyStreamInTextures=False
 LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=True
