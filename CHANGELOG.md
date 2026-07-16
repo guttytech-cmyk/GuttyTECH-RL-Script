@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.32] — 2026-07-16
+### Corrigido
+- **Presets do carro sumindo:** COMPLETO/CRIADOR agora mexem **só no INI** — não tocam no save Epic.
+- **REMOVER** restaura apenas o INI (preserva garagem/presets). Save só no modo `RECUPERAR` (boot travado).
+- Novo comando `RESTAURAR-PRESETS` — recupera save do backup mais recente em `%USERPROFILE%\GuttyTECH\RL-Optimizer-v22\Backups\`.
+
 ## [v22.3.31] — 2026-07-16
 ### Corrigido
 - **Epic Online Services desconectado ao aplicar COMPLETO:** COMPLETO não apaga mais `RLSettingsData` (cache EOS). Purga permanece só no REMOVER.

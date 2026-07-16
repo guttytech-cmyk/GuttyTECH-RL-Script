@@ -16,14 +16,14 @@ internal static class SaveRecovery
         return Path.Combine(tagame, "SaveDataEpic", "DBE_Production");
     }
 
-    public static bool RestoreEpicSave(string iniPath)
+    public static bool RestoreEpicSave(string iniPath, bool preferNewest = false)
     {
         string? saveDir = SaveDirFromIni(iniPath);
         if (saveDir is null) return false;
 
         string backupRoot = Path.Combine(AppMeta.BackupDir, "SaveDataEpic");
         if (!Directory.Exists(backupRoot))
-            return QuarantineSaves(saveDir);
+            return preferNewest ? false : QuarantineSaves(saveDir);
 
         var groups = Directory.EnumerateFiles(backupRoot, "*.save")
             .Select(f => new FileInfo(f))
@@ -37,17 +37,19 @@ internal static class SaveRecovery
             .ToList();
 
         if (groups.Count == 0)
-            return QuarantineSaves(saveDir);
+            return preferNewest ? false : QuarantineSaves(saveDir);
 
         try
         {
             Directory.CreateDirectory(saveDir);
             foreach (var g in groups)
             {
-                var oldest = g.OrderBy(x => x.File.LastWriteTimeUtc).First().File;
+                var pick = preferNewest
+                    ? g.OrderByDescending(x => x.File.LastWriteTimeUtc).First().File
+                    : g.OrderBy(x => x.File.LastWriteTimeUtc).First().File;
                 string dest = Path.Combine(saveDir, g.Key);
-                File.Copy(oldest.FullName, dest, true);
-                AppMeta.Log($"Save restaurado: {g.Key} <- {oldest.Name}");
+                File.Copy(pick.FullName, dest, true);
+                AppMeta.Log($"Save restaurado: {g.Key} <- {pick.Name}");
             }
             return true;
         }
@@ -57,6 +59,8 @@ internal static class SaveRecovery
             return false;
         }
     }
+
+    public static bool RestoreLatestBackup(string iniPath) => RestoreEpicSave(iniPath, preferNewest: true);
 
     public static bool QuarantineSaves(string saveDir)
     {

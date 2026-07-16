@@ -98,7 +98,10 @@ internal static class Program
                 "1" => "COMPLETO",
                 "2" => "CRIADOR",
                 "3" => "REMOVER",
-                "RECUPERAR" => "REMOVER",
+                "RECUPERAR" => "RECUPERAR",
+                "RECUPERAR-SAVE" => "RECUPERAR",
+                "RESTAURAR-SAVES" => "RESTAURAR-SAVES",
+                "RESTAURAR-PRESETS" => "RESTAURAR-SAVES",
                 "5" => "CORRIGIR",
                 "6" => "CORRIGIR",
                 "HEAL" => "CORRIGIR",
@@ -224,7 +227,9 @@ internal static class Program
 
     private static int Dispatch(string mode, bool interactive)
     {
-        if (mode == "REMOVER" || mode == "RECUPERAR") return Remover(interactive);
+        if (mode == "REMOVER") return Remover(interactive, recoverSave: false);
+        if (mode is "RECUPERAR" or "RECUPERAR-SAVE") return Remover(interactive, recoverSave: true);
+        if (mode is "RESTAURAR-SAVES" or "RESTAURAR-PRESETS") return RestoreLatestSaves(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
         if (mode is "CORRIGIR" or "HEAL") return CorrigirErros(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
@@ -261,7 +266,7 @@ internal static class Program
         Ui.PanelTop("MODOS");
         MenuOption("1", "COMPLETO", "FPS MAXIMO - grafico de batata", Ui.Red);
         MenuOption("2", "CRIADOR DE CONTEUDO", "Aplica todas as otimizacoes possiveis mantendo o visual bonito", Ui.Cyan);
-        MenuOption("3", "REMOVER", "Restaura INI + save Epic + nuvem (boot)", Ui.Amber);
+        MenuOption("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
         MenuOption("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
         MenuOption("5", "CORRIGIR ERROS", "Corrige falhas que impedem o script de aplicar", Ui.Amber);
         MenuOption("6", "SAIR", "Fechar o GuttyRL", Ui.DimC);
@@ -411,18 +416,6 @@ internal static class Program
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
-            if (mode == "COMPLETO")
-            {
-                if (!Ui.StepAnimated("Backup save Epic (seguranca)", () => VideoSettingsSync.SyncForCompleto(_cfg!, interactive)))
-                {
-                    Ui.CompletionMessage(acc, "AVISO", new[]
-                    {
-                        "INI gravado, mas o backup do save Epic falhou.",
-                        "Feche o RL e rode COMPLETO de novo.",
-                    });
-                    return 1;
-                }
-            }
             if (mode == "CRIADOR" || mode == "COMPLETO")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
         }
@@ -431,7 +424,6 @@ internal static class Program
             Backup();
             Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
-            if (mode == "COMPLETO" && !VideoSettingsSync.SyncForCompleto(_cfg!, interactive)) return 1;
             UnlockCfg();
         }
 
@@ -478,7 +470,7 @@ internal static class Program
     }
 
     // -------------------------------------------------------------- Remover
-    private static int Remover(bool interactive)
+    private static int Remover(bool interactive, bool recoverSave)
     {
         if (!CheckGame(interactive)) return 1;
         if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(Ui.MAmber); Ui.TitleBar("REMOVENDO / RESTAURANDO", Ui.MAmber); }
@@ -535,24 +527,69 @@ internal static class Program
             Ui.StepAnimated("Backup de seguranca", () => { if (File.Exists(_cfg!)) Backup(); return true; });
             if (!Ui.StepAnimated(fromOriginal ? "Restaurando INI original" : "Restaurando INI padrao", RestoreIni))
                 return FailOrElevate("REMOVER", interactive);
-            Ui.StepAnimated("Restaurando save Epic + nuvem", RestoreSave);
-            Log("REMOVER concluido (INI + save).");
+            if (recoverSave)
+                Ui.StepAnimated("Recuperando save Epic (boot)", RestoreSave);
+            Log(recoverSave ? "REMOVER concluido (INI + save)." : "REMOVER concluido (so INI).");
             RefreshWritableCache();
-            Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", new[]
-            {
-                "INI, save Epic e RLSettingsData recuperados.",
-                "Abra o Rocket League — deve bootar sem o optimizer.",
-            });
+            Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", recoverSave
+                ? new[]
+                {
+                    "INI + save Epic recuperados (modo boot).",
+                    "Presets do carro podem voltar ao backup mais antigo.",
+                    "Se sumiram: GuttyTECH_RL.exe RESTAURAR-PRESETS",
+                }
+                : new[]
+                {
+                    "INI restaurado. Save Epic e presets do carro intactos.",
+                    "Jogo nao abre? Rode: GuttyTECH_RL.exe RECUPERAR",
+                });
         }
         else
         {
             if (File.Exists(_cfg!)) { Unlock(_cfg!); Backup(); }
             if (!RestoreIni()) return FailOrElevate("REMOVER", interactive);
-            RestoreSave();
-            Log("REMOVER concluido (INI + save).");
+            if (recoverSave) RestoreSave();
+            Log(recoverSave ? "REMOVER concluido (INI + save)." : "REMOVER concluido (so INI).");
             RefreshWritableCache();
         }
         return 0;
+    }
+
+    private static int RestoreLatestSaves(bool interactive)
+    {
+        if (!CheckGame(interactive)) return 1;
+        string? cfg = _cfg ?? ResolveConfigPath();
+        if (cfg is null)
+        {
+            if (interactive)
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao encontrada." });
+            return 1;
+        }
+
+        if (interactive)
+        {
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MAmber);
+            Ui.TitleBar("RESTAURAR PRESETS / SAVE", Ui.MAmber);
+        }
+
+        bool ok = SaveRecovery.RestoreLatestBackup(cfg);
+        if (interactive)
+        {
+            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MRed, ok ? "PRESETS RESTAURADOS" : "FALHOU", ok
+                ? new[]
+                {
+                    "Save Epic restaurado do backup mais recente.",
+                    "Abra o Rocket League e confira a garagem.",
+                }
+                : new[]
+                {
+                    "Nenhum backup em GuttyTECH\\Backups\\SaveDataEpic",
+                    "Epic Launcher -> Verificar arquivos do RL",
+                });
+        }
+        Log(ok ? "RESTAURAR-PRESETS: save mais recente aplicado." : "RESTAURAR-PRESETS: sem backup.");
+        return ok ? 0 : 1;
     }
 
     private static Dictionary<string, string> DefaultDisplay() => new(StringComparer.OrdinalIgnoreCase)
