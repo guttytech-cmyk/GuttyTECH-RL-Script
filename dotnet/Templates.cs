@@ -3,7 +3,7 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.19
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.21
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -34,10 +34,10 @@ LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=False
 OneFrameThreadLag=True
-WaitForGPU=False
+WaitForGPU=True
 UseVsync=False
 CustomFPS=0
-UpscaleScreenPercentage=False
+UpscaleScreenPercentage=True
 UpscaleTargetFramerateDocked=60.000000
 UpscaleTargetFramerateUndocked=60.000000
 MinimumScreenScale=1.000000

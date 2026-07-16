@@ -2,8 +2,9 @@ using System.Text;
 
 namespace GuttyRL;
 
-/// <summary>Forca valores potato em TODAS as secoes SystemSettings* do COMPLETO
-/// (o jogo le perfis derivados e o menu in-game reflete chaves espalhadas).</summary>
+/// <summary>Forca valores potato nas secoes SystemSettings* do COMPLETO.
+/// TEXTUREGROUP_* so no [SystemSettings] principal — perfis derivados/mobile
+/// com potato forcado travavam o boot DX11 em alguns PCs (v22.3.20).</summary>
 internal static class CompletoForce
 {
     private const string PotatoTextureGroup =
@@ -60,25 +61,25 @@ internal static class CompletoForce
         ["MobileLightShaftSecondPass"] = "0",
         ["TemporalAA_MinDepth"] = "0.000000",
         ["TemporalAA_StartDepthVelocityScale"] = "0.000000",
-        ["UpscaleScreenPercentage"] = "False",
     };
 
     public static string Apply(string iniText)
     {
         var sb = new StringBuilder();
-        bool forceSection = false;
+        string? currentHeader = null;
 
         foreach (var raw in iniText.Replace("\r\n", "\n").Split('\n'))
         {
             string line = raw;
             if (line.StartsWith('['))
             {
-                forceSection = IsForceSection(line);
+                currentHeader = line;
                 sb.Append(line).Append("\r\n");
                 continue;
             }
 
-            if (!forceSection || string.IsNullOrWhiteSpace(line) || line.StartsWith(';'))
+            if (currentHeader is null || !ShouldForceSection(currentHeader)
+                || string.IsNullOrWhiteSpace(line) || line.StartsWith(';'))
             {
                 sb.Append(line).Append("\r\n");
                 continue;
@@ -94,7 +95,10 @@ internal static class CompletoForce
             string key = line[..eq];
             if (key.StartsWith("TEXTUREGROUP_", StringComparison.OrdinalIgnoreCase))
             {
-                sb.Append(key).Append('=').Append(PotatoTextureGroup).Append("\r\n");
+                if (IsMainSection(currentHeader))
+                    sb.Append(key).Append('=').Append(PotatoTextureGroup).Append("\r\n");
+                else
+                    sb.Append(line).Append("\r\n");
                 continue;
             }
 
@@ -110,6 +114,27 @@ internal static class CompletoForce
         return sb.ToString();
     }
 
-    private static bool IsForceSection(string header) =>
-        header.StartsWith("[SystemSettings", StringComparison.OrdinalIgnoreCase);
+    private static bool IsMainSection(string header) =>
+        header.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ShouldForceSection(string header)
+    {
+        if (!header.StartsWith("[SystemSettings", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (IsMainSection(header))
+            return true;
+
+        // Perfis mobile/legacy e ProfileDetail nao devem receber overrides agressivos no PC.
+        if (header.Contains("ProfileDetail", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (header.Contains("Android", StringComparison.OrdinalIgnoreCase)
+            || header.Contains("IPhone", StringComparison.OrdinalIgnoreCase)
+            || header.Contains("IPad", StringComparison.OrdinalIgnoreCase)
+            || header.Contains("IPod", StringComparison.OrdinalIgnoreCase)
+            || header.Contains("Flash", StringComparison.OrdinalIgnoreCase)
+            || header.Contains("Mobile", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return true;
+    }
 }

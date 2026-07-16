@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.21] — 2026-07-16
+### Corrigido
+- **COMPLETO:** loading infinito / "Não está respondendo" em alguns PCs após v22.3.20.
+  - `WaitForGPU=True` e `UpscaleScreenPercentage=True` restaurados no template principal.
+  - `CompletoForce` não força mais `TEXTUREGROUP_*` em perfis derivados — só em `[SystemSettings]`.
+  - Seções mobile/legacy (`Android`, `IPhone`, `IPad`, `Mobile`, `ProfileDetail*`) excluídas do force agressivo.
+
 ## [v22.3.20] — 2026-07-15
 ### Alterado
 - **Runtime embutido:** Python 3.11 + nixwrap + patch `.save` dentro do `GuttyTECH_RL.exe`.

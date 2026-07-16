@@ -77,7 +77,7 @@ function Build-Bundle {
             throw 'python.exe ausente no stage do bundle.'
         }
         [System.IO.Compression.ZipFile]::CreateFromDirectory($stage, $BundleZip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
-        Set-Content -Path $stampFile -Value $latest
+        Set-Content -Path $stampFile -Value $latest.ToString([System.Globalization.CultureInfo]::InvariantCulture) -NoNewline
         $mb = [math]::Round((Get-Item $BundleZip).Length / 1MB, 1)
         Write-Host "[+] embed-bundle.zip gerado ($mb MB)."
     }
@@ -96,9 +96,14 @@ $inputs = @(
     (Join-Path $PSScriptRoot 'build_embed_bundle.ps1')
 )
 $latest = ($inputs | ForEach-Object { (Get-Item $_).LastWriteTimeUtc.Ticks } | Measure-Object -Maximum).Maximum
-if ((Test-Path $BundleZip) -and (Test-Path $stampFile) -and [int64](Get-Content $stampFile) -ge $latest) {
-    Write-Host '[+] embed-bundle.zip em cache (sem mudancas).'
-    return
+$stampTicks = 0L
+if ((Test-Path $BundleZip) -and (Test-Path $stampFile)) {
+    $stampRaw = (Get-Content $stampFile -Raw).Trim()
+    $parsed = [long]::TryParse($stampRaw, [System.Globalization.NumberStyles]::Integer, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$stampTicks)
+    if ($parsed -and $stampTicks -ge $latest) {
+        Write-Host '[+] embed-bundle.zip em cache (sem mudancas).'
+        return
+    }
 }
 
 Ensure-PythonEmbed
