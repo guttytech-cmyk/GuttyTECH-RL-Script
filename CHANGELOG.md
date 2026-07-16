@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.34] — 2026-07-16
+### Alterado
+- **CORRIGIR ERROS** virou hub: Permissões | Recuperar boot | Tudo (submenu).
+- **RESTAURAR PRESETS** no menu [6] — copia backup mais recente direto para SaveDataEpic.
+- `RECUPERAR` CLI redireciona para `CORRIGIR-BOOT` (dentro de CORRIGIR ERROS).
+- REMOVER continua só INI (preserva garagem).
+
 ## [v22.3.33] — 2026-07-16
 ### Corrigido
 - **Menu Epic regressou:** clima ligado, FPS 60, raios de luz — CRIADOR tinha `MobileFog=True` no template.
