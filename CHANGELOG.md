@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.27] — 2026-07-16
+### Corrigido
+- **Tela preta em partida:** `FramePacingForce` trava frame pacing em todas as seções `[SystemSettings*]`.
+  - Proibido: `WaitForGPU=False`, `OneFrameThreadLag=False`, `AllowPerFrameSleep/Yield=False`.
+  - Forçado: `WaitForGPU=True`, `OneFrameThreadLag=True`, `AllowPerFrameSleep/Yield=True`.
+- CRIADOR não preserva mais chaves de frame pacing corrompidas pelo jogo ao re-aplicar.
+
 ## [v22.3.26] — 2026-07-16
 ### Alterado
 - `WaitForGPU=True` em COMPLETO e CRIADOR — CPU sincroniza com a GPU (frame pacing mais estável).

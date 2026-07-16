@@ -26,7 +26,6 @@ internal static class Program
         "MotionBlur", "MotionBlurPause", "MotionBlurSkinning",
         "FogVolumes",
         "bAllowD3D9MSAA", "MaxMultiSamples", "bAllowTemporalAA", "bAllowPostprocessMLAA", "MobileFXAAQuality",
-        "UncappedFramerate", "bSmoothFrameRate", "CustomFPS", "AllowPerFrameSleep",
         "Distortion", "FilteredDistortion", "DropParticleDistortion", "AllowRadialBlur",
         "AllowSubsurfaceScattering",
         "AllowImageReflections", "AllowImageReflectionShadowing", "AllowApexCloth",
@@ -382,6 +381,8 @@ internal static class Program
                 content = ApplySectionOverrides(content, scale);
             }
         }
+
+        content = FramePacingForce.Apply(content);
 
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
