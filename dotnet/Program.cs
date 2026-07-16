@@ -68,21 +68,23 @@ internal static class Program
             return rc;
         }
 
-        _cfg = FindIni();
+        _cfg = ResolveConfigPath();
         if (_cfg is null)
         {
             Ui.Cls();
             Ui.Banner(false);
             Ui.PanelTop("ERRO");
-            Ui.PanelLine(Ui.C("X  TASystemSettings.ini nao encontrado.", Ui.Red));
-            Ui.PanelLine(Ui.C(MissingIniHint(), Ui.Gray));
+            Ui.PanelLine(Ui.C("X  Pasta do Rocket League nao encontrada.", Ui.Red));
+            Ui.PanelLine(Ui.C("Abra o jogo 1x pela Epic para criar as pastas.", Ui.Gray));
             Ui.PanelLine(Ui.C("Caminho esperado: Documents\\My Games\\Rocket League\\...", Ui.DimC));
-            Ui.PanelLine(Ui.C("Override: set GUTTYRL_INI=caminho\\completo\\TASystemSettings.ini", Ui.DimC));
             Ui.PanelBottom();
-            AppMeta.Log("INI nao encontrado.");
+            AppMeta.Log("Pasta Config do RL nao encontrada.");
             Ui.EnterButton();
             return 1;
         }
+
+        if (!File.Exists(_cfg))
+            AppMeta.Log($"INI ausente; usando caminho alvo: {_cfg}");
 
         AppMeta.Log($"INI: {_cfg}");
         RefreshWritableCache();
@@ -96,6 +98,7 @@ internal static class Program
                 "1" => "COMPLETO",
                 "2" => "CRIADOR",
                 "3" => "REMOVER",
+                "RECUPERAR" => "REMOVER",
                 "5" => "CORRIGIR",
                 "6" => "CORRIGIR",
                 "HEAL" => "CORRIGIR",
@@ -174,7 +177,7 @@ internal static class Program
 
         bool RefreshIniPath()
         {
-            var found = FindIni();
+            var found = ResolveConfigPath();
             if (found is null) return false;
             _cfg = found;
             return true;
@@ -221,7 +224,7 @@ internal static class Program
 
     private static int Dispatch(string mode, bool interactive)
     {
-        if (mode == "REMOVER") return Remover(interactive);
+        if (mode == "REMOVER" || mode == "RECUPERAR") return Remover(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
         if (mode is "CORRIGIR" or "HEAL") return CorrigirErros(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
@@ -258,7 +261,7 @@ internal static class Program
         Ui.PanelTop("MODOS");
         MenuOption("1", "COMPLETO", "FPS MAXIMO - grafico de batata", Ui.Red);
         MenuOption("2", "CRIADOR DE CONTEUDO", "Aplica todas as otimizacoes possiveis mantendo o visual bonito", Ui.Cyan);
-        MenuOption("3", "REMOVER", "Restaura os arquivos pro padrao/original", Ui.Amber);
+        MenuOption("3", "REMOVER", "Restaura INI + save Epic + nuvem (boot)", Ui.Amber);
         MenuOption("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
         MenuOption("5", "CORRIGIR ERROS", "Corrige falhas que impedem o script de aplicar", Ui.Amber);
         MenuOption("6", "SAIR", "Fechar o GuttyRL", Ui.DimC);
@@ -363,12 +366,21 @@ internal static class Program
     private static int Apply(string mode, bool interactive)
     {
         if (!CheckGame(interactive)) return 1;
+        if (!File.Exists(_cfg!) && !EnsureConfigDir())
+            return FailOrElevate(mode, interactive);
         var acc = Ui.ModeColor(mode);
         if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(acc); Ui.TitleBar("APLICANDO MODO " + mode, acc); }
-        if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
+        if (File.Exists(_cfg!))
+        {
+            if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
+        }
+        else if (!FolderAccess.EnsureWriteAccess(Path.GetDirectoryName(_cfg!)!, interactive))
+        {
+            return FailOrElevate(mode, interactive);
+        }
 
         EnsureOriginalBackup();
-        var disp = ReadDisplay(_cfg!);
+        var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
         string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
         string content = ApplyDisplay(template, disp);
         if (mode == "COMPLETO")
@@ -470,10 +482,25 @@ internal static class Program
     {
         if (!CheckGame(interactive)) return 1;
         if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(Ui.MAmber); Ui.TitleBar("REMOVENDO / RESTAURANDO", Ui.MAmber); }
-        if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
+
+        if (!EnsureConfigDir())
+        {
+            if (interactive)
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao existe.", "Abra o jogo 1x pela Epic." });
+            return 1;
+        }
+
+        if (File.Exists(_cfg!))
+        {
+            if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
+        }
+        else if (!FolderAccess.EnsureWriteAccess(Path.GetDirectoryName(_cfg!)!, interactive))
+        {
+            return 1;
+        }
 
         bool fromOriginal = File.Exists(AppMeta.OrigBackup);
-        bool Restore()
+        bool RestoreIni()
         {
             try
             {
@@ -482,11 +509,16 @@ internal static class Program
                     if (File.Exists(_cfg!)) File.Delete(_cfg!);
                     File.Copy(AppMeta.OrigBackup, _cfg!, true);
                 }
-                else
+                else if (File.Exists(_cfg!))
                 {
                     var disp = ReadDisplay(_cfg!);
                     string content = ApplyDisplay(Templates.Stock, disp);
-                    if (File.Exists(_cfg!)) File.Delete(_cfg!);
+                    File.Delete(_cfg!);
+                    File.WriteAllText(_cfg!, content, new UTF8Encoding(false));
+                }
+                else
+                {
+                    string content = ApplyDisplay(Templates.Stock, DefaultDisplay());
                     File.WriteAllText(_cfg!, content, new UTF8Encoding(false));
                 }
                 try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { }
@@ -495,29 +527,84 @@ internal static class Program
             catch { return false; }
         }
 
+        bool RestoreSave() => SaveRecovery.FullRecovery(_cfg!);
+
         if (interactive)
         {
-            Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
-            Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
-            if (!Ui.StepAnimated(fromOriginal ? "Restaurando seu original" : "Restaurando padrao de fabrica", Restore))
+            Ui.StepAnimated("Destravando o arquivo", () => { if (File.Exists(_cfg!)) Unlock(_cfg!); return true; });
+            Ui.StepAnimated("Backup de seguranca", () => { if (File.Exists(_cfg!)) Backup(); return true; });
+            if (!Ui.StepAnimated(fromOriginal ? "Restaurando INI original" : "Restaurando INI padrao", RestoreIni))
                 return FailOrElevate("REMOVER", interactive);
-            Log("REMOVER concluido.");
+            Ui.StepAnimated("Restaurando save Epic + nuvem", RestoreSave);
+            Log("REMOVER concluido (INI + save).");
             RefreshWritableCache();
             Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", new[]
             {
-                "Configuracao restaurada e arquivo DESTRAVADO.",
-                "Sua resolucao foi mantida; o jogo volta a gerenciar o arquivo."
+                "INI, save Epic e RLSettingsData recuperados.",
+                "Abra o Rocket League — deve bootar sem o optimizer.",
             });
         }
         else
         {
-            Unlock(_cfg!);
-            Backup();
-            if (!Restore()) return FailOrElevate("REMOVER", interactive);
-            Log("REMOVER concluido.");
+            if (File.Exists(_cfg!)) { Unlock(_cfg!); Backup(); }
+            if (!RestoreIni()) return FailOrElevate("REMOVER", interactive);
+            RestoreSave();
+            Log("REMOVER concluido (INI + save).");
             RefreshWritableCache();
         }
         return 0;
+    }
+
+    private static Dictionary<string, string> DefaultDisplay() => new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ResX"] = "1920",
+        ["ResY"] = "1080",
+        ["Fullscreen"] = "True",
+        ["Borderless"] = "False",
+        ["AutoDetectDesktopResolution"] = "False",
+    };
+
+    private static bool EnsureConfigDir()
+    {
+        try
+        {
+            string? dir = Path.GetDirectoryName(_cfg!);
+            if (string.IsNullOrEmpty(dir)) return false;
+            Directory.CreateDirectory(dir);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    private static string? ResolveConfigPath()
+    {
+        string? ov = Environment.GetEnvironmentVariable("GUTTYRL_INI");
+        if (!string.IsNullOrEmpty(ov)) return ov;
+
+        foreach (var root in DocumentRoots())
+        {
+            string configDir = Path.Combine(root, @"My Games\Rocket League\TAGame\Config");
+            if (Directory.Exists(configDir))
+                return Path.Combine(configDir, "TASystemSettings.ini");
+        }
+
+        string up = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        try
+        {
+            string usersRoot = Path.GetDirectoryName(up)!;
+            foreach (var u in Directory.GetDirectories(usersRoot))
+            {
+                foreach (var root in DocumentRootsForUser(u))
+                {
+                    string configDir = Path.Combine(root, @"My Games\Rocket League\TAGame\Config");
+                    if (Directory.Exists(configDir))
+                        return Path.Combine(configDir, "TASystemSettings.ini");
+                }
+            }
+        }
+        catch { }
+
+        return FindIni();
     }
 
     // -------------------------------------------------------------- Find INI
@@ -697,7 +784,7 @@ internal static class Program
 
     private static void EnsureOriginalBackup()
     {
-        if (File.Exists(AppMeta.OrigBackup)) return;
+        if (File.Exists(AppMeta.OrigBackup) || !File.Exists(_cfg!)) return;
         try
         {
             string text = File.ReadAllText(_cfg!);

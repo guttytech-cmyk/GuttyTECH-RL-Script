@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.30] — 2026-07-16
+### Corrigido
+- **Boot travado / jogo fecha:** REMOVER agora restaura **save Epic** + purga `RLSettingsData` (antes só INI).
+- Script funciona **sem** `TASystemSettings.ini` (apagado).
+- **Patch `.save` desativado** no COMPLETO — era a causa do jogo não abrir.
+- Saves corrompidos vão para quarentena se não houver backup.
+
 ## [v22.3.29] — 2026-07-16
 ### Revertido
 - **FramePacingForce removido** (v22.3.27) — impedia o RL de abrir.
