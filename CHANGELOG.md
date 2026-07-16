@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.31] — 2026-07-16
+### Corrigido
+- **Epic Online Services desconectado ao aplicar COMPLETO:** COMPLETO não apaga mais `RLSettingsData` (cache EOS). Purga permanece só no REMOVER.
+- Passo renomeado para "Backup save Epic" — só backup de segurança, sem tocar na sessão online.
+
 ## [v22.3.30] — 2026-07-16
 ### Corrigido
 - **Boot travado / jogo fecha:** REMOVER agora restaura **save Epic** + purga `RLSettingsData` (antes só INI).

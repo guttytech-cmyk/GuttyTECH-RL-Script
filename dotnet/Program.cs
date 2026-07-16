@@ -413,11 +413,11 @@ internal static class Program
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
             if (mode == "COMPLETO")
             {
-                if (!Ui.StepAnimated("Sincronizando menu de video (Epic)", () => VideoSettingsSync.SyncForCompleto(_cfg!, interactive)))
+                if (!Ui.StepAnimated("Backup save Epic (seguranca)", () => VideoSettingsSync.SyncForCompleto(_cfg!, interactive)))
                 {
                     Ui.CompletionMessage(acc, "AVISO", new[]
                     {
-                        "INI gravado, mas o save Epic nao foi purgado.",
+                        "INI gravado, mas o backup do save Epic falhou.",
                         "Feche o RL e rode COMPLETO de novo.",
                     });
                     return 1;
