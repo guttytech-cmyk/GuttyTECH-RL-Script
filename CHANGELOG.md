@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.26] — 2026-07-16
+### Alterado
+- `WaitForGPU=True` em COMPLETO e CRIADOR — CPU sincroniza com a GPU (frame pacing mais estável).
+
 ## [v22.3.25] — 2026-07-16
 ### Alterado
 - `WaitForGPU=False` (padrao stock) em COMPLETO e CRIADOR.
