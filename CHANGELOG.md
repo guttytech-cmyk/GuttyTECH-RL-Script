@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.29] — 2026-07-16
+### Revertido
+- **FramePacingForce removido** (v22.3.27) — impedia o RL de abrir.
+- Frame pacing agora vem só do template em `[SystemSettings]` (sem force em perfis derivados).
+- `WaitForGPU=False` (padrão stock) — `True` da v22.3.26+ travava boot em alguns PCs.
+
 ## [v22.3.28] — 2026-07-16
 ### Corrigido
 - **Boot travado:** `OnlyStreamInTextures=False` (COMPLETO + CRIADOR).

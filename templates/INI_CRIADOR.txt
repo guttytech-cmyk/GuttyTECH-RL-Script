@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.28
+;GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.29
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -29,7 +29,7 @@ LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=True
 OneFrameThreadLag=True
-WaitForGPU=True
+WaitForGPU=False
 UseVsync=False
 UpscaleScreenPercentage=True
 UpscaleTargetFramerateDocked=60.000000

@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.28
+;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.29
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -29,7 +29,7 @@ LensFlares=False
 FogVolumes=False
 FloatingPointRenderTargets=False
 OneFrameThreadLag=True
-WaitForGPU=True
+WaitForGPU=False
 UseVsync=False
 CustomFPS=0
 UpscaleScreenPercentage=True

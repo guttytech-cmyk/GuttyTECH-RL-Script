@@ -13,6 +13,13 @@ internal static class Program
     private static readonly string[] VideoScaleKeys =
         { "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage" };
 
+    // Frame pacing — sempre do template (nunca preservar corrompido pelo jogo).
+    private static readonly string[] FramePacingKeys =
+    {
+        "WaitForGPU", "OneFrameThreadLag", "AllowPerFrameSleep", "AllowPerFrameYield",
+        "UncappedFramerate", "bSmoothFrameRate", "CustomFPS",
+    };
+
     // Chaves ligadas ao menu Video do RL — preservadas no CRIADOR (in-game ou re-aplicar).
     private static readonly string[] CriadorUserKeys =
     {
@@ -382,7 +389,8 @@ internal static class Program
             }
         }
 
-        content = FramePacingForce.Apply(content);
+        var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);
+        content = ApplySectionOverrides(content, pacing);
 
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
@@ -739,23 +747,25 @@ internal static class Program
 
     private static Dictionary<string, string> ReadSectionOverrides(string file, string[] keys, bool textureGroups)
     {
+        try { return ReadSectionOverridesFromText(File.ReadAllText(file), keys, textureGroups); }
+        catch { return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); }
+    }
+
+    private static Dictionary<string, string> ReadSectionOverridesFromText(string iniText, string[] keys, bool textureGroups)
+    {
         var keySet = new HashSet<string>(keys, StringComparer.OrdinalIgnoreCase);
         var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        try
+        bool inSs = false;
+        foreach (var line in iniText.Replace("\r\n", "\n").Split('\n'))
         {
-            bool inSs = false;
-            foreach (var line in File.ReadAllLines(file))
-            {
-                if (line.StartsWith('[')) { inSs = line.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase); continue; }
-                if (!inSs) continue;
-                int eq = line.IndexOf('=');
-                if (eq <= 0) continue;
-                string key = line[..eq];
-                if (!d.ContainsKey(key) && (keySet.Contains(key) || (textureGroups && key.StartsWith("TEXTUREGROUP_", StringComparison.OrdinalIgnoreCase))))
-                    d[key] = line[(eq + 1)..];
-            }
+            if (line.StartsWith('[')) { inSs = line.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase); continue; }
+            if (!inSs) continue;
+            int eq = line.IndexOf('=');
+            if (eq <= 0) continue;
+            string key = line[..eq];
+            if (!d.ContainsKey(key) && (keySet.Contains(key) || (textureGroups && key.StartsWith("TEXTUREGROUP_", StringComparison.OrdinalIgnoreCase))))
+                d[key] = line[(eq + 1)..];
         }
-        catch { }
         return d;
     }
 
