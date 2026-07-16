@@ -2,7 +2,7 @@ using System.Text;
 
 namespace GuttyRL;
 
-/// <summary>Trava frame pacing em todas as secoes SystemSettings*.
+/// <summary>Trava frame pacing so em [SystemSettings] principal.
 /// Combo WaitForGPU/OneFrameThreadLag/AllowPerFrame* = False causa tela preta no RL.</summary>
 internal static class FramePacingForce
 {
@@ -12,26 +12,25 @@ internal static class FramePacingForce
         ["OneFrameThreadLag"] = "True",
         ["AllowPerFrameSleep"] = "True",
         ["AllowPerFrameYield"] = "True",
-        ["UncappedFramerate"] = "True",
-        ["bSmoothFrameRate"] = "False",
     };
 
     public static string Apply(string iniText)
     {
         var sb = new StringBuilder();
-        bool inSection = false;
+        string? currentHeader = null;
 
         foreach (var raw in iniText.Replace("\r\n", "\n").Split('\n'))
         {
             string line = raw;
             if (line.StartsWith('['))
             {
-                inSection = line.StartsWith("[SystemSettings", StringComparison.OrdinalIgnoreCase);
+                currentHeader = line;
                 sb.Append(line).Append("\r\n");
                 continue;
             }
 
-            if (!inSection || string.IsNullOrWhiteSpace(line) || line.StartsWith(';'))
+            if (!IsMainSection(currentHeader)
+                || string.IsNullOrWhiteSpace(line) || line.StartsWith(';'))
             {
                 sb.Append(line).Append("\r\n");
                 continue;
@@ -56,4 +55,8 @@ internal static class FramePacingForce
 
         return sb.ToString();
     }
+
+    private static bool IsMainSection(string? header) =>
+        header is not null
+        && header.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase);
 }
