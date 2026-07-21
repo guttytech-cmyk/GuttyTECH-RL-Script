@@ -9,10 +9,6 @@ internal static class Program
     private static readonly string[] DisplayKeys =
         { "ResX", "ResY", "Fullscreen", "Borderless", "AutoDetectDesktopResolution" };
 
-    // Escala 3D / upscale — preservadas ao re-aplicar (PC fraco pode baixar no menu).
-    private static readonly string[] VideoScaleKeys =
-        { "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage" };
-
     // Frame pacing + efeitos que o jogo reescreve — sempre do template (nunca preservar).
     private static readonly string[] FramePacingKeys =
     {
@@ -511,11 +507,8 @@ internal static class Program
                 var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
                 content = ApplySectionOverrides(content, user);
             }
-            else
-            {
-                var scale = ReadSectionOverrides(_cfg!, VideoScaleKeys, textureGroups: false);
-                content = ApplySectionOverrides(content, scale);
-            }
+            // COMPLETO: nao preserva ScreenPercentage/upscale — CompletoForce trava 100%
+            // (evita borda preta quando o menu fica em High Performance).
         }
 
         var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);

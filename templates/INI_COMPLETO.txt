@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.34
+;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.35
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -35,7 +35,7 @@ CustomFPS=0
 UpscaleScreenPercentage=True
 UpscaleTargetFramerateDocked=60.000000
 UpscaleTargetFramerateUndocked=60.000000
-MinimumScreenScale=1.000000
+MinimumScreenScale=100.000000
 AllowDynamicResolution=False
 ZCullSaveRestore=False
 AdaptiveZcull=False

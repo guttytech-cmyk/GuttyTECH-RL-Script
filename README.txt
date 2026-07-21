@@ -47,15 +47,16 @@ O otimizador trava o arquivo (somente-leitura) para o jogo nao apagar as
 mudancas - mas voce ainda deve deixar as opcoes de video coerentes 1 vez:
 
   >> MODO COMPLETO (FPS maximo):
-     Opcoes > Video:
-       - Modo de Janela ........ Tela Cheia
-       - Sincronizacao Vertical  Desligado
-       - Qualidade de Render .... Performance
+     Opcoes > Video (aplicado automaticamente no .save Epic):
+       - Qualidade de Render .... High Performance
        - Anti-Aliasing .......... Desligado
-       - Detalhe de Render ...... Performance (ou Custom com tudo desligado)
-       - Detalhe de Textura ..... Performance
+       - Detalhe de Render ...... Performance
+       - Detalhe de Textura ..... High Performance
+       - Detalhe de Mundo ....... High Performance
+       - Detalhe de Particulas .. High Performance
        - Efeitos (Luz/Sombra/Clima/Desfoque) .... tudo Desligado
-       - FPS Maximo ............. o que quiser (ex.: 250 ou ilimitado)
+       - FPS Maximo ............. Uncapped
+       - Escala 3D .............. 100% (sem borda preta ao usar High Performance)
 
   >> MODO CRIADOR (bonito + otimizado):
      Opcoes > Video:

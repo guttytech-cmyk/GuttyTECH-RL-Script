@@ -18,12 +18,14 @@ from nixwrap.save_file._file_io import assemble_savedata  # noqa: E402
 
 UNCAPPED_MAX_FPS = 10000
 
+# Menu Epic (EN): High Performance / Performance / Quality / High Quality.
+# TextureDetail usa buckets do INI (TexturesLow = High Performance no menu).
 COMPLETO_OPTIONS = [
-    {"Id": "RenderQuality", "Value": "Performance"},
+    {"Id": "RenderQuality", "Value": "HighPerformance"},
     {"Id": "RenderDetail", "Value": "Performance"},
     {"Id": "TextureDetail", "Value": "TexturesLow"},
-    {"Id": "ParticleDetail", "Value": "Low"},
-    {"Id": "WorldDetail", "Value": "Quality"},
+    {"Id": "ParticleDetail", "Value": "HighPerformance"},
+    {"Id": "WorldDetail", "Value": "HighPerformance"},
     {"Id": "AntiAlias", "Value": "0"},
 ]
 
@@ -37,6 +39,20 @@ def _upsert_option(options: list[dict], option_id: str, value: str) -> list[dict
             return opts
     opts.append({"Id": option_id, "Value": value})
     return opts
+
+
+def _sanitize_options(options: list[dict] | None) -> list[dict]:
+    """Remove entradas corrompidas (bug antigo: dict unpack → Id='Id', Value='Value')."""
+    clean: list[dict] = []
+    for opt in options or []:
+        oid = opt.get("Id")
+        val = opt.get("Value")
+        if not isinstance(oid, str) or not isinstance(val, str):
+            continue
+        if oid in ("", "Id") or val in ("", "Value"):
+            continue
+        clean.append(opt)
+    return clean
 
 
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
@@ -53,10 +69,10 @@ def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
             changed = True
 
     if completo:
-        opts = list(obj.get("VideoOptions") or [])
-        before = [(o.get("Id"), o.get("Value")) for o in opts]
-        for option_id, value in COMPLETO_OPTIONS:
-            opts = _upsert_option(opts, option_id, value)
+        opts = _sanitize_options(obj.get("VideoOptions"))
+        before = [(o.get("Id"), o.get("Value")) for o in (obj.get("VideoOptions") or [])]
+        for item in COMPLETO_OPTIONS:
+            opts = _upsert_option(opts, item["Id"], item["Value"])
         after = [(o.get("Id"), o.get("Value")) for o in opts]
         if before != after:
             obj["VideoOptions"] = opts

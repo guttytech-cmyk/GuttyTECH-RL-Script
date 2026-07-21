@@ -11,7 +11,8 @@ BYTE_ENUM_FIELDS: dict[str, str] = {
     "TrainingControlsVisibility": "EControlsVisibilityType",
 }
 
-NAME_FIELDS: set[str] = {"Id"}
+# Id e Value de VideoOptions sao FName (NameProperty), nao StrProperty.
+NAME_FIELDS: set[str] = {"Id", "Value"}
 
 
 def serialize_scalar(name: str, val) -> tuple[str, bytes]:

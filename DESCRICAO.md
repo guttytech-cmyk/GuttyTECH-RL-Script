@@ -149,7 +149,7 @@ Para streamers/criadores — bonito na câmera, mas mais leve que o stock:
 
 **Ajuste in-game 1× (CRIADOR):** Render = Alta Qualidade, Textura = Alta Qualidade, Sombras Dinâmicas = OFF, Motion Blur/DoF/Bloom = OFF, V-Sync = OFF.
 
-**Ajuste in-game 1× (COMPLETO):** Render = Performance, Textura = Performance, Anti-Alias = OFF, V-Sync = OFF, Efeitos = OFF.
+**Ajuste in-game 1× (COMPLETO):** menu sincronizado automaticamente — Render/Texture/World/Particle = High Performance, Anti-Alias = OFF, V-Sync = OFF, Efeitos = OFF, escala 3D = 100% (sem borda preta).
 
 ---
 
