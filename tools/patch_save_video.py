@@ -18,31 +18,30 @@ from nixwrap.save_file._file_io import assemble_savedata  # noqa: E402
 
 UNCAPPED_MAX_FPS = 10000
 
-# Menu Epic (EN): High Performance / Performance / Quality / High Quality.
-# TextureDetail usa buckets do INI (TexturesLow = High Performance no menu).
+# Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
+# HighPerformance em Particle/Render quebra o menu (fica em branco ou Alta qualidade).
+# TextureDetail=TexturesLow = "Alto desempenho" / High Performance no menu.
 COMPLETO_OPTIONS = [
-    {"Id": "RenderQuality", "Value": "HighPerformance"},
+    {"Id": "RenderQuality", "Value": "Performance"},
     {"Id": "RenderDetail", "Value": "Performance"},
     {"Id": "TextureDetail", "Value": "TexturesLow"},
-    {"Id": "ParticleDetail", "Value": "HighPerformance"},
-    {"Id": "WorldDetail", "Value": "HighPerformance"},
+    {"Id": "ParticleDetail", "Value": "Performance"},
+    {"Id": "WorldDetail", "Value": "Performance"},
     {"Id": "AntiAlias", "Value": "0"},
 ]
 
-
-def _upsert_option(options: list[dict], option_id: str, value: str) -> list[dict]:
-    opts = list(options or [])
-    for opt in opts:
-        if opt.get("Id") == option_id:
-            if opt.get("Value") != value:
-                opt["Value"] = value
-            return opts
-    opts.append({"Id": option_id, "Value": value})
-    return opts
+VIDEO_FLAGS = (
+    ("bShowLightShafts", False),
+    ("bShowWeatherFX", False),
+    ("bShowLensFlares", False),
+    ("bUncappedFramerate", True),
+    ("bVsync", False),
+    ("MaxFPS", UNCAPPED_MAX_FPS),
+)
 
 
 def _sanitize_options(options: list[dict] | None) -> list[dict]:
-    """Remove entradas corrompidas (bug antigo: dict unpack → Id='Id', Value='Value')."""
+    """Remove entradas corrompidas (bug antigo: Id='Id', Value='Value')."""
     clean: list[dict] = []
     for opt in options or []:
         oid = opt.get("Id")
@@ -51,31 +50,27 @@ def _sanitize_options(options: list[dict] | None) -> list[dict]:
             continue
         if oid in ("", "Id") or val in ("", "Value"):
             continue
-        clean.append(opt)
+        clean.append({"Id": oid, "Value": val})
     return clean
+
+
+def _options_equal(a: list[dict], b: list[dict]) -> bool:
+    return [(o.get("Id"), o.get("Value")) for o in a] == [(o.get("Id"), o.get("Value")) for o in b]
 
 
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
     changed = False
-    for key, val in (
-        ("bShowLightShafts", False),
-        ("bShowWeatherFX", False),
-        ("bUncappedFramerate", True),
-        ("bVsync", False),
-        ("MaxFPS", UNCAPPED_MAX_FPS),
-    ):
+    for key, val in VIDEO_FLAGS:
         if obj.get(key) != val:
             obj[key] = val
             changed = True
 
     if completo:
-        opts = _sanitize_options(obj.get("VideoOptions"))
-        before = [(o.get("Id"), o.get("Value")) for o in (obj.get("VideoOptions") or [])]
-        for item in COMPLETO_OPTIONS:
-            opts = _upsert_option(opts, item["Id"], item["Value"])
-        after = [(o.get("Id"), o.get("Value")) for o in opts]
-        if before != after:
-            obj["VideoOptions"] = opts
+        # Substitui a lista inteira — nao mescla Custom/HighQuality/lixo.
+        desired = [dict(x) for x in COMPLETO_OPTIONS]
+        current = _sanitize_options(obj.get("VideoOptions"))
+        if not _options_equal(current, desired):
+            obj["VideoOptions"] = desired
             changed = True
 
     return changed
@@ -84,10 +79,11 @@ def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
 def _patch_gameplay(obj: dict, *, completo: bool) -> bool:
     if not completo:
         return False
-    if obj.get("EffectIntensity") == "EI_Low":
-        return False
-    obj["EffectIntensity"] = "EI_Low"
-    return True
+    changed = False
+    if obj.get("EffectIntensity") != "EI_Low":
+        obj["EffectIntensity"] = "EI_Low"
+        changed = True
+    return changed
 
 
 def _patch_camera(obj: dict) -> bool:

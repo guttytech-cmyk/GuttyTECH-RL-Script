@@ -60,10 +60,15 @@ internal static class CompletoForce
         ["MobileLightShaftSecondPass"] = "0",
         ["TemporalAA_MinDepth"] = "0.000000",
         ["TemporalAA_StartDepthVelocityScale"] = "0.000000",
-        // Escala 3D fixa a 100% — High Performance no menu sem borda preta.
+        // Escala 3D fixa a 100% — sem borda preta.
         ["ScreenPercentage"] = "100.000000",
         ["UpscaleScreenPercentage"] = "True",
         ["MinimumScreenScale"] = "100.000000",
+        // FPS ilimitado + clima/raios nunca regressam do INI.
+        ["UncappedFramerate"] = "True",
+        ["bSmoothFrameRate"] = "False",
+        ["CustomFPS"] = "0",
+        ["MobileHeightFog"] = "False",
     };
 
     public static string Apply(string iniText)

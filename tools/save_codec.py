@@ -11,8 +11,9 @@ BYTE_ENUM_FIELDS: dict[str, str] = {
     "TrainingControlsVisibility": "EControlsVisibilityType",
 }
 
-# Id e Value de VideoOptions sao FName (NameProperty), nao StrProperty.
-NAME_FIELDS: set[str] = {"Id", "Value"}
+# Id = FName (NameProperty). Value = StrProperty — NameProperty no Value
+# faz o jogo ignorar VideoOptions e voltar a Alta qualidade / 60 FPS.
+NAME_FIELDS: set[str] = {"Id"}
 
 
 def serialize_scalar(name: str, val) -> tuple[str, bytes]:

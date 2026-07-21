@@ -3,6 +3,17 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.36] — 2026-07-21
+### Corrigido
+- **Menu Epic COMPLETO (regressão v22.3.35):** `Value` como NameProperty fazia o jogo **ignorar** VideoOptions → Alta qualidade, 60 FPS, raios/clima ligados, partícula em branco.
+- `Value` volta a **StrProperty**; `Id` continua NameProperty.
+- VideoOptions **substituídos por completo** (não mescla Custom):
+  - RenderQuality / RenderDetail / WorldDetail / ParticleDetail = `Performance` (UI PT: Desempenho)
+  - TextureDetail = `TexturesLow` (UI: Alto desempenho / High Performance)
+  - AntiAlias = 0
+- Força sempre: MaxFPS=10000, bUncappedFramerate=True, bShowLightShafts=False, bShowWeatherFX=False, EffectIntensity=EI_Low.
+- CompletoForce: UncappedFramerate=True, CustomFPS=0, MobileHeightFog=False.
+
 ## [v22.3.35] — 2026-07-21
 ### Corrigido
 - **Menu Epic COMPLETO:** bug no patch `.save` — `for opt in COMPLETO_OPTIONS` desempacotava dict como `("Id","Value")` e gravava lixo; Render Quality ficava em High Quality.
