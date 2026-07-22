@@ -3,7 +3,7 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.36
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.37
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -719,7 +719,7 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.36
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.37
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -728,7 +728,7 @@ UnbatchedDecals=True
 DecalCullDistanceScale=1.000000
 DynamicLights=False
 DynamicShadows=False
-LightEnvironmentShadows=False
+LightEnvironmentShadows=True
 CompositeDynamicLights=False
 SHSecondaryLighting=False
 DirectionalLightmaps=False
@@ -784,11 +784,11 @@ bAllowD3D9MSAA=False
 bAllowTemporalAA=False
 TemporalAA_MinDepth=500.000000
 TemporalAA_StartDepthVelocityScale=100.000000
-MinShadowResolution=16
+MinShadowResolution=64
 MinPreShadowResolution=8
-MaxShadowResolution=16
+MaxShadowResolution=1120
 MobileShadowTextureResolution=1120
-MaxWholeSceneDominantShadowResolution=16
+MaxWholeSceneDominantShadowResolution=1344
 ShadowFadeResolution=32
 PreShadowFadeResolution=16
 ShadowFadeExponent=0.250000
@@ -799,20 +799,20 @@ Borderless=False
 AllowApexCloth=true
 ScreenPercentage=100.000000
 SceneCaptureStreamingMultiplier=0.000000
-ShadowTexelsPerPixel=0.000000
+ShadowTexelsPerPixel=1.273240
 PreShadowResolutionFactor=0.500000
 bEnableBranchingPCFShadows=False
 bAllowHardwareShadowFiltering=False
 TessellationAdaptivePixelsPerTriangle=0.000000
 bEnableForegroundShadowsOnWorld=True
 bEnableForegroundSelfShadowing=False
-bAllowWholeSceneDominantShadows=False
+bAllowWholeSceneDominantShadows=True
 bUseConservativeShadowBounds=False
 ShadowFilterRadius=2.000000
 ShadowDepthBias=0.012000
 PerObjectShadowTransition=60.000000
 PerSceneShadowTransition=600.000000
-CSMSplitPenumbraScale=0.000000
+CSMSplitPenumbraScale=0.500000
 CSMSplitSoftTransitionDistanceScale=4.000000
 CSMSplitDepthBiasScale=0.500000
 CSMMinimumFOV=40.000000

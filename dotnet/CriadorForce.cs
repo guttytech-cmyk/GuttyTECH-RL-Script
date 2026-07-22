@@ -10,8 +10,7 @@ internal static class CriadorForce
     {
         ["DynamicLights"] = "False",
         ["SHSecondaryLighting"] = "False",
-        ["DynamicShadows"] = "False",
-        ["LightEnvironmentShadows"] = "False",
+        // DynamicShadows / LightEnvironmentShadows: ajustaveis no menu (CRIADOR)
         ["CompositeDynamicLights"] = "False",
         ["MotionBlur"] = "False",
         ["MotionBlurPause"] = "False",

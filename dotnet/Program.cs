@@ -31,7 +31,7 @@ internal static class Program
         "DetailMode", "ParticleLODBias", "SkeletalMeshLODBias", "MaxDrawDistanceScale", "MaxAnisotropy",
         "bAllowHighQualityMaterials", "bUseTranslucentArenaShaders",
         "AmbientOcclusion", "DepthOfField", "Bloom", "LensFlares",
-        "DynamicShadows", "LightEnvironmentShadows", "CompositeDynamicLights",
+        "DynamicShadows", "CompositeDynamicLights",
         "MotionBlur", "MotionBlurPause", "MotionBlurSkinning",
         "FogVolumes",
         "bAllowD3D9MSAA", "MaxMultiSamples", "bAllowTemporalAA", "bAllowPostprocessMLAA", "MobileFXAAQuality",

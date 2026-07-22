@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.37] — 2026-07-22
+### Alterado
+- **CRIADOR:** Dynamic Shadows deixa de ser forçado OFF — pode ligar em Opções → Vídeo.
+- Qualidade de sombra restaurada no perfil CRIADOR (resolução/texels stock) para o toggle do menu funcionar de verdade.
+- `LightEnvironmentShadows=True` no template; preferência de `DynamicShadows` preservada ao reaplicar.
+
 ## [v22.3.36] — 2026-07-21
 ### Corrigido
 - **Menu Epic COMPLETO (regressão v22.3.35):** `Value` como NameProperty fazia o jogo **ignorar** VideoOptions → Alta qualidade, 60 FPS, raios/clima ligados, partícula em branco.

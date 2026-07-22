@@ -52,7 +52,6 @@ internal static class IniAudit
     {
         new("SystemSettingsIPhone*", "bAllowLightShafts", "^(?i)true$", "filhos ainda com light shafts"),
         new("SystemSettingsIPad*", "bAllowLightShafts", "^(?i)true$", "filhos ainda com light shafts"),
-        new("SystemSettingsFlash", "DynamicShadows", "^(?i)true$", "Flash ainda com sombras"),
     };
 
     private static int CheckFile(string name, string ini, Rule[] rules)
