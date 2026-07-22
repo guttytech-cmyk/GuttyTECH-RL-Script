@@ -6,12 +6,11 @@ namespace GuttyRL;
 /// sem mexer em [SystemSettings] (onde o usuario ajusta visual no jogo).</summary>
 internal static class CriadorForce
 {
+    // Sombras dinamicas (DynamicLights/Shadows/Composite) ficam no template principal —
+    // nao forcar OFF nos perfis derivados (senao o menu liga e o engine nao desenha sombra).
     private static readonly Dictionary<string, string> PerfKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["DynamicLights"] = "False",
         ["SHSecondaryLighting"] = "False",
-        // DynamicShadows / LightEnvironmentShadows: ajustaveis no menu (CRIADOR)
-        ["CompositeDynamicLights"] = "False",
         ["MotionBlur"] = "False",
         ["MotionBlurPause"] = "False",
         ["MotionBlurSkinning"] = "0",

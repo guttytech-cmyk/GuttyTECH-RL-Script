@@ -31,7 +31,8 @@ internal static class Program
         "DetailMode", "ParticleLODBias", "SkeletalMeshLODBias", "MaxDrawDistanceScale", "MaxAnisotropy",
         "bAllowHighQualityMaterials", "bUseTranslucentArenaShaders",
         "AmbientOcclusion", "DepthOfField", "Bloom", "LensFlares",
-        "DynamicShadows", "CompositeDynamicLights",
+        // DynamicShadows / DynamicLights / CompositeDynamicLights: sempre do template
+        // (INI antigo com False quebrava sombras mesmo com menu ON).
         "MotionBlur", "MotionBlurPause", "MotionBlurSkinning",
         "FogVolumes",
         "bAllowD3D9MSAA", "MaxMultiSamples", "bAllowTemporalAA", "bAllowPostprocessMLAA", "MobileFXAAQuality",

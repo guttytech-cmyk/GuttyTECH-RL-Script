@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.38] — 2026-07-22
+### Corrigido
+- **CRIADOR — Dynamic Shadows não apareciam:** o menu sozinho não basta; UE3 precisa de `DynamicLights` (+ cadeia de sombra).
+- Liga no template: `DynamicShadows`, `DynamicLights`, `CompositeDynamicLights`, `DirectionalLightmaps`, `LightEnvironmentShadows`.
+- Deixa de preservar `DynamicShadows=False` do INI antigo (sempre aplica o template).
+- `CriadorForce` não mata mais luzes/sombras nos perfis derivados.
+
 ## [v22.3.37] — 2026-07-22
 ### Alterado
 - **CRIADOR:** Dynamic Shadows deixa de ser forçado OFF — pode ligar em Opções → Vídeo.

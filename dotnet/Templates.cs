@@ -3,7 +3,7 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.37
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.38
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
@@ -719,19 +719,19 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.37
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v22.3.38
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False
 DynamicDecals=True
 UnbatchedDecals=True
 DecalCullDistanceScale=1.000000
-DynamicLights=False
-DynamicShadows=False
+DynamicLights=True
+DynamicShadows=True
 LightEnvironmentShadows=True
-CompositeDynamicLights=False
+CompositeDynamicLights=True
 SHSecondaryLighting=False
-DirectionalLightmaps=False
+DirectionalLightmaps=True
 MotionBlur=False
 MotionBlurPause=False
 MotionBlurSkinning=0
@@ -798,7 +798,7 @@ AutoDetectDesktopResolution=False
 Borderless=False
 AllowApexCloth=true
 ScreenPercentage=100.000000
-SceneCaptureStreamingMultiplier=0.000000
+SceneCaptureStreamingMultiplier=1.000000
 ShadowTexelsPerPixel=1.273240
 PreShadowResolutionFactor=0.500000
 bEnableBranchingPCFShadows=False
