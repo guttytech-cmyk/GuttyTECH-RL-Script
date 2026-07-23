@@ -19,20 +19,19 @@ from nixwrap.save_file._file_io import assemble_savedata  # noqa: E402
 UNCAPPED_MAX_FPS = 10000
 
 # Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
-# HighPerformance em Particle/Render quebra o menu (fica em branco ou Alta qualidade).
+# HighPerformance em Particle/Render quebra o menu (branco / Alta qualidade).
+# ParticleDetail=Low TAMBEM quebra (dropdown vazio → menu cai em Alta qualidade / 60 FPS).
 # TextureDetail=TexturesLow = "Alto desempenho" / High Performance no menu.
-# ParticleDetail=Low = minimo valido (mais potato que Performance).
 COMPLETO_OPTIONS = [
     {"Id": "RenderQuality", "Value": "Performance"},
     {"Id": "RenderDetail", "Value": "Performance"},
     {"Id": "TextureDetail", "Value": "TexturesLow"},
-    {"Id": "ParticleDetail", "Value": "Low"},
+    {"Id": "ParticleDetail", "Value": "Performance"},
     {"Id": "WorldDetail", "Value": "Performance"},
     {"Id": "AntiAlias", "Value": "0"},
 ]
 
 # Flags do menu Video (BakkesMod VideoSettings + saves reais).
-# COMPLETO e CRIADOR: FPS unlimited + V-Sync off + efeitos pesados off.
 VIDEO_FLAGS_COMMON = (
     ("bShowLightShafts", False),
     ("bShowWeatherFX", False),
@@ -42,10 +41,12 @@ VIDEO_FLAGS_COMMON = (
     ("MaxFPS", UNCAPPED_MAX_FPS),
 )
 
-# So COMPLETO: High Quality Shaders off (shaders translucidos da arena).
+# So COMPLETO: High Quality Shaders off.
 VIDEO_FLAGS_COMPLETO = (
     ("bTranslucentArenaShaders", False),
 )
+
+REQUIRED_COMPLETO_OPTION_IDS = {o["Id"] for o in COMPLETO_OPTIONS}
 
 
 def _sanitize_options(options: list[dict] | None) -> list[dict]:
@@ -79,17 +80,37 @@ def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
         changed |= _set_flag(obj, key, val)
 
     if completo:
+        # So grava se ja existir no save — adicionar campo novo em alguns
+        # perfis faz o jogo rejeitar o bloco Video e cair em Alta qualidade.
         for key, val in VIDEO_FLAGS_COMPLETO:
-            changed |= _set_flag(obj, key, val)
+            if key in obj:
+                changed |= _set_flag(obj, key, val)
 
-        # Substitui a lista inteira — nao mescla Custom/HighQuality/lixo.
         desired = [dict(x) for x in COMPLETO_OPTIONS]
-        current = _sanitize_options(obj.get("VideoOptions"))
-        if not _options_equal(current, desired):
+        if not _completo_options_ok(obj):
             obj["VideoOptions"] = desired
+            for key, val in VIDEO_FLAGS_COMMON:
+                obj[key] = val
+            for key, val in VIDEO_FLAGS_COMPLETO:
+                if key in obj:
+                    obj[key] = val
             changed = True
 
     return changed
+
+
+def _completo_options_ok(obj: dict) -> bool:
+    """True so se VideoOptions esta completo e flags criticas batem."""
+    current = _sanitize_options(obj.get("VideoOptions"))
+    if not _options_equal(current, COMPLETO_OPTIONS):
+        return False
+    for key, val in VIDEO_FLAGS_COMMON:
+        if obj.get(key) != val:
+            return False
+    for key, val in VIDEO_FLAGS_COMPLETO:
+        if key in obj and obj.get(key) != val:
+            return False
+    return True
 
 
 def _patch_gameplay(obj: dict, *, completo: bool) -> bool:
@@ -127,6 +148,13 @@ def patch_file(path: Path, *, completo: bool) -> bool:
     if not _patch_raw(raw, completo=completo):
         return False
     assemble_savedata(raw, path)
+    # Verifica round-trip: se o jogo/perfil ativo perder campos, falha visivel no log.
+    if completo:
+        verify = load_raw(path)
+        for obj in verify.get("objects", []):
+            if obj.get("__type") == "TAGame.VideoSettingsSavePC_TA":
+                if not _completo_options_ok(obj):
+                    raise RuntimeError(f"patch nao persistiu VideoOptions completos em {path.name}")
     return True
 
 
@@ -161,7 +189,6 @@ def main(argv: list[str]) -> int:
                 print(f"SKIP {f} (ja sincronizado)")
                 patched += 1
         except Exception as ex:
-            # Save corrompido / Steam legado — nao derruba o apply se outros OK.
             print(f"SKIP {f}: {ex}", file=sys.stderr)
             errors += 1
     if patched == 0 and errors > 0:

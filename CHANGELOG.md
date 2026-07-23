@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.40] — 2026-07-23
+### Corrigido
+- **COMPLETO — menu voltava a Alta qualidade / 60 FPS:** `ParticleDetail=Low` é inválido no cliente Epic (dropdown vazio) e o jogo rejeita o `VideoOptions` inteiro.
+- Volta `ParticleDetail=Performance`; exige `bUncappedFramerate` + VideoOptions completos no verify do patch.
+- Não injeta `bTranslucentArenaShaders` em saves que nunca tiveram o campo (evita rejeição do bloco Video).
+
 ## [v22.3.39] — 2026-07-23
 ### Alterado
 - **COMPLETO — menu in-game forçado:** High Performance / Desempenho em Render/Texture/World, Particle=Low, Anti-Alias OFF, efeitos OFF, FPS Unlimited.
