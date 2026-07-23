@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.39] — 2026-07-23
+### Alterado
+- **COMPLETO — menu in-game forçado:** High Performance / Desempenho em Render/Texture/World, Particle=Low, Anti-Alias OFF, efeitos OFF, FPS Unlimited.
+- `bTranslucentArenaShaders=False` (High Quality Shaders OFF).
+- Sync do menu em **SaveDataEpic + SaveData** (Steam).
+- INI do COMPLETO volta a ficar **somente-leitura** para o menu não regressar o potato.
+
 ## [v22.3.38] — 2026-07-22
 ### Corrigido
 - **CRIADOR — Dynamic Shadows não apareciam:** o menu sozinho não basta; UE3 precisa de `DynamicLights` (+ cadeia de sombra).

@@ -524,17 +524,21 @@ internal static class Program
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
-            if (!Ui.StepAnimated("Sincronizando menu de video (Epic)", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
+            if (!Ui.StepAnimated("Sincronizando menu de video", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
             {
                 Ui.CompletionMessage(acc, "AVISO", new[]
                 {
-                    "INI gravado, mas o menu Epic nao sincronizou.",
+                    "INI gravado, mas o menu de video nao sincronizou.",
                     "Feche o RL e rode o modo de novo.",
                 });
                 return 1;
             }
-            if (mode == "CRIADOR" || mode == "COMPLETO")
+            // CRIADOR: INI gravavel (ajuste visual no menu).
+            // COMPLETO: trava somente-leitura — menu High Performance nao regride o potato.
+            if (mode == "CRIADOR")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
+            else if (mode == "COMPLETO")
+                Ui.StepAnimated("Travando INI (menu High Performance)", () => { LockReadOnly(_cfg!); return true; });
         }
         else
         {
@@ -542,7 +546,8 @@ internal static class Program
             Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
             if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)) return 1;
-            UnlockCfg();
+            if (mode == "CRIADOR") UnlockCfg();
+            else if (mode == "COMPLETO") LockReadOnly(_cfg!);
         }
 
         Log($"Aplicado {mode}.");
@@ -935,6 +940,12 @@ internal static class Program
         Run("icacls.exe", $"\"{path}\" /reset");
         Run("icacls.exe", $"\"{path}\" /grant \"{Environment.UserName}:(F)\" /c /q");
         try { File.SetAttributes(path, FileAttributes.Normal); } catch { }
+    }
+
+    private static void LockReadOnly(string path)
+    {
+        try { File.SetAttributes(path, FileAttributes.Normal); } catch { }
+        try { File.SetAttributes(path, FileAttributes.ReadOnly); } catch { }
     }
 
     private static void Run(string exe, string args)

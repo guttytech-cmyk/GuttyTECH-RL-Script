@@ -2,7 +2,8 @@ using System.Diagnostics;
 
 namespace GuttyRL;
 
-/// <summary>Backup + patch seguro do .save Epic (so video/FPS). Nao apaga save nem RLSettingsData.</summary>
+/// <summary>Backup + patch seguro do .save (Epic e Steam) — so video/FPS.
+/// Nao apaga save nem RLSettingsData.</summary>
 internal static class VideoSettingsSync
 {
     public static bool SyncVideoSave(string iniPath, string mode, bool interactive)
@@ -11,12 +12,34 @@ internal static class VideoSettingsSync
 
         string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
         if (tagame is null) return false;
-        string saveDir = Path.Combine(tagame, "SaveDataEpic", "DBE_Production");
 
-        bool ok = true;
-        ok &= BackupSaves(saveDir);
-        ok &= SaveVideoPatcher.PatchSaveDirectory(saveDir, mode);
-        return ok;
+        // Epic + Steam — o menu in-game vem do save ativo.
+        string[] saveDirs =
+        {
+            Path.Combine(tagame, "SaveDataEpic", "DBE_Production"),
+            Path.Combine(tagame, "SaveData", "DBE_Production"),
+        };
+
+        bool anyDir = false;
+        bool anyOk = false;
+        foreach (string saveDir in saveDirs)
+        {
+            if (!Directory.Exists(saveDir)) continue;
+            anyDir = true;
+            BackupSaves(saveDir);
+            if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode))
+                anyOk = true;
+            else
+                AppMeta.Log("Patch parcial/falhou em: " + saveDir);
+        }
+
+        if (!anyDir)
+        {
+            AppMeta.Log("Nenhum SaveDataEpic/SaveData encontrado; menu in-game nao sincronizado.");
+            return true; // INI ja aplicado; save pode ainda nao existir.
+        }
+
+        return anyOk;
     }
 
     private static bool CheckGameClosed(bool interactive)

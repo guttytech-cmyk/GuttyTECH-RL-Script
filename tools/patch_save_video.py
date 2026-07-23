@@ -1,4 +1,4 @@
-"""Patch Rocket League Epic .save video settings for GUTTYTECH (menu Epic sync)."""
+"""Patch Rocket League Epic/Steam .save video settings for GUTTYTECH (menu sync)."""
 from __future__ import annotations
 
 import argparse
@@ -21,22 +21,30 @@ UNCAPPED_MAX_FPS = 10000
 # Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
 # HighPerformance em Particle/Render quebra o menu (fica em branco ou Alta qualidade).
 # TextureDetail=TexturesLow = "Alto desempenho" / High Performance no menu.
+# ParticleDetail=Low = minimo valido (mais potato que Performance).
 COMPLETO_OPTIONS = [
     {"Id": "RenderQuality", "Value": "Performance"},
     {"Id": "RenderDetail", "Value": "Performance"},
     {"Id": "TextureDetail", "Value": "TexturesLow"},
-    {"Id": "ParticleDetail", "Value": "Performance"},
+    {"Id": "ParticleDetail", "Value": "Low"},
     {"Id": "WorldDetail", "Value": "Performance"},
     {"Id": "AntiAlias", "Value": "0"},
 ]
 
-VIDEO_FLAGS = (
+# Flags do menu Video (BakkesMod VideoSettings + saves reais).
+# COMPLETO e CRIADOR: FPS unlimited + V-Sync off + efeitos pesados off.
+VIDEO_FLAGS_COMMON = (
     ("bShowLightShafts", False),
     ("bShowWeatherFX", False),
     ("bShowLensFlares", False),
     ("bUncappedFramerate", True),
     ("bVsync", False),
     ("MaxFPS", UNCAPPED_MAX_FPS),
+)
+
+# So COMPLETO: High Quality Shaders off (shaders translucidos da arena).
+VIDEO_FLAGS_COMPLETO = (
+    ("bTranslucentArenaShaders", False),
 )
 
 
@@ -58,14 +66,22 @@ def _options_equal(a: list[dict], b: list[dict]) -> bool:
     return [(o.get("Id"), o.get("Value")) for o in a] == [(o.get("Id"), o.get("Value")) for o in b]
 
 
+def _set_flag(obj: dict, key: str, val) -> bool:
+    if obj.get(key) != val:
+        obj[key] = val
+        return True
+    return False
+
+
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
     changed = False
-    for key, val in VIDEO_FLAGS:
-        if obj.get(key) != val:
-            obj[key] = val
-            changed = True
+    for key, val in VIDEO_FLAGS_COMMON:
+        changed |= _set_flag(obj, key, val)
 
     if completo:
+        for key, val in VIDEO_FLAGS_COMPLETO:
+            changed |= _set_flag(obj, key, val)
+
         # Substitui a lista inteira — nao mescla Custom/HighQuality/lixo.
         desired = [dict(x) for x in COMPLETO_OPTIONS]
         current = _sanitize_options(obj.get("VideoOptions"))
@@ -135,16 +151,22 @@ def main(argv: list[str]) -> int:
         return 1
 
     errors = 0
+    patched = 0
     for f in files:
         try:
             if patch_file(f, completo=completo):
                 print(f"OK {f}")
+                patched += 1
             else:
                 print(f"SKIP {f} (ja sincronizado)")
+                patched += 1
         except Exception as ex:
-            print(f"FAIL {f}: {ex}", file=sys.stderr)
+            # Save corrompido / Steam legado — nao derruba o apply se outros OK.
+            print(f"SKIP {f}: {ex}", file=sys.stderr)
             errors += 1
-    return 0 if errors == 0 else 1
+    if patched == 0 and errors > 0:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

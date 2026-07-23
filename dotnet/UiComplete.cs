@@ -132,7 +132,7 @@ internal static partial class Ui
             "",
             "  " + Raw(mode == "CRIADOR"
                 ? "Graficos ajustaveis no jogo; otimizacao do criador mantida."
-                : "Menu de video via INI. Resolucao/escala 3D ajustaveis no jogo.", LightGray),
+                : "Menu: High Performance + efeitos OFF + FPS Unlimited (save sincronizado).", LightGray),
             "  " + Raw("Backups: " + Trunc(backupPath, CW - 13), DarkGray),
             ""
         };
