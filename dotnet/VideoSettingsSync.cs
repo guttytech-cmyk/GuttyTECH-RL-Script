@@ -2,11 +2,26 @@ using System.Diagnostics;
 
 namespace GuttyRL;
 
-/// <summary>Backup + patch seguro do .save (Epic e Steam) — so video/FPS.
-/// Nao apaga save nem RLSettingsData.</summary>
-internal static class VideoSettingsSync
-{
-    public static bool SyncVideoSave(string iniPath, string mode, bool interactive)
+    /// <summary>Backup + patch seguro do .save (Epic e Steam) — so video/FPS.
+    /// Nao apaga save nem RLSettingsData.</summary>
+    internal static class VideoSettingsSync
+    {
+        /// <summary>Repara VideoOptions esparso sem UI (arranque / pos-jogo).</summary>
+        public static bool HealIfNeeded(string iniPath, string mode)
+        {
+            try
+            {
+                if (GetRl().Length > 0) return false; // jogo aberto: nao mexer
+                return SyncVideoSave(iniPath, mode, interactive: false);
+            }
+            catch (Exception ex)
+            {
+                AppMeta.Log("Heal video falhou: " + ex.Message);
+                return false;
+            }
+        }
+
+        public static bool SyncVideoSave(string iniPath, string mode, bool interactive)
     {
         if (!CheckGameClosed(interactive)) return false;
 

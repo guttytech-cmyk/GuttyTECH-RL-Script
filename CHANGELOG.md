@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.46] — 2026-07-24
+### Corrigido
+- **Menu COMPLETO voltava a Alta qualidade / 60 FPS / particula vazia:** o RL grava `VideoOptions` incompleto ao sair; o cliente rejeita o bloco e cai nos defaults (raios/clima ON).
+- Patch agora detecta VideoOptions esparso/quebrado e regrava o perfil COMPLETO completo.
+- Auto-heal do menu de video ao abrir o app se COMPLETO/CRIADOR estiver ativo (com o jogo fechado).
+
 ## [v22.3.45] — 2026-07-24
 ### Alterado
 - **Admin automático:** o exe pede elevação UAC no arranque (`requireAdministrator` no manifesto).

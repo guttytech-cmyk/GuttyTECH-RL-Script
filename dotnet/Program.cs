@@ -119,6 +119,15 @@ internal static class Program
         }
 
         Ui.Intro();
+
+        // O RL grava VideoOptions parcial ao sair; repara antes do menu se modo ativo.
+        string? activeMode = DetectAppliedMode();
+        if (_cfg is not null && activeMode is "COMPLETO" or "CRIADOR")
+        {
+            if (VideoSettingsSync.HealIfNeeded(_cfg, activeMode))
+                AppMeta.Log($"Auto-heal menu video ({activeMode}) OK.");
+        }
+
         while (true)
         {
             ShowMenu();
