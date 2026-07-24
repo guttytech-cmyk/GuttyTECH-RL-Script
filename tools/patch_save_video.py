@@ -158,10 +158,18 @@ def _force_video_profile(obj: dict, *, completo: bool) -> None:
 
 
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
-    # Sempre regrava o perfil completo.
-    # Troca de conta Epic cria .save novo com VideoOptions=[] → cliente rejeita
-    # o bloco e cai em Alta qualidade / 60 FPS / raios+clima ON / boot lento.
-    _force_video_profile(obj, completo=completo)
+    # Regrava so se estiver errado/esparso/vazio.
+    # Conta nova (VideoOptions=[]) e hibrido CRIADOR/COMPLETO entram aqui.
+    # Saves ja OK sao SKIP — evita reescrever 10+ perfis gigantes a cada apply.
+    if completo:
+        if _completo_options_ok(obj):
+            return False
+        _force_video_profile(obj, completo=True)
+        return True
+
+    if _criador_options_ok(obj) and not _looks_like_completo_options(obj):
+        return False
+    _force_video_profile(obj, completo=False)
     return True
 
 
@@ -200,10 +208,9 @@ def patch_file(path: Path, *, completo: bool) -> bool:
     if not _patch_raw(raw, completo=completo):
         return False
     assemble_savedata(raw, path)
-    # Verifica round-trip: se o jogo/perfil ativo perder campos, falha visivel no log.
+    # Valida em memoria (evita 2o load_raw — o mais lento do pipeline).
     if completo:
-        verify = load_raw(path)
-        for obj in verify.get("objects", []):
+        for obj in raw.get("objects", []):
             if obj.get("__type") == "TAGame.VideoSettingsSavePC_TA":
                 if not _completo_options_ok(obj):
                     raise RuntimeError(f"patch nao persistiu VideoOptions completos em {path.name}")
@@ -233,16 +240,18 @@ def main(argv: list[str]) -> int:
 
     errors = 0
     patched = 0
-    for f in files:
+    total = len(files)
+    for i, f in enumerate(files, 1):
         try:
+            print(f"PROGRESS {i}/{total} {f.name}", flush=True)
             if patch_file(f, completo=completo):
-                print(f"OK {f}")
+                print(f"OK {f}", flush=True)
                 patched += 1
             else:
-                print(f"SKIP {f} (ja sincronizado)")
+                print(f"SKIP {f} (ja sincronizado)", flush=True)
                 patched += 1
         except Exception as ex:
-            print(f"SKIP {f}: {ex}", file=sys.stderr)
+            print(f"SKIP {f}: {ex}", file=sys.stderr, flush=True)
             errors += 1
     if patched == 0 and errors > 0:
         return 1

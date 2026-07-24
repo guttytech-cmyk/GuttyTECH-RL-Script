@@ -530,7 +530,8 @@ internal static class Program
         if (interactive)
         {
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
-            if (!Ui.StepAnimated("Sincronizando menu de video (todas as contas)", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
+            if (!Ui.StepAnimatedProgress("Sincronizando menu de video", prog =>
+                    VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive, prog)))
             {
                 Ui.CompletionMessage(acc, "AVISO", new[]
                 {

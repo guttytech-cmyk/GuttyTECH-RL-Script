@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.48] — 2026-07-24
+### Alterado
+- **Sync de video mais rapido:** so regrava saves que precisam (conta nova/quebrada); skips nos ja OK.
+- Spinner ao vivo + progresso `3/14`; backup so dos 4 saves mais recentes; sem 2º load de verificacao.
+
 ## [v22.3.47] — 2026-07-24
 ### Alterado
 - **COMPLETO/CRIADOR:** sempre fazem limpeza (como REMOVER) e só depois aplicam — aplica limpo toda vez.

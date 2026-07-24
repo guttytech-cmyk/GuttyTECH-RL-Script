@@ -1,11 +1,12 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace GuttyRL;
 
 /// <summary>Patch .save Epic (VideoSettingsSavePC + EffectIntensity) via runtime Python embutido.</summary>
 internal static class SaveVideoPatcher
 {
-    public static bool PatchSaveDirectory(string saveDir, string mode)
+    public static bool PatchSaveDirectory(string saveDir, string mode, Action<string>? progress = null)
     {
         if (!Directory.Exists(saveDir))
         {
@@ -32,17 +33,34 @@ internal static class SaveVideoPatcher
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
             };
             psi.Environment["PYTHONPATH"] = toolsDir;
+            psi.Environment["PYTHONUNBUFFERED"] = "1";
 
             using var p = Process.Start(psi);
             if (p is null) return false;
-            string stdout = p.StandardOutput.ReadToEnd();
-            string stderr = p.StandardError.ReadToEnd();
-            p.WaitForExit(120_000);
 
-            foreach (var line in stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-                AppMeta.Log("Save patch: " + line.Trim());
+            var errTask = p.StandardError.ReadToEndAsync();
+            string? line;
+            while ((line = p.StandardOutput.ReadLine()) is not null)
+            {
+                string t = line.Trim();
+                if (t.Length == 0) continue;
+                AppMeta.Log("Save patch: " + t);
+                if (t.StartsWith("PROGRESS ", StringComparison.Ordinal))
+                    progress?.Invoke(t["PROGRESS ".Length..]);
+            }
+
+            if (!p.WaitForExit(180_000))
+            {
+                try { p.Kill(entireProcessTree: true); } catch { }
+                AppMeta.Log("Save patch timeout.");
+                return false;
+            }
+
+            string stderr = errTask.GetAwaiter().GetResult();
             if (!string.IsNullOrWhiteSpace(stderr))
                 AppMeta.Log("Save patch stderr: " + stderr.Trim());
 

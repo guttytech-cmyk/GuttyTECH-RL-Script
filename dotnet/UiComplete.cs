@@ -72,17 +72,79 @@ internal static partial class Ui
     {
         string m = CMar;
         HideCursor();
-        Console.Write(m + "  " + Fg(SpinGray) + Spin[0] + Reset + " " + Fg(LightGray) + label + "..." + Reset);
-        bool ok; try { ok = work(); } catch { ok = false; }
-        for (int i = 1; i < 10; i++)
+        bool done = false;
+        bool ok = false;
+        var worker = new Thread(() =>
         {
-            var sc = Lerp(SpinGray, ok ? OkGreen : MRed, i / 10.0);
-            Console.Write("\r" + m + "  " + Fg(sc) + Spin[i % Spin.Length] + Reset
-                + " " + Fg(LightGray) + label + "..." + Reset);
+            try { ok = work(); }
+            catch { ok = false; }
+            finally { done = true; }
+        })
+        { IsBackground = true };
+        worker.Start();
+
+        int i = 0;
+        while (!done)
+        {
+            Console.Write("\r" + m + "  " + Fg(SpinGray) + Spin[i % Spin.Length] + Reset
+                + " " + Fg(LightGray) + label + "..." + Reset + "   ");
+            Thread.Sleep(70);
+            i++;
+        }
+        worker.Join();
+
+        for (int j = 0; j < 6; j++)
+        {
+            var sc = Lerp(SpinGray, ok ? OkGreen : MRed, (j + 1) / 6.0);
+            Console.Write("\r" + m + "  " + Fg(sc) + Spin[(i + j) % Spin.Length] + Reset
+                + " " + Fg(LightGray) + label + "..." + Reset + "   ");
             Thread.Sleep(28);
         }
         string mark = ok ? Fg(OkGreen) + "+" : Fg(MRed) + "x";
-        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset + new string(' ', 18));
+        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset + new string(' ', 24));
+        Thread.Sleep(80);
+        return ok;
+    }
+
+    /// <summary>Step com progresso ao vivo (callback atualiza o texto a direita).</summary>
+    public static bool StepAnimatedProgress(string label, Func<Action<string>, bool> work)
+    {
+        string m = CMar;
+        HideCursor();
+        string status = "";
+        object gate = new();
+        bool done = false;
+        bool ok = false;
+
+        void SetStatus(string s)
+        {
+            lock (gate) status = s;
+        }
+
+        var worker = new Thread(() =>
+        {
+            try { ok = work(SetStatus); }
+            catch { ok = false; }
+            finally { done = true; }
+        })
+        { IsBackground = true };
+        worker.Start();
+
+        int i = 0;
+        while (!done)
+        {
+            string st;
+            lock (gate) st = status;
+            string line = label + (string.IsNullOrEmpty(st) ? "..." : "  " + st);
+            Console.Write("\r" + m + "  " + Fg(SpinGray) + Spin[i % Spin.Length] + Reset
+                + " " + Fg(LightGray) + line + Reset + "          ");
+            Thread.Sleep(70);
+            i++;
+        }
+        worker.Join();
+
+        string mark = ok ? Fg(OkGreen) + "+" : Fg(MRed) + "x";
+        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset + new string(' ', 36));
         Thread.Sleep(80);
         return ok;
     }

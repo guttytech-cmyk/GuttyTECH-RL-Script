@@ -2,26 +2,26 @@ using System.Diagnostics;
 
 namespace GuttyRL;
 
-    /// <summary>Backup + patch seguro do .save (Epic e Steam) — so video/FPS.
-    /// Nao apaga save nem RLSettingsData.</summary>
-    internal static class VideoSettingsSync
+/// <summary>Backup + patch seguro do .save (Epic e Steam) — so video/FPS.
+/// Nao apaga save nem RLSettingsData.</summary>
+internal static class VideoSettingsSync
+{
+    /// <summary>Repara VideoOptions esparso sem UI (arranque / pos-jogo).</summary>
+    public static bool HealIfNeeded(string iniPath, string mode)
     {
-        /// <summary>Repara VideoOptions esparso sem UI (arranque / pos-jogo).</summary>
-        public static bool HealIfNeeded(string iniPath, string mode)
+        try
         {
-            try
-            {
-                if (GetRl().Length > 0) return false; // jogo aberto: nao mexer
-                return SyncVideoSave(iniPath, mode, interactive: false);
-            }
-            catch (Exception ex)
-            {
-                AppMeta.Log("Heal video falhou: " + ex.Message);
-                return false;
-            }
+            if (GetRl().Length > 0) return false; // jogo aberto: nao mexer
+            return SyncVideoSave(iniPath, mode, interactive: false);
         }
+        catch (Exception ex)
+        {
+            AppMeta.Log("Heal video falhou: " + ex.Message);
+            return false;
+        }
+    }
 
-        public static bool SyncVideoSave(string iniPath, string mode, bool interactive)
+    public static bool SyncVideoSave(string iniPath, string mode, bool interactive, Action<string>? progress = null)
     {
         if (!CheckGameClosed(interactive)) return false;
 
@@ -41,8 +41,10 @@ namespace GuttyRL;
         {
             if (!Directory.Exists(saveDir)) continue;
             anyDir = true;
+            string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
+            progress?.Invoke(tag + "...");
             BackupSaves(saveDir);
-            if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode))
+            if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, progress))
                 anyOk = true;
             else
                 AppMeta.Log("Patch parcial/falhou em: " + saveDir);
@@ -78,15 +80,20 @@ namespace GuttyRL;
             Directory.CreateDirectory(dest);
             string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-            foreach (var f in Directory.EnumerateFiles(saveDir, "*.save"))
+            // So os 4 mais recentes — backup de 14 saves de 2MB+ atrasava o sync.
+            var files = Directory.EnumerateFiles(saveDir, "*.save")
+                .Select(f => new FileInfo(f))
+                .OrderByDescending(f => f.LastWriteTimeUtc)
+                .Take(4);
+
+            foreach (var fi in files)
             {
-                string name = Path.GetFileName(f);
-                string backup = Path.Combine(dest, $"{ts}_{name}");
+                string backup = Path.Combine(dest, $"{ts}_{fi.Name}");
                 if (!File.Exists(backup))
-                    File.Copy(f, backup, false);
+                    fi.CopyTo(backup, false);
             }
 
-            AppMeta.Log($"Backup save Epic em SaveDataEpic/{ts}_*.save");
+            AppMeta.Log($"Backup save ({ts}) dos 4 mais recentes.");
             return true;
         }
         catch (Exception ex)
@@ -97,7 +104,10 @@ namespace GuttyRL;
     }
 
     private static Process[] GetRl()
-    { try { return Process.GetProcessesByName("RocketLeague"); } catch { return Array.Empty<Process>(); } }
+    {
+        try { return Process.GetProcessesByName("RocketLeague"); }
+        catch { return Array.Empty<Process>(); }
+    }
 
     private static bool IsYes(string? s) => string.Equals(s?.Trim(), "S", StringComparison.OrdinalIgnoreCase);
 }
