@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.45] — 2026-07-24
+### Alterado
+- **Admin automático:** o exe pede elevação UAC no arranque (`requireAdministrator` no manifesto).
+
 ## [v22.3.44] — 2026-07-24
 ### Corrigido
 - Prompt e ícones: caracteres Unicode que viravam `?` no console Windows (`▶`, `●`, braille, etc.) trocados por ASCII seguro.
