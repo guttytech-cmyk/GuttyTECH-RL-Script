@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.42] — 2026-07-24
+### Alterado
+- **Troca COMPLETO ↔ CRIADOR:** ao mudar de modo, o app faz limpeza automática do INI (como REMOVER) e só depois aplica o novo perfil — não precisa mais ir ao menu Remover à mão.
+- **CRIADOR (save):** limpa `VideoOptions` potato do COMPLETO (textura Higher, mundo Quality, RenderDetail Custom).
+
 ## [v22.3.41] — 2026-07-24
 ### Corrigido
 - **COMPLETO — abre mas não carrega:** regressão v22.3.39 que travava o INI em somente-leitura. Em alguns PCs o RL precisa gravar o config no boot e fica preso no loading; REMOVER/restaurar “consertava”.

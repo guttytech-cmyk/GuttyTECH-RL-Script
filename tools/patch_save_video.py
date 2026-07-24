@@ -31,6 +31,16 @@ COMPLETO_OPTIONS = [
     {"Id": "AntiAlias", "Value": "0"},
 ]
 
+# CRIADOR: limpa potato do COMPLETO. Sem RenderQuality → UI cai em Alta qualidade.
+# TexturesHigher = visual bom; RenderDetail=Custom = toggles avancados ajustaveis.
+CRIADOR_OPTIONS = [
+    {"Id": "RenderDetail", "Value": "Custom"},
+    {"Id": "TextureDetail", "Value": "TexturesHigher"},
+    {"Id": "ParticleDetail", "Value": "Performance"},
+    {"Id": "WorldDetail", "Value": "Quality"},
+    {"Id": "AntiAlias", "Value": "0"},
+]
+
 # Flags do menu Video (BakkesMod VideoSettings + saves reais).
 VIDEO_FLAGS_COMMON = (
     ("bShowLightShafts", False),
@@ -45,8 +55,6 @@ VIDEO_FLAGS_COMMON = (
 VIDEO_FLAGS_COMPLETO = (
     ("bTranslucentArenaShaders", False),
 )
-
-REQUIRED_COMPLETO_OPTION_IDS = {o["Id"] for o in COMPLETO_OPTIONS}
 
 
 def _sanitize_options(options: list[dict] | None) -> list[dict]:
@@ -74,6 +82,36 @@ def _set_flag(obj: dict, key: str, val) -> bool:
     return False
 
 
+def _completo_options_ok(obj: dict) -> bool:
+    """True so se VideoOptions esta completo e flags criticas batem."""
+    current = _sanitize_options(obj.get("VideoOptions"))
+    if not _options_equal(current, COMPLETO_OPTIONS):
+        return False
+    for key, val in VIDEO_FLAGS_COMMON:
+        if obj.get(key) != val:
+            return False
+    for key, val in VIDEO_FLAGS_COMPLETO:
+        if key in obj and obj.get(key) != val:
+            return False
+    return True
+
+
+def _criador_options_ok(obj: dict) -> bool:
+    current = _sanitize_options(obj.get("VideoOptions"))
+    if not _options_equal(current, CRIADOR_OPTIONS):
+        return False
+    for key, val in VIDEO_FLAGS_COMMON:
+        if obj.get(key) != val:
+            return False
+    return True
+
+
+def _looks_like_completo_options(obj: dict) -> bool:
+    """Detecta VideoOptions potato do COMPLETO ainda no save (troca de modo)."""
+    ids = {o.get("Id"): o.get("Value") for o in _sanitize_options(obj.get("VideoOptions"))}
+    return ids.get("RenderQuality") == "Performance" or ids.get("TextureDetail") == "TexturesLow"
+
+
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
     changed = False
     for key, val in VIDEO_FLAGS_COMMON:
@@ -95,23 +133,15 @@ def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
                 if key in obj:
                     obj[key] = val
             changed = True
+    else:
+        # CRIADOR: sempre limpa potato do COMPLETO / sincroniza perfil visual.
+        if not _criador_options_ok(obj) or _looks_like_completo_options(obj):
+            obj["VideoOptions"] = [dict(x) for x in CRIADOR_OPTIONS]
+            for key, val in VIDEO_FLAGS_COMMON:
+                obj[key] = val
+            changed = True
 
     return changed
-
-
-def _completo_options_ok(obj: dict) -> bool:
-    """True so se VideoOptions esta completo e flags criticas batem."""
-    current = _sanitize_options(obj.get("VideoOptions"))
-    if not _options_equal(current, COMPLETO_OPTIONS):
-        return False
-    for key, val in VIDEO_FLAGS_COMMON:
-        if obj.get(key) != val:
-            return False
-    for key, val in VIDEO_FLAGS_COMPLETO:
-        if key in obj and obj.get(key) != val:
-            return False
-    return True
-
 
 def _patch_gameplay(obj: dict, *, completo: bool) -> bool:
     if not completo:

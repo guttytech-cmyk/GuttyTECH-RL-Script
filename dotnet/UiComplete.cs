@@ -131,8 +131,8 @@ internal static partial class Ui
             "  " + Raw("» ", acc) + Raw("MODO " + mode + " aplicado com ", White) + RawB("sucesso", OkGreen) + Raw("!", White),
             "",
             "  " + Raw(mode == "CRIADOR"
-                ? "Graficos ajustaveis no jogo; otimizacao do criador mantida."
-                : "Menu High Performance via save. INI gravavel (evita hang no boot).", LightGray),
+                ? "Troca de modo limpa o INI automatico; graficos ajustaveis no jogo."
+                : "Troca de modo limpa o INI automatico; menu High Performance via save.", LightGray),
             "  " + Raw("Backups: " + Trunc(backupPath, CW - 13), DarkGray),
             ""
         };

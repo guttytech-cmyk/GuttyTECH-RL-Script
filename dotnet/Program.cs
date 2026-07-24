@@ -494,28 +494,12 @@ internal static class Program
         }
 
         EnsureOriginalBackup();
-        var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
-        string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
-        string content = ApplyDisplay(template, disp);
-        if (mode == "COMPLETO")
-            content = CompletoForce.Apply(content);
-        else
-            content = CriadorForce.Apply(content);
-        if (File.Exists(_cfg!))
-        {
-            if (mode == "CRIADOR")
-            {
-                var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
-                content = ApplySectionOverrides(content, user);
-            }
-            // COMPLETO: nao preserva ScreenPercentage/upscale — CompletoForce trava 100%
-            // (evita borda preta quando o menu fica em High Performance).
-        }
 
-        var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);
-        content = ApplySectionOverrides(content, pacing);
-        var locked = ReadSectionOverridesFromText(template, VideoLockedKeys, textureGroups: false);
-        content = ApplySectionOverrides(content, locked);
+        // Troca COMPLETO ↔ CRIADOR: limpa INI como REMOVER antes de aplicar.
+        // Sem isso, o CRIADOR herdava texturas/potato do COMPLETO (CriadorUserKeys).
+        string? previous = DetectAppliedMode();
+        bool switching = previous is not null
+            && !previous.Equals(mode, StringComparison.OrdinalIgnoreCase);
 
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
@@ -523,6 +507,40 @@ internal static class Program
         {
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
+            if (switching)
+            {
+                if (!Ui.StepAnimated($"Limpando modo {previous} (como REMOVER)", TryRestoreIni))
+                    return FailOrElevate(mode, interactive);
+            }
+        }
+        else
+        {
+            Backup();
+            Unlock(_cfg!);
+            if (switching && !TryRestoreIni()) return FailOrElevate(mode, interactive);
+        }
+
+        // Ler display / preferencias DEPOIS do restore (INI limpo).
+        var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
+        string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
+        string content = ApplyDisplay(template, disp);
+        if (mode == "COMPLETO")
+            content = CompletoForce.Apply(content);
+        else
+            content = CriadorForce.Apply(content);
+        if (File.Exists(_cfg!) && mode == "CRIADOR")
+        {
+            var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
+            content = ApplySectionOverrides(content, user);
+        }
+
+        var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);
+        content = ApplySectionOverrides(content, pacing);
+        var locked = ReadSectionOverridesFromText(template, VideoLockedKeys, textureGroups: false);
+        content = ApplySectionOverrides(content, locked);
+
+        if (interactive)
+        {
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
             if (!Ui.StepAnimated("Sincronizando menu de video", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
             {
@@ -533,25 +551,35 @@ internal static class Program
                 });
                 return 1;
             }
-            // COMPLETO e CRIADOR: INI gravavel.
-            // Travar read-only no COMPLETO (v22.3.39) fazia o RL abrir e ficar
-            // preso no loading em alguns PCs (jogo precisa escrever o config no boot).
             if (mode is "CRIADOR" or "COMPLETO")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
         }
         else
         {
-            Backup();
-            Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
             if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)) return 1;
             if (mode is "CRIADOR" or "COMPLETO") UnlockCfg();
         }
 
-        Log($"Aplicado {mode}.");
+        Log(switching ? $"Trocou {previous} → {mode}." : $"Aplicado {mode}.");
         RefreshWritableCache();
         if (interactive) Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
         return 0;
+    }
+
+    private static string? DetectAppliedMode()
+    {
+        if (_cfg is null || !File.Exists(_cfg)) return null;
+        try
+        {
+            string text = File.ReadAllText(_cfg);
+            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
+                return "COMPLETO";
+            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
+                return "CRIADOR";
+        }
+        catch { }
+        return null;
     }
 
     private static void RefreshWritableCache()
