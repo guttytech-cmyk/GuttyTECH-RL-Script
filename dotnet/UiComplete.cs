@@ -132,7 +132,7 @@ internal static partial class Ui
             "",
             "  " + Raw(mode == "CRIADOR"
                 ? "Graficos ajustaveis no jogo; otimizacao do criador mantida."
-                : "Menu: High Performance + efeitos OFF + FPS Unlimited (save sincronizado).", LightGray),
+                : "Menu High Performance via save. INI gravavel (evita hang no boot).", LightGray),
             "  " + Raw("Backups: " + Trunc(backupPath, CW - 13), DarkGray),
             ""
         };

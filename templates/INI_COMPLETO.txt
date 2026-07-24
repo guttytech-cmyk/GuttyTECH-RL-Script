@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.40
+;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v22.3.41
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False

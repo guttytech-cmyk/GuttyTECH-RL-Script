@@ -533,12 +533,11 @@ internal static class Program
                 });
                 return 1;
             }
-            // CRIADOR: INI gravavel (ajuste visual no menu).
-            // COMPLETO: trava somente-leitura — menu High Performance nao regride o potato.
-            if (mode == "CRIADOR")
+            // COMPLETO e CRIADOR: INI gravavel.
+            // Travar read-only no COMPLETO (v22.3.39) fazia o RL abrir e ficar
+            // preso no loading em alguns PCs (jogo precisa escrever o config no boot).
+            if (mode is "CRIADOR" or "COMPLETO")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
-            else if (mode == "COMPLETO")
-                Ui.StepAnimated("Travando INI (menu High Performance)", () => { LockReadOnly(_cfg!); return true; });
         }
         else
         {
@@ -546,8 +545,7 @@ internal static class Program
             Unlock(_cfg!);
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
             if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)) return 1;
-            if (mode == "CRIADOR") UnlockCfg();
-            else if (mode == "COMPLETO") LockReadOnly(_cfg!);
+            if (mode is "CRIADOR" or "COMPLETO") UnlockCfg();
         }
 
         Log($"Aplicado {mode}.");

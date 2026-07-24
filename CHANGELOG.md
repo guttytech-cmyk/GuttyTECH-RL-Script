@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.41] — 2026-07-24
+### Corrigido
+- **COMPLETO — abre mas não carrega:** regressão v22.3.39 que travava o INI em somente-leitura. Em alguns PCs o RL precisa gravar o config no boot e fica preso no loading; REMOVER/restaurar “consertava”.
+- COMPLETO volta a deixar o INI **gravável** (menu High Performance continua via patch do `.save`).
+
 ## [v22.3.40] — 2026-07-23
 ### Corrigido
 - **COMPLETO — menu voltava a Alta qualidade / 60 FPS:** `ParticleDetail=Low` é inválido no cliente Epic (dropdown vazio) e o jogo rejeita o `VideoOptions` inteiro.
