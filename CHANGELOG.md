@@ -3,6 +3,17 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.5] — 2026-07-25
+### Corrigido / Melhorado
+- **Watcher unico:** ao reaplicar, mata o WATCH anterior (`watcher.lock` + PID) — sem processos duplicados.
+- Watcher faz **2o pass** ~8s apos o heal (cloud Epic por vezes regrava).
+- **CORRIGIR ERROS** refeito:
+  - `[2] REPARAR PERFIL` — mantem COMPLETO/CRIADOR (reclamp INI + sync menu + cache)
+  - `[3] RECUPERAR BOOT` — stock (ultimo recurso); pergunta se prefere reparar perfil
+  - `[4] DIAGNOSTICO` — mostra INI/permissoes/modo/boot killers
+  - `[5] TUDO` — permissoes + reparar (ou boot se sem modo)
+- Save recovery tambem cobre **Steam** (`SaveData`), nao so Epic.
+
 ## [v23.0.4] — 2026-07-25
 ### Corrigido
 - **Monitor ciclo:** ao **abrir** o RL apos COMPLETO, o jogo esvazia `VideoOptions` (MaxFPS=62) e reescreve INI (`UncappedFramerate=False`, shafts/shaders ON).

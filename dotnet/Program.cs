@@ -89,6 +89,11 @@ internal static class Program
                 "RECUPERAR-SAVE" => "CORRIGIR-BOOT",
                 "CORRIGIR-BOOT" => "CORRIGIR-BOOT",
                 "CORRIGIR-TUDO" => "CORRIGIR-TUDO",
+                "CORRIGIR-PERFIL" => "CORRIGIR-PERFIL",
+                "REPARAR" => "CORRIGIR-PERFIL",
+                "REPARAR-PERFIL" => "CORRIGIR-PERFIL",
+                "DIAG" => "DIAGNOSTICO",
+                "DIAGNOSTICO" => "DIAGNOSTICO",
                 "RESTAURAR-SAVES" => "RESTAURAR-PRESETS",
                 "RESTAURAR-PRESETS" => "RESTAURAR-PRESETS",
                 "5" => "CORRIGIR",
@@ -147,29 +152,40 @@ internal static class Program
             Ui.TitleBar("CORRIGIR ERROS", Ui.MAmber);
             Ui.StepsPanel("RESTAURACAO E CORRECAO", new[]
             {
-                "Permissoes, INI travado, Defender / ACL",
-                "Boot travado (INI + save Epic antigo)",
-                "Presets do carro: use [6] RESTAURAR PRESETS no menu",
+                "Menu High Quality / 60 FPS / pos-boot → REPARAR PERFIL",
+                "Jogo NAO abre de todo → RECUPERAR BOOT (stock)",
+                "Pasta bloqueada / Defender → PERMISSOES",
+                "Presets do carro: menu principal [6]",
             }, Ui.MAmber);
             Ui.Gap();
             Ui.PanelTop("OPCOES");
             Ui.PanelBlank();
             Ui.MenuCard("1", "PERMISSOES", "Destrava INI e libera gravacao na pasta", Ui.Amber);
-            Ui.MenuCard("2", "RECUPERAR BOOT", "INI padrao + save Epic (jogo nao abre)", Ui.Amber);
-            Ui.MenuCard("3", "TUDO", "Permissoes + recuperar boot de uma vez", Ui.Amber);
-            Ui.MenuCard("4", "VOLTAR", "Menu principal", Ui.DimC);
+            Ui.MenuCard("2", "REPARAR PERFIL", "Mantem COMPLETO/CRIADOR — reclampa INI+menu", Ui.Green);
+            Ui.MenuCard("3", "RECUPERAR BOOT", "Stock INI+save (so se o jogo nao abre)", Ui.Amber);
+            Ui.MenuCard("4", "DIAGNOSTICO", "Mostra o que esta errado no INI/pasta", Ui.Cyan);
+            Ui.MenuCard("5", "TUDO", "Permissoes + reparar (ou boot stock se preciso)", Ui.Amber);
+            Ui.MenuCard("6", "VOLTAR", "Menu principal", Ui.DimC);
             Ui.PanelBlank();
             Ui.PanelBottom();
-            Ui.Prompt("Escolha (1-4)");
+            Ui.Prompt("Escolha (1-6)");
             switch (Console.ReadLine()?.Trim())
             {
                 case "1": CorrigirPermissoes(true); Ui.EnterButton(); break;
-                case "2": CorrigirBoot(true); Ui.EnterButton(); break;
-                case "3": CorrigirTudo(true); Ui.EnterButton(); break;
-                case "4": return;
+                case "2": CorrigirPerfil(true); Ui.EnterButton(); break;
+                case "3": CorrigirBoot(true); Ui.EnterButton(); break;
+                case "4": CorrigirDiagnostico(true); Ui.EnterButton(); break;
+                case "5": CorrigirTudo(true); Ui.EnterButton(); break;
+                case "6": return;
             }
         }
     }
+
+    private static int CorrigirPerfil(bool interactive) =>
+        ErrorRepair.RepararPerfil(_cfg, DetectAppliedMode, interactive);
+
+    private static int CorrigirDiagnostico(bool interactive) =>
+        ErrorRepair.Diagnostico(_cfg, DetectAppliedMode, interactive);
 
     private static int CorrigirPermissoes(bool interactive)
     {
@@ -273,12 +289,29 @@ internal static class Program
             Ui.Cls();
             Ui.MiniBannerIfTall(Ui.MAmber);
             Ui.TitleBar("RECUPERAR BOOT", Ui.MAmber);
-            Ui.StepsPanel("JOGO NAO ABRE / TRAVA", new[]
+            Ui.StepsPanel("ULTIMO RECURSO — JOGO NAO ABRE", new[]
             {
-                "Restaura INI original ou padrao stock",
-                "Restaura save Epic do backup mais antigo",
-                "Purga RLSettingsData (cache Epic corrompido)",
+                "REMOVE o otimizador (volta INI stock/original)",
+                "Restaura save Epic+Steam do backup mais antigo",
+                "Purga RLSettingsData (cache Epic)",
+                "Se o jogo ABRE mas o menu esta errado: use REPARAR PERFIL",
             }, Ui.MAmber);
+            Ui.Gap();
+            Ui.Prompt("Confirma recuperar boot STOCK? (S/N)");
+            if (!IsYes(Console.ReadLine()))
+                return 1;
+
+            string? existing = DetectAppliedMode();
+            if (existing is "COMPLETO" or "CRIADOR")
+            {
+                Ui.Gap();
+                Ui.PanelTop("MODO " + existing + " DETETADO");
+                Ui.PanelLine(Ui.C("Em vez de stock, posso REPARAR o perfil (mantem FPS).", Ui.Green));
+                Ui.PanelBottom();
+                Ui.Prompt("Reparar perfil em vez de stock? (S/N)");
+                if (IsYes(Console.ReadLine()))
+                    return CorrigirPerfil(true);
+            }
         }
 
         if (!EnsureConfigDir())
@@ -303,8 +336,8 @@ internal static class Program
         {
             Ui.StepAnimated("Destravando o arquivo", () => { if (File.Exists(_cfg!)) Unlock(_cfg!); return true; });
             Ui.StepAnimated("Backup de seguranca", () => { if (File.Exists(_cfg!)) Backup(); return true; });
-            iniOk = Ui.StepAnimated("Restaurando INI (boot)", TryRestoreIni);
-            saveOk = Ui.StepAnimated("Restaurando save Epic + nuvem", () => SaveRecovery.FullRecovery(_cfg!));
+            iniOk = Ui.StepAnimated("Restaurando INI stock (boot)", TryRestoreIni);
+            saveOk = Ui.StepAnimated("Restaurando save Epic/Steam + cache", () => SaveRecovery.FullRecovery(_cfg!));
         }
         else
         {
@@ -313,14 +346,16 @@ internal static class Program
             saveOk = SaveRecovery.FullRecovery(_cfg!);
         }
 
+        VideoSettingsSync.StopExistingWatchers();
         Log("CORRIGIR-BOOT concluido.");
         RefreshWritableCache();
         if (interactive)
         {
-            Ui.CompletionMessage(iniOk && saveOk ? Ui.OkGreen : Ui.MAmber, "BOOT RECUPERADO", new[]
+            Ui.CompletionMessage(iniOk && saveOk ? Ui.OkGreen : Ui.MAmber, "BOOT RECUPERADO (STOCK)", new[]
             {
-                "INI e save Epic restaurados.",
-                "Abra o Rocket League — deve bootar sem optimizer.",
+                "INI e saves restaurados — otimizador removido.",
+                "Abra o Rocket League e confirme que entra no menu.",
+                "Depois aplique COMPLETO ou CRIADOR de novo.",
                 "Presets sumiram? Menu [6] RESTAURAR PRESETS.",
             });
         }
@@ -329,8 +364,26 @@ internal static class Program
 
     private static int CorrigirTudo(bool interactive)
     {
+        if (interactive)
+        {
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MAmber);
+            Ui.TitleBar("CORRIGIR TUDO", Ui.MAmber);
+            Ui.StepsPanel("ORDEM INTELIGENTE", new[]
+            {
+                "1) Permissoes / Defender / ACL",
+                "2) Se ha COMPLETO/CRIADOR → REPARAR PERFIL",
+                "3) Se nao ha modo → RECUPERAR BOOT stock",
+            }, Ui.MAmber);
+        }
+
         int a = CorrigirPermissoes(interactive);
-        int b = CorrigirBoot(interactive);
+        string? mode = DetectAppliedMode();
+        int b;
+        if (mode is "COMPLETO" or "CRIADOR")
+            b = CorrigirPerfil(interactive);
+        else
+            b = CorrigirBoot(interactive);
         return a == 0 && b == 0 ? 0 : 1;
     }
 
@@ -339,11 +392,13 @@ internal static class Program
         if (mode == "REMOVER") return Remover(interactive);
         if (mode is "CORRIGIR-BOOT" or "RECUPERAR") return CorrigirBoot(interactive);
         if (mode == "CORRIGIR-TUDO") return CorrigirTudo(interactive);
+        if (mode is "CORRIGIR-PERFIL" or "REPARAR" or "REPARAR-PERFIL") return CorrigirPerfil(interactive);
+        if (mode is "DIAGNOSTICO" or "DIAG") return CorrigirDiagnostico(interactive);
         if (mode is "RESTAURAR-PRESETS" or "RESTAURAR-SAVES") return RestoreLatestSaves(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
         if (mode is "CORRIGIR" or "HEAL") return CorrigirPermissoes(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
-        Console.WriteLine(Ui.C("  Use: GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER | CORRIGIR | CORRIGIR-BOOT | RESTAURAR-PRESETS]", Ui.Gray));
+        Console.WriteLine(Ui.C("  Use: GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER | CORRIGIR | CORRIGIR-PERFIL | CORRIGIR-BOOT | DIAG | RESTAURAR-PRESETS]", Ui.Gray));
         return 2;
     }
 
@@ -386,7 +441,7 @@ internal static class Program
         Ui.MenuCard("2", "CRIADOR DE CONTEUDO", "Otimizacoes fortes mantendo o visual bonito", Ui.Cyan, "STREAM");
         Ui.MenuCard("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
         Ui.MenuCard("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
-        Ui.MenuCard("5", "CORRIGIR ERROS", "Permissoes, boot travado, restauracao INI/save", Ui.Amber);
+        Ui.MenuCard("5", "CORRIGIR ERROS", "Reparar perfil, boot, permissoes, diagnostico", Ui.Amber);
         Ui.MenuCard("6", "RESTAURAR PRESETS", "Garagem: backup mais recente -> Epic automatico", Ui.Amber);
         Ui.MenuCard("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
         Ui.PanelBlank();
@@ -695,7 +750,8 @@ internal static class Program
             Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", new[]
             {
                 "INI restaurado. Save Epic e presets do carro intactos.",
-                "Jogo nao abre? Menu [5] CORRIGIR ERROS -> Recuperar boot.",
+                "Menu errado? [5] CORRIGIR ERROS -> REPARAR PERFIL.",
+                "Jogo nao abre? [5] -> RECUPERAR BOOT (stock).",
             });
         }
         else

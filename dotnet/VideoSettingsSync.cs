@@ -24,9 +24,11 @@ internal static class VideoSettingsSync
         }
     }
 
+    private static string WatcherLockPath => Path.Combine(AppMeta.GuttyDir, "watcher.lock");
+
     /// <summary>
     /// O RL no boot reescreve INI (Uncapped=False, shafts ON) e esvazia VideoOptions.
-    /// Apos Apply, arranca um watcher que reaplica quando o jogo fechar.
+    /// Apos Apply, arranca UM watcher (mata o anterior) que reaplica quando o jogo fechar.
     /// </summary>
     public static void StartExitWatcher(string mode)
     {
@@ -34,6 +36,8 @@ internal static class VideoSettingsSync
         {
             string? exe = Environment.ProcessPath;
             if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) return;
+
+            StopExistingWatchers();
 
             var psi = new ProcessStartInfo
             {
@@ -43,8 +47,10 @@ internal static class VideoSettingsSync
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
             };
-            Process.Start(psi);
-            AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ").");
+            var child = Process.Start(psi);
+            if (child is not null)
+                WriteWatcherLock(child.Id, mode);
+            AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ", pid=" + (child?.Id.ToString() ?? "?") + ").");
         }
         catch (Exception ex)
         {
@@ -52,33 +58,139 @@ internal static class VideoSettingsSync
         }
     }
 
+    /// <summary>Mata o watcher anterior (um so processo WATCH de cada vez).</summary>
+    public static void StopExistingWatchers()
+    {
+        try
+        {
+            Directory.CreateDirectory(AppMeta.GuttyDir);
+            if (!File.Exists(WatcherLockPath)) return;
+
+            string[] lines = File.ReadAllLines(WatcherLockPath);
+            if (lines.Length > 0 && int.TryParse(lines[0].Trim(), out int pid)
+                && pid > 0 && pid != Environment.ProcessId)
+            {
+                try
+                {
+                    using var p = Process.GetProcessById(pid);
+                    string name = p.ProcessName;
+                    if (name.Contains("GuttyTECH_RL", StringComparison.OrdinalIgnoreCase)
+                        || name.Contains("GuttyRL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        AppMeta.Log($"Watcher antigo a terminar (pid={pid}).");
+                        p.Kill(entireProcessTree: true);
+                        p.WaitForExit(4000);
+                    }
+                }
+                catch (ArgumentException) { /* ja morto */ }
+                catch (Exception ex) { AppMeta.Log("Stop watcher: " + ex.Message); }
+            }
+
+            try { File.Delete(WatcherLockPath); } catch { }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("StopExistingWatchers: " + ex.Message);
+        }
+    }
+
+    private static void WriteWatcherLock(int pid, string mode)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppMeta.GuttyDir);
+            File.WriteAllText(WatcherLockPath, pid + Environment.NewLine + mode + Environment.NewLine);
+        }
+        catch { }
+    }
+
+    private static void ClearWatcherLockIfOurs()
+    {
+        try
+        {
+            if (!File.Exists(WatcherLockPath)) return;
+            string[] lines = File.ReadAllLines(WatcherLockPath);
+            if (lines.Length > 0 && int.TryParse(lines[0].Trim(), out int pid) && pid == Environment.ProcessId)
+                File.Delete(WatcherLockPath);
+        }
+        catch { }
+    }
+
     /// <summary>Espera o RL abrir (opcional) e fechar; depois reclampa INI+save.</summary>
     public static int RunWatch(string iniPath, string mode)
     {
-        AppMeta.Log($"WATCH {mode} iniciado.");
-        var waitStart = DateTime.UtcNow;
-        bool sawRl = GetRl().Length > 0;
-        while (!sawRl && (DateTime.UtcNow - waitStart).TotalMinutes < 10)
+        WriteWatcherLock(Environment.ProcessId, mode);
+        AppMeta.Log($"WATCH {mode} iniciado (pid={Environment.ProcessId}).");
+        try
         {
-            Thread.Sleep(2000);
-            sawRl = GetRl().Length > 0;
+            var waitStart = DateTime.UtcNow;
+            bool sawRl = GetRl().Length > 0;
+            while (!sawRl && (DateTime.UtcNow - waitStart).TotalMinutes < 10)
+            {
+                if (!StillCurrentWatcher())
+                {
+                    AppMeta.Log("WATCH: substituido por outro watcher — a sair.");
+                    return 0;
+                }
+                Thread.Sleep(2000);
+                sawRl = GetRl().Length > 0;
+            }
+            if (!sawRl)
+            {
+                AppMeta.Log("WATCH: RL nao abriu — heal preventivo.");
+                HealIfNeeded(iniPath, mode);
+                return 0;
+            }
+
+            AppMeta.Log("WATCH: RL detetado — a aguardar fecho...");
+            while (GetRl().Length > 0)
+            {
+                if (!StillCurrentWatcher())
+                {
+                    AppMeta.Log("WATCH: substituido por outro watcher — a sair.");
+                    return 0;
+                }
+                Thread.Sleep(2000);
+            }
+
+            Thread.Sleep(2500); // cloud/EOS a gravar
+            if (!StillCurrentWatcher())
+            {
+                AppMeta.Log("WATCH: substituido antes do heal — a sair.");
+                return 0;
+            }
+
+            AppMeta.Log("WATCH: RL fechou — a reparar INI+save...");
+            bool ok = HealIfNeeded(iniPath, mode);
+            // 2o pass: cloud Epic por vezes regrava apos o 1o heal
+            Thread.Sleep(8000);
+            if (StillCurrentWatcher())
+            {
+                bool ok2 = HealIfNeeded(iniPath, mode);
+                ok = ok && ok2;
+                AppMeta.Log(ok2 ? "WATCH: 2o pass OK." : "WATCH: 2o pass falhou.");
+            }
+            AppMeta.Log(ok ? "WATCH: heal OK." : "WATCH: heal falhou.");
+            return ok ? 0 : 1;
         }
-        if (!sawRl)
+        finally
         {
-            AppMeta.Log("WATCH: RL nao abriu — heal preventivo.");
-            HealIfNeeded(iniPath, mode);
-            return 0;
+            ClearWatcherLockIfOurs();
         }
+    }
 
-        AppMeta.Log("WATCH: RL detetado — a aguardar fecho...");
-        while (GetRl().Length > 0)
-            Thread.Sleep(2000);
-
-        Thread.Sleep(2500); // cloud/EOS a gravar
-        AppMeta.Log("WATCH: RL fechou — a reparar INI+save...");
-        bool ok = HealIfNeeded(iniPath, mode);
-        AppMeta.Log(ok ? "WATCH: heal OK." : "WATCH: heal falhou.");
-        return ok ? 0 : 1;
+    private static bool StillCurrentWatcher()
+    {
+        try
+        {
+            // Sem lock ou PID diferente = fomos substituidos / StopExistingWatchers.
+            if (!File.Exists(WatcherLockPath)) return false;
+            string[] lines = File.ReadAllLines(WatcherLockPath);
+            if (lines.Length == 0) return false;
+            if (!int.TryParse(lines[0].Trim(), out int pid)) return false;
+            return pid == Environment.ProcessId;
+        }
+        catch { return false; }
     }
 
     /// <summary>Reaplica CompletoForce/CriadorForce no INI sem REMOVER (pos-boot).</summary>
