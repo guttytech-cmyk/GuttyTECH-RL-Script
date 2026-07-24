@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.2] — 2026-07-25
+### Corrigido
+- Auditoria: apos APLICAR Sem bordas o RL reescreveu o INI (`ParticleLODBias=1`, shaders ON) e deixou o save com `RenderDetail=Custom` — isso **nao** e o padrao do jogo; e estado hibrido que faz o menu ir ao maximo.
+- Marcador duravel `GuttyTechMode=COMPLETO|CRIADOR` (o comentario `;GUTTYTECH...` o jogo apaga).
+- Detect/auto-heal voltam a funcionar depois do APLICAR.
+
 ## [v23.0.1] — 2026-07-25
 ### Corrigido
 - **Clicar APLICAR em Sem bordas/resolucao** faz o RL reescrever o menu para Alta qualidade / efeitos ON — comportamento do jogo, nao do INI.

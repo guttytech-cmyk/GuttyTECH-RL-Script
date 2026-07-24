@@ -1,5 +1,6 @@
-;GUTTYTECH-RL-OPTIMIZER=CRIADOR;v23.0.1
+;GUTTYTECH-RL-OPTIMIZER=CRIADOR;v23.0.2
 [SystemSettings]
+GuttyTechMode=CRIADOR
 UseDirectSound=True
 StaticDecals=False
 DynamicDecals=True

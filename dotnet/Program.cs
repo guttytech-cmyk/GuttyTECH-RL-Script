@@ -523,6 +523,7 @@ internal static class Program
             content = CompletoForce.Apply(content);
         else
             content = CriadorForce.Apply(content);
+        content = EnsureModeMarker(content, mode);
         // Nao herdar CriadorUserKeys do INI stock pos-REMOVER — o template manda.
 
         var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);
@@ -570,9 +571,12 @@ internal static class Program
         try
         {
             string text = File.ReadAllText(_cfg);
-            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
+            // Chave real (sobrevive ao APLICAR do jogo) + comentario antigo.
+            if (text.Contains("GuttyTechMode=COMPLETO", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
                 return "COMPLETO";
-            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
+            if (text.Contains("GuttyTechMode=CRIADOR", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
                 return "CRIADOR";
         }
         catch { }
@@ -604,13 +608,41 @@ internal static class Program
         return "Abra o Rocket League uma vez para ele criar o arquivo e rode de novo.";
     }
 
+    /// <summary>Marcador que o RL nao apaga no APLICAR (comentario ; some).</summary>
+    private static string EnsureModeMarker(string content, string mode)
+    {
+        string keyLine = "GuttyTechMode=" + mode;
+        if (content.Contains("GuttyTechMode=", StringComparison.OrdinalIgnoreCase))
+        {
+            var sb = new StringBuilder();
+            foreach (var raw in content.Replace("\r\n", "\n").Split('\n'))
+            {
+                if (raw.StartsWith("GuttyTechMode=", StringComparison.OrdinalIgnoreCase))
+                    sb.Append(keyLine).Append("\r\n");
+                else
+                    sb.Append(raw).Append("\r\n");
+            }
+            return sb.ToString();
+        }
+
+        const string hdr = "[SystemSettings]";
+        int idx = content.IndexOf(hdr, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return keyLine + "\r\n" + content;
+        int insert = idx + hdr.Length;
+        if (insert < content.Length && content[insert] == '\r') insert++;
+        if (insert < content.Length && content[insert] == '\n') insert++;
+        return content[..insert] + keyLine + "\r\n" + content[insert..];
+    }
+
     private static bool DoWrite(string content, string mode)
     {
         try
         {
             if (File.Exists(_cfg!)) File.Delete(_cfg!);
             File.WriteAllText(_cfg!, content, new UTF8Encoding(false));
-            return File.ReadAllText(_cfg!).Contains("GUTTYTECH-RL-OPTIMIZER=" + mode);
+            string written = File.ReadAllText(_cfg!);
+            return written.Contains("GuttyTechMode=" + mode, StringComparison.OrdinalIgnoreCase)
+                || written.Contains("GUTTYTECH-RL-OPTIMIZER=" + mode, StringComparison.Ordinal);
         }
         catch { return false; }
     }
@@ -913,8 +945,12 @@ internal static class Program
         try
         {
             string text = File.ReadAllText(_cfg!);
-            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO")) { label = "COMPLETO aplicado (FPS maximo)"; cat = 2; }
-            else if (text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR")) { label = "CRIADOR aplicado (visual + perf)"; cat = 2; }
+            if (text.Contains("GuttyTechMode=COMPLETO", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
+            { label = "COMPLETO aplicado (FPS maximo)"; cat = 2; }
+            else if (text.Contains("GuttyTechMode=CRIADOR", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
+            { label = "CRIADOR aplicado (visual + perf)"; cat = 2; }
             else if (text.Contains("MaxLODSize=16")) { label = "Otimizado por versao antiga v21"; cat = 1; }
         }
         catch { }

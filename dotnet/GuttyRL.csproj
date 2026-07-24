@@ -11,8 +11,8 @@
     <Product>GUTTYTECH RL INI Optimizer</Product>
     <AssemblyTitle>GUTTYTECH RL INI Optimizer</AssemblyTitle>
     <Company>GUTTYTECH</Company>
-    <Version>23.0.1</Version>
-    <FileVersion>23.0.1.0</FileVersion>
+    <Version>23.0.2</Version>
+    <FileVersion>23.0.2.0</FileVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- Sem trimming: PublishTrimmed quebrava startup em varios PCs (fecha na hora). -->
     <PublishTrimmed>false</PublishTrimmed>

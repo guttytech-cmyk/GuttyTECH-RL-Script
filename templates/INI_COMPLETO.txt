@@ -1,5 +1,6 @@
-;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v23.0.1
+;GUTTYTECH-RL-OPTIMIZER=COMPLETO;v23.0.2
 [SystemSettings]
+GuttyTechMode=COMPLETO
 UseDirectSound=True
 StaticDecals=False
 DynamicDecals=True
