@@ -106,24 +106,31 @@ internal static partial class Ui
         return ok;
     }
 
-    /// <summary>Step com progresso ao vivo (callback atualiza o texto a direita).</summary>
-    public static bool StepAnimatedProgress(string label, Func<Action<string>, bool> work)
+    /// <summary>Step com barra de progresso ao vivo (callback: texto curto / BAR).</summary>
+    public static bool StepWithBar(string label, Func<Action<int, int, string>, bool> work)
     {
         string m = CMar;
         HideCursor();
-        string status = "";
+        FlushInput();
+        int cur = 0, total = 1;
+        string detail = "";
         object gate = new();
         bool done = false;
         bool ok = false;
 
-        void SetStatus(string s)
+        void SetBar(int c, int t, string d)
         {
-            lock (gate) status = s;
+            lock (gate)
+            {
+                cur = Math.Max(0, c);
+                total = Math.Max(1, t);
+                detail = d ?? "";
+            }
         }
 
         var worker = new Thread(() =>
         {
-            try { ok = work(SetStatus); }
+            try { ok = work(SetBar); }
             catch { ok = false; }
             finally { done = true; }
         })
@@ -131,20 +138,29 @@ internal static partial class Ui
         worker.Start();
 
         int i = 0;
+        const int barW = 28;
         while (!done)
         {
-            string st;
-            lock (gate) st = status;
-            string line = label + (string.IsNullOrEmpty(st) ? "..." : "  " + st);
+            int c, t; string d;
+            lock (gate) { c = cur; t = total; d = detail; }
+            double pct = Math.Clamp(100.0 * c / t, 0, 100);
+            int filled = (int)Math.Round(barW * pct / 100.0);
+            if (filled > barW) filled = barW;
+            string bar = new string('#', filled) + new string('-', barW - filled);
+            string line = $"{label}  [{bar}]  {(int)pct,3}%  {c}/{t}  {Trunc(d, 18)}";
             Console.Write("\r" + m + "  " + Fg(SpinGray) + Spin[i % Spin.Length] + Reset
-                + " " + Fg(LightGray) + line + Reset + "          ");
-            Thread.Sleep(70);
+                + " " + Fg(LightGray) + line + Reset + "    ");
+            Thread.Sleep(60);
             i++;
         }
         worker.Join();
 
         string mark = ok ? Fg(OkGreen) + "+" : Fg(MRed) + "x";
-        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset + new string(' ', 36));
+        string finalBar = ok ? new string('#', barW) : new string('-', barW);
+        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset
+            + "  " + Fg(ok ? OkGreen : MRed) + "[" + finalBar + "]" + Reset
+            + Fg(LightGray) + (ok ? "  100%" : "  falhou") + Reset + new string(' ', 20));
+        FlushInput();
         Thread.Sleep(80);
         return ok;
     }
@@ -190,13 +206,13 @@ internal static partial class Ui
         string[] tips = mode == "CRIADOR"
             ? new[]
             {
-                "Sempre limpa (REMOVER) + aplica + sync de todas as contas",
-                "Trocou de conta? Feche o RL e reabra o GuttyTECH (auto-heal)",
+                "Limpa + aplica + sync dos perfis recentes",
+                "Trocou de conta? Feche o RL e reabra o GuttyTECH",
             }
             : new[]
             {
                 "Menu: Desempenho / Alto desempenho / FPS Unlimited",
-                "Trocou de conta? Feche o RL e reabra o GuttyTECH (auto-heal)",
+                "Trocou de conta? Feche o RL e reabra o GuttyTECH",
             };
 
         var c = new List<string>

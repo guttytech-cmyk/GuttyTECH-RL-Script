@@ -217,6 +217,26 @@ def patch_file(path: Path, *, completo: bool) -> bool:
     return True
 
 
+def _select_files(files: list[Path]) -> list[Path]:
+    """So perfis recentes e leves — saves de 2MB+ demoram minutos no decrypt UE3."""
+    max_bytes = 1_200_000
+    max_files = 6
+    ranked = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
+    chosen: list[Path] = []
+    for f in ranked:
+        try:
+            sz = f.stat().st_size
+        except OSError:
+            continue
+        if sz > max_bytes:
+            print(f"SKIP {f.name} (grande demais: {sz // 1024}KB)", flush=True)
+            continue
+        chosen.append(f)
+        if len(chosen) >= max_files:
+            break
+    return chosen
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=("completo", "criador"), default="completo")
@@ -228,14 +248,13 @@ def main(argv: list[str]) -> int:
     if target.is_file() and target.suffix.lower() == ".save":
         files = [target]
     elif target.is_dir():
-        # Mais recentes primeiro — perfil ativo costuma ser o ultimo escrito.
-        files = sorted(target.glob("*.save"), key=lambda p: p.stat().st_mtime, reverse=True)
+        files = _select_files(list(target.glob("*.save")))
     else:
         print(f"alvo invalido: {target}", file=sys.stderr)
         return 2
 
     if not files:
-        print("nenhum .save encontrado", file=sys.stderr)
+        print("nenhum .save elegivel (recentes <1.2MB)", file=sys.stderr)
         return 1
 
     errors = 0
@@ -243,16 +262,18 @@ def main(argv: list[str]) -> int:
     total = len(files)
     for i, f in enumerate(files, 1):
         try:
-            print(f"PROGRESS {i}/{total} {f.name}", flush=True)
+            pct = int(i * 100 / total)
+            print(f"BAR {i} {total} {pct} {f.name}", flush=True)
             if patch_file(f, completo=completo):
-                print(f"OK {f}", flush=True)
+                print(f"OK {f.name}", flush=True)
                 patched += 1
             else:
-                print(f"SKIP {f} (ja sincronizado)", flush=True)
+                print(f"SKIP {f.name} (ja sincronizado)", flush=True)
                 patched += 1
         except Exception as ex:
-            print(f"SKIP {f}: {ex}", file=sys.stderr, flush=True)
+            print(f"SKIP {f.name}: {ex}", file=sys.stderr, flush=True)
             errors += 1
+    print(f"BAR {total} {total} 100 done", flush=True)
     if patched == 0 and errors > 0:
         return 1
     return 0

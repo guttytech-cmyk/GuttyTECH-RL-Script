@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace GuttyRL;
@@ -6,7 +7,7 @@ namespace GuttyRL;
 /// <summary>Patch .save Epic (VideoSettingsSavePC + EffectIntensity) via runtime Python embutido.</summary>
 internal static class SaveVideoPatcher
 {
-    public static bool PatchSaveDirectory(string saveDir, string mode, Action<string>? progress = null)
+    public static bool PatchSaveDirectory(string saveDir, string mode, Action<int, int, string>? progress = null)
     {
         if (!Directory.Exists(saveDir))
         {
@@ -49,14 +50,22 @@ internal static class SaveVideoPatcher
                 string t = line.Trim();
                 if (t.Length == 0) continue;
                 AppMeta.Log("Save patch: " + t);
-                if (t.StartsWith("PROGRESS ", StringComparison.Ordinal))
-                    progress?.Invoke(t["PROGRESS ".Length..]);
+
+                // BAR cur total pct name...
+                var tok = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (tok.Length >= 4 && tok[0] == "BAR"
+                    && int.TryParse(tok[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int cur)
+                    && int.TryParse(tok[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int tot))
+                {
+                    string detail = tok.Length >= 5 ? string.Join(' ', tok.Skip(4)) : "";
+                    progress?.Invoke(cur, tot, detail);
+                }
             }
 
-            if (!p.WaitForExit(180_000))
+            if (!p.WaitForExit(90_000))
             {
                 try { p.Kill(entireProcessTree: true); } catch { }
-                AppMeta.Log("Save patch timeout.");
+                AppMeta.Log("Save patch timeout (90s).");
                 return false;
             }
 

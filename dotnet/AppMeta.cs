@@ -3,14 +3,14 @@ namespace GuttyRL;
 /// <summary>Metadados e caminhos persistentes — fonte unica de versao/pastas.</summary>
 internal static class AppMeta
 {
-    public const string Version = "v22.3.48";
+    public const string Version = "v23.0.0";
 
     public static string GuttyDir =>
         Path.Combine(
             Environment.GetEnvironmentVariable("GUTTYRL_HOME") is { Length: > 0 } home
                 ? home
                 : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            "GuttyTECH", "RL-Optimizer-v22");
+            "GuttyTECH", "RL-Optimizer-v22"); // pasta estável (backups/orig) — nao muda com major
 
     public static string BackupDir => Path.Combine(GuttyDir, "Backups");
     public static string LogFile => Path.Combine(GuttyDir, "log.txt");

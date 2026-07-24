@@ -384,7 +384,7 @@ internal static class Program
         Ui.MenuCard("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
         Ui.PanelBlank();
         Ui.PanelBottom();
-        Ui.FooterHint("COMPLETO/CRIADOR sempre limpam (REMOVER) + sync de todas as contas");
+        Ui.FooterHint("COMPLETO/CRIADOR: limpa + aplica + sync rapido (perfis recentes)");
         Ui.Prompt("Escolha (1-7)");
     }
 
@@ -500,6 +500,7 @@ internal static class Program
 
         if (interactive)
         {
+            Ui.FlushInput();
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
             if (!Ui.StepAnimated("Limpando (como REMOVER) antes de aplicar", TryRestoreIni))
@@ -530,8 +531,8 @@ internal static class Program
         if (interactive)
         {
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
-            if (!Ui.StepAnimatedProgress("Sincronizando menu de video", prog =>
-                    VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive, prog)))
+            if (!Ui.StepWithBar("Sincronizando menu de video", bar =>
+                    VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive, bar)))
             {
                 Ui.CompletionMessage(acc, "AVISO", new[]
                 {
@@ -542,6 +543,7 @@ internal static class Program
             }
             if (mode is "CRIADOR" or "COMPLETO")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
+            Ui.FlushInput();
         }
         else
         {

@@ -11,7 +11,7 @@ internal static class VideoSettingsSync
     {
         try
         {
-            if (GetRl().Length > 0) return false; // jogo aberto: nao mexer
+            if (GetRl().Length > 0) return false;
             return SyncVideoSave(iniPath, mode, interactive: false);
         }
         catch (Exception ex)
@@ -21,14 +21,14 @@ internal static class VideoSettingsSync
         }
     }
 
-    public static bool SyncVideoSave(string iniPath, string mode, bool interactive, Action<string>? progress = null)
+    public static bool SyncVideoSave(string iniPath, string mode, bool interactive, Action<int, int, string>? progress = null)
     {
-        if (!CheckGameClosed(interactive)) return false;
+        // Nunca Prompt aqui (bloqueava com "aperte Enter" no meio da barra).
+        if (!EnsureGameClosed(interactive)) return false;
 
         string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
         if (tagame is null) return false;
 
-        // Epic + Steam — o menu in-game vem do save ativo.
         string[] saveDirs =
         {
             Path.Combine(tagame, "SaveDataEpic", "DBE_Production"),
@@ -42,7 +42,7 @@ internal static class VideoSettingsSync
             if (!Directory.Exists(saveDir)) continue;
             anyDir = true;
             string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
-            progress?.Invoke(tag + "...");
+            progress?.Invoke(0, 1, tag);
             BackupSaves(saveDir);
             if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, progress))
                 anyOk = true;
@@ -53,21 +53,29 @@ internal static class VideoSettingsSync
         if (!anyDir)
         {
             AppMeta.Log("Nenhum SaveDataEpic/SaveData encontrado; menu in-game nao sincronizado.");
-            return true; // INI ja aplicado; save pode ainda nao existir.
+            return true;
         }
 
         return anyOk;
     }
 
-    private static bool CheckGameClosed(bool interactive)
+    /// <summary>Fecha o RL sem perguntar S/N (evita travar a barra pedindo Enter).</summary>
+    private static bool EnsureGameClosed(bool interactive)
     {
-        if (GetRl().Length == 0) return true;
-        if (!interactive) return false;
-        Ui.Prompt("Feche o Rocket League para sincronizar o menu. Fechar agora? (S/N)");
-        if (!IsYes(Console.ReadLine())) return false;
-        foreach (var p in GetRl()) { try { p.Kill(); } catch { } }
+        var procs = GetRl();
+        if (procs.Length == 0) return true;
+
+        AppMeta.Log("RL ainda aberto no sync — encerrando automaticamente.");
+        foreach (var p in procs)
+        {
+            try { p.Kill(); } catch { }
+        }
         Thread.Sleep(1500);
-        return GetRl().Length == 0;
+        if (GetRl().Length == 0) return true;
+
+        if (interactive)
+            AppMeta.Log("Nao consegui fechar o RL; sync abortado.");
+        return false;
     }
 
     private static bool BackupSaves(string saveDir)
@@ -80,9 +88,9 @@ internal static class VideoSettingsSync
             Directory.CreateDirectory(dest);
             string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-            // So os 4 mais recentes — backup de 14 saves de 2MB+ atrasava o sync.
             var files = Directory.EnumerateFiles(saveDir, "*.save")
                 .Select(f => new FileInfo(f))
+                .Where(f => f.Length <= 1_200_000)
                 .OrderByDescending(f => f.LastWriteTimeUtc)
                 .Take(4);
 
@@ -93,7 +101,7 @@ internal static class VideoSettingsSync
                     fi.CopyTo(backup, false);
             }
 
-            AppMeta.Log($"Backup save ({ts}) dos 4 mais recentes.");
+            AppMeta.Log($"Backup save ({ts}) dos recentes leves.");
             return true;
         }
         catch (Exception ex)
@@ -108,6 +116,4 @@ internal static class VideoSettingsSync
         try { return Process.GetProcessesByName("RocketLeague"); }
         catch { return Array.Empty<Process>(); }
     }
-
-    private static bool IsYes(string? s) => string.Equals(s?.Trim(), "S", StringComparison.OrdinalIgnoreCase);
 }

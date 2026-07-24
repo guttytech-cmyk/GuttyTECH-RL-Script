@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.0] — 2026-07-24
+### Alterado
+- **Major v23:** sync de video com **barra de progresso** real (`[####----] 45% 3/6`).
+- Sync so nos **6 saves mais recentes e &lt;1.2MB** (os de 2MB+ eram o “travamento”).
+- Sem Prompt S/N no meio do sync (fechava o RL sozinho) — isso pedia Enter e parecia travado.
+- Flush do teclado antes/depois do sync.
+
 ## [v22.3.48] — 2026-07-24
 ### Alterado
 - **Sync de video mais rapido:** so regrava saves que precisam (conta nova/quebrada); skips nos ja OK.
