@@ -16,7 +16,7 @@ internal static partial class Ui
     private static readonly (int r, int g, int b) BtnBorder = (90, 90, 98);
     private static readonly (int r, int g, int b) SpinGray = (140, 140, 148);
 
-    private static readonly string[] Spin = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" };
+    private static readonly string[] Spin = { "|", "/", "-", "\\", "|", "/", "-", "\\", "|", "/" };
 
     private const int CW = 62;
     private static string CMar => new(' ', Math.Max(2, (WinW - CW - 2) / 2));
@@ -39,7 +39,7 @@ internal static partial class Ui
     {
         if (WinH < 34) return;
         string brand = "GUTTYTECH";
-        string sub = "ROCKET LEAGUE  ·  " + AppMeta.Version;
+        string sub = "ROCKET LEAGUE  -  " + AppMeta.Version;
         int w = Math.Max(brand.Length, sub.Length) + 8;
         string m = new(' ', Math.Max(2, (WinW - w) / 2));
         Console.WriteLine();
@@ -81,7 +81,7 @@ internal static partial class Ui
                 + " " + Fg(LightGray) + label + "..." + Reset);
             Thread.Sleep(28);
         }
-        string mark = ok ? Fg(OkGreen) + "✓" : Fg(MRed) + "✗";
+        string mark = ok ? Fg(OkGreen) + "+" : Fg(MRed) + "x";
         Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset + new string(' ', 18));
         Thread.Sleep(80);
         return ok;
@@ -128,26 +128,26 @@ internal static partial class Ui
         string[] tips = mode == "CRIADOR"
             ? new[]
             {
-                "Visual preservado · sombras/efeitos ajustaveis no jogo",
+                "Visual preservado - sombras/efeitos ajustaveis no jogo",
                 "Troca de modo limpa o INI automaticamente",
             }
             : new[]
             {
-                "Menu: High Performance · efeitos OFF · FPS Unlimited",
+                "Menu: High Performance - efeitos OFF - FPS Unlimited",
                 "Troca de modo limpa o INI automaticamente",
             };
 
         var c = new List<string>
         {
             "",
-            CenterRaw("◆  CONCLUIDO  ◆", acc, true),
+            CenterRaw("*  CONCLUIDO  *", acc, true),
             CenterRaw(new string('─', 16), acc),
             "",
-            "  " + Raw("MODO ", LightGray) + RawB(mode, acc) + Raw("  ·  ", DarkGray) + RawB("OK", OkGreen),
+            "  " + Raw("MODO ", LightGray) + RawB(mode, acc) + Raw("  -  ", DarkGray) + RawB("OK", OkGreen),
             "",
         };
         foreach (var tip in tips)
-            c.Add("  " + Raw("› ", acc) + Raw(tip, LightGray));
+            c.Add("  " + Raw("> ", acc) + Raw(tip, LightGray));
         c.Add("");
         c.Add("  " + Raw("Backups  ", DimC) + Raw(Trunc(backupPath, CW - 14), DarkGray));
         c.Add("");
@@ -159,7 +159,7 @@ internal static partial class Ui
         var c = new List<string>
         {
             "",
-            CenterRaw("◆  " + title + "  ◆", acc, true),
+            CenterRaw("*  " + title + "  *", acc, true),
             CenterRaw(new string('─', Math.Min(CW - 8, title.Length + 8)), acc),
             ""
         };
@@ -221,7 +221,7 @@ internal static partial class Ui
     {
         string m = CMar;
         if (ok)
-            Console.WriteLine(m + "  " + Fg(OkGreen) + "\x1b[1m✓ Copiado!\x1b[22m" + Reset
+            Console.WriteLine(m + "  " + Fg(OkGreen) + "\x1b[1m+ Copiado!\x1b[22m" + Reset
                 + Fg(LightGray) + "  Cole com " + Reset + Fg(White) + "Ctrl+V" + Reset
                 + Fg(LightGray) + " no launcher." + Reset);
         else

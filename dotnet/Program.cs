@@ -382,7 +382,7 @@ internal static class Program
 
         Ui.PanelTop("MODOS");
         Ui.PanelBlank();
-        Ui.MenuCard("1", "COMPLETO", "FPS maximo · grafico de batata · menu High Performance", Ui.Red, "FPS");
+        Ui.MenuCard("1", "COMPLETO", "FPS maximo - grafico de batata - menu High Performance", Ui.Red, "FPS");
         Ui.MenuCard("2", "CRIADOR DE CONTEUDO", "Otimizacoes fortes mantendo o visual bonito", Ui.Cyan, "STREAM");
         Ui.MenuCard("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
         Ui.MenuCard("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);

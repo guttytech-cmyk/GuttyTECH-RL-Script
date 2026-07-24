@@ -48,7 +48,7 @@ internal static partial class Ui
             }
         }
         catch { }
-        try { Console.Title = "GUTTYTECH  ·  RL INI OPTIMIZER  " + AppMeta.Version; } catch { }
+        try { Console.Title = "GUTTYTECH  -  RL INI OPTIMIZER  " + AppMeta.Version; } catch { }
     }
 
     private static int SafeLargestWindowWidth()
@@ -131,7 +131,7 @@ internal static partial class Ui
             if (animate) Thread.Sleep(38);
         }
 
-        string sub = "ROCKET LEAGUE  ·  INI OPTIMIZER";
+        string sub = "ROCKET LEAGUE  -  INI OPTIMIZER";
         string badge = " " + AppMeta.Version + " ";
         string tess = " TESSERACT ";
         int lineW = sub.Length + badge.Length + tess.Length + 6;
@@ -173,7 +173,7 @@ internal static partial class Ui
         string label = "BOOT SEQUENCE";
         int pad = Math.Max(2, (WinW - total - label.Length - 12) / 2);
         string m = new(' ', pad);
-        string[] ticks = { "▣", "▢" };
+        string[] ticks = { "#", "-" };
 
         for (int i = 0; i <= total; i++)
         {
@@ -246,7 +246,7 @@ internal static partial class Ui
         return Bg(bg) + Bold + Fg(f) + " " + text + " " + Reset;
     }
 
-    public static string Dot((int r, int g, int b) c, string text) => C("●", c) + " " + C(text, White);
+    public static string Dot((int r, int g, int b) c, string text) => C("*", c) + " " + C(text, White);
 
     public static string Field(string label, string valueColored)
         => C(label.PadRight(10), DimC) + valueColored;
@@ -257,7 +257,7 @@ internal static partial class Ui
         string badge = Bg(accent) + Bold + Fg(White) + " " + n + " " + Reset;
         string tagPart = string.IsNullOrEmpty(tag)
             ? ""
-            : "  " + Fg(accent) + "·" + Reset + " " + C(tag, accent);
+            : "  " + Fg(accent) + "-" + Reset + " " + C(tag, accent);
         PanelLine(badge + "  " + B(title, White) + tagPart);
         PanelLine("     " + C(desc, DimC));
     }
@@ -265,10 +265,10 @@ internal static partial class Ui
     public static bool Step(string label, Func<bool> work)
     {
         string m = new(' ', Margin);
-        Console.Write(m + "  " + C("◌", DimC) + " " + C(label + "...", Gray));
+        Console.Write(m + "  " + C("o", DimC) + " " + C(label + "...", Gray));
         bool ok; try { ok = work(); } catch { ok = false; }
         Thread.Sleep(70);
-        string mark = ok ? C("✔", Green) : C("✖", Red);
+        string mark = ok ? C("+", Green) : C("x", Red);
         Console.Write("\r" + m + "  " + mark + " " + C(label, ok ? White : Red) + new string(' ', 16) + "\n");
         return ok;
     }
@@ -277,7 +277,7 @@ internal static partial class Ui
     {
         ShowCursor();
         string m = new(' ', Margin);
-        Console.Write("\n" + m + Bg(Red) + Fg(White) + Bold + " ▶ " + Reset + " " + B(text, White) + " ");
+        Console.Write("\n" + m + Bg(Red) + Fg(White) + Bold + " > " + Reset + " " + B(text, White) + " ");
     }
 
     public static void PressEnter()

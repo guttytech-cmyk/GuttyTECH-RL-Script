@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v22.3.44] — 2026-07-24
+### Corrigido
+- Prompt e ícones: caracteres Unicode que viravam `?` no console Windows (`▶`, `●`, braille, etc.) trocados por ASCII seguro.
+
 ## [v22.3.43] — 2026-07-24
 ### Alterado
 - **Rework visual total** do console: wordmark, boot sequence, painéis com fundo `#121212`, chips de status (modo / gravação / RL), cards numerados com tags FPS/STREAM.
