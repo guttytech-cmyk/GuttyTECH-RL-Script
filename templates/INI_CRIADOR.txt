@@ -1,4 +1,4 @@
-;GUTTYTECH-RL-OPTIMIZER=CRIADOR;v23.0.0
+;GUTTYTECH-RL-OPTIMIZER=CRIADOR;v23.0.1
 [SystemSettings]
 UseDirectSound=True
 StaticDecals=False

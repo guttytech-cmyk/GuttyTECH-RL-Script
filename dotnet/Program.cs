@@ -496,6 +496,10 @@ internal static class Program
         // 60 FPS / tela preta longa; limpar + regravar INI+save em todos os perfis.
         string? previous = DetectAppliedMode();
 
+        // IMPORTANTE: ler resolucao/borda ANTES do restore.
+        // Se ler depois, volta ao Fullscreen do backup original e perde Sem bordas.
+        var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
+
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
         if (interactive)
@@ -513,8 +517,6 @@ internal static class Program
             if (!TryRestoreIni()) return FailOrElevate(mode, interactive);
         }
 
-        // Ler display DEPOIS do restore (INI limpo / stock).
-        var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
         string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
         string content = ApplyDisplay(template, disp);
         if (mode == "COMPLETO")

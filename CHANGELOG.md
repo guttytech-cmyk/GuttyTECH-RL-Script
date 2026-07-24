@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.1] — 2026-07-25
+### Corrigido
+- **Clicar APLICAR em Sem bordas/resolucao** faz o RL reescrever o menu para Alta qualidade / efeitos ON — comportamento do jogo, nao do INI.
+- Preserve resolucao/borda **antes** do REMOVER interno (antes voltava ao Fullscreen do backup original).
+- Patch detecta `RenderDetail=Custom` (pos-APLICAR) e regrava perfil COMPLETO; preserva `WindowMode`/`Resolution`.
+
 ## [v23.0.0] — 2026-07-24
 ### Alterado
 - **Major v23:** sync de video com **barra de progresso** real (`[####----] 45% 3/6`).

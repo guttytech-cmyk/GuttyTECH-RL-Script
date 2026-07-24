@@ -207,12 +207,12 @@ internal static partial class Ui
             ? new[]
             {
                 "Limpa + aplica + sync dos perfis recentes",
-                "Trocou de conta? Feche o RL e reabra o GuttyTECH",
+                "Nao cliques APLICAR em resolucao/modo — o RL reseta o menu",
             }
             : new[]
             {
                 "Menu: Desempenho / Alto desempenho / FPS Unlimited",
-                "Trocou de conta? Feche o RL e reabra o GuttyTECH",
+                "Nao cliques APLICAR em resolucao/modo — o RL reseta o menu",
             };
 
         var c = new List<string>

@@ -144,6 +144,11 @@ def _is_sparse_or_broken(obj: dict, *, completo: bool) -> bool:
 
 
 def _force_video_profile(obj: dict, *, completo: bool) -> None:
+    # Preserva janela/resolucao — o botao APLICAR do modo de exibicao no RL
+    # reescreve VideoOptions para Alta qualidade; nao queremos resetar WindowMode.
+    window = obj.get("WindowMode")
+    resolution = obj.get("Resolution")
+
     if completo:
         obj["VideoOptions"] = [dict(x) for x in COMPLETO_OPTIONS]
         for key, val in VIDEO_FLAGS_COMMON:
@@ -156,11 +161,20 @@ def _force_video_profile(obj: dict, *, completo: bool) -> None:
         for key, val in VIDEO_FLAGS_COMMON:
             obj[key] = val
 
+    if window is not None:
+        obj["WindowMode"] = window
+    if isinstance(resolution, str) and resolution:
+        obj["Resolution"] = resolution
+
 
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
-    # Regrava so se estiver errado/esparso/vazio.
-    # Conta nova (VideoOptions=[]) e hibrido CRIADOR/COMPLETO entram aqui.
-    # Saves ja OK sao SKIP — evita reescrever 10+ perfis gigantes a cada apply.
+    # Regrava se errado/esparso/vazio OU se RenderDetail=Custom (APLICAR em
+    # Sem bordas deixa Custom e o menu explode em Alta qualidade / efeitos ON).
+    ids = {o.get("Id"): o.get("Value") for o in _sanitize_options(obj.get("VideoOptions"))}
+    if ids.get("RenderDetail") == "Custom" and completo:
+        _force_video_profile(obj, completo=True)
+        return True
+
     if completo:
         if _completo_options_ok(obj):
             return False

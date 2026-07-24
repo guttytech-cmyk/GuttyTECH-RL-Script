@@ -3,7 +3,7 @@ namespace GuttyRL;
 /// <summary>Metadados e caminhos persistentes — fonte unica de versao/pastas.</summary>
 internal static class AppMeta
 {
-    public const string Version = "v23.0.0";
+    public const string Version = "v23.0.1";
 
     public static string GuttyDir =>
         Path.Combine(
