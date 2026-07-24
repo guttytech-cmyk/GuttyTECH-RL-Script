@@ -39,18 +39,38 @@ internal static class VideoSettingsSync
 
             StopExistingWatchers();
 
+            // Desprende do job do processo pai via `start /B` — senao PowerShell
+            // `Start-Process -Wait` (e alguns hosts) aguardam o WATCH ~10min.
+            string args = "/c start \"GuttyRL-WATCH\" /B \"" + exe + "\" WATCH " + mode;
             var psi = new ProcessStartInfo
             {
-                FileName = exe,
-                Arguments = "WATCH " + mode,
+                FileName = "cmd.exe",
+                Arguments = args,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
             };
-            var child = Process.Start(psi);
-            if (child is not null)
-                WriteWatcherLock(child.Id, mode);
-            AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ", pid=" + (child?.Id.ToString() ?? "?") + ").");
+            using (var launcher = Process.Start(psi))
+                launcher?.WaitForExit(5000);
+
+            // Child escreve o lock no RunWatch; espera ate 3s pelo PID.
+            int waited = 0;
+            while (waited < 30 && !File.Exists(WatcherLockPath))
+            {
+                Thread.Sleep(100);
+                waited++;
+            }
+            string pidInfo = "?";
+            try
+            {
+                if (File.Exists(WatcherLockPath))
+                {
+                    string[] lines = File.ReadAllLines(WatcherLockPath);
+                    if (lines.Length > 0) pidInfo = lines[0].Trim();
+                }
+            }
+            catch { }
+            AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ", pid=" + pidInfo + ").");
         }
         catch (Exception ex)
         {
@@ -266,6 +286,8 @@ internal static class VideoSettingsSync
             BackupSaves(saveDir);
             if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, progress))
                 anyOk = true;
+            else if (tag == "Steam")
+                AppMeta.Log("Steam: save invalido/corrompido ignorado (Epic e a fonte principal).");
             else
                 AppMeta.Log("Patch parcial/falhou em: " + saveDir);
         }

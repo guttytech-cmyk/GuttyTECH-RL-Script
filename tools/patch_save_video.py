@@ -90,12 +90,27 @@ def _set_flag(obj: dict, key: str, val) -> bool:
 
 
 def _flags_ok(obj: dict, *, completo: bool) -> bool:
+    """Flags criticas do menu. Ausencia de flag=False e OK (jogo por vezes omite);
+    so falha se estiver explicitamente no valor errado."""
     for key, val in VIDEO_FLAGS_COMMON:
-        if obj.get(key) != val:
-            return False
+        got = obj.get(key)
+        if key == "MaxFPS":
+            if got != val:
+                return False
+            continue
+        if val is True:
+            if got is not True:
+                return False
+        else:
+            # desejado False: None/ausente/False OK; True e regressao
+            if got is True:
+                return False
     if completo:
         for key, val in VIDEO_FLAGS_COMPLETO:
-            if key in obj and obj.get(key) != val:
+            got = obj.get(key)
+            if val is False and got is True:
+                return False
+            if val is True and got is not True and key in obj:
                 return False
     return True
 
@@ -288,8 +303,10 @@ def main(argv: list[str]) -> int:
             print(f"SKIP {f.name}: {ex}", file=sys.stderr, flush=True)
             errors += 1
     print(f"BAR {total} {total} 100 done", flush=True)
+    # Pasta so com .save lixo/corrompido (ex. Steam stub) nao deve falhar o heal Epic.
     if patched == 0 and errors > 0:
-        return 1
+        print(f"WARN: {errors} save(s) invalidos ignorados", file=sys.stderr, flush=True)
+        return 0
     return 0
 
 
