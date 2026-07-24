@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.4] — 2026-07-25
+### Corrigido
+- **Monitor ciclo:** ao **abrir** o RL apos COMPLETO, o jogo esvazia `VideoOptions` (MaxFPS=62) e reescreve INI (`UncappedFramerate=False`, shafts/shaders ON).
+- Novo **watcher** (`WATCH`): depois de aplicar, fica a escuta — quando o RL fecha, reclampa INI (CompletoForce) + sync do menu sozinho.
+- Auto-heal no arranque do app tambem reclampa o INI (nao so o save).
+
 ## [v23.0.3] — 2026-07-25
 ### Alterado
 - **Revisao total:** CompletoForce reforçado (OnlyStreamInTextures/WaitForGPU/VSync/shadow res) para aguentar reescrita do APLICAR.

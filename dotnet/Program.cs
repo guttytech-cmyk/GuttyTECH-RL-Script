@@ -94,8 +94,15 @@ internal static class Program
                 "5" => "CORRIGIR",
                 "6" => "RESTAURAR-PRESETS",
                 "HEAL" => "CORRIGIR",
+                "WATCH" => "WATCH",
                 _ => mode
             };
+            if (mode == "WATCH")
+            {
+                string watchMode = args.Length > 1 ? args[1].Trim().ToUpperInvariant() : (DetectAppliedMode() ?? "COMPLETO");
+                if (watchMode is not ("COMPLETO" or "CRIADOR")) watchMode = "COMPLETO";
+                return VideoSettingsSync.RunWatch(_cfg!, watchMode);
+            }
             bool keepOpen = args.Length > 1 && args[1].Equals("/keepopen", StringComparison.OrdinalIgnoreCase);
             int rc = Dispatch(mode, keepOpen);
             if (keepOpen || rc != 0) Ui.EnterButton();
@@ -104,12 +111,12 @@ internal static class Program
 
         Ui.Intro();
 
-        // O RL grava VideoOptions parcial ao sair; repara antes do menu se modo ativo.
+        // O RL no boot reescreve INI+save — heal completo (INI force + video).
         string? activeMode = DetectAppliedMode();
         if (_cfg is not null && activeMode is "COMPLETO" or "CRIADOR")
         {
             if (VideoSettingsSync.HealIfNeeded(_cfg, activeMode))
-                AppMeta.Log($"Auto-heal menu video ({activeMode}) OK.");
+                AppMeta.Log($"Auto-heal INI+video ({activeMode}) OK.");
         }
 
         while (true)
@@ -561,7 +568,15 @@ internal static class Program
                 : $"Trocou {previous} → {mode} (limpo + sync contas).";
         Log(msg);
         RefreshWritableCache();
-        if (interactive) Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
+        // Watcher: quando o utilizador abrir/fechar o RL, repara o que o boot apagar.
+        VideoSettingsSync.StartExitWatcher(mode);
+        if (interactive)
+        {
+            Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
+            Console.WriteLine();
+            string m = new string(' ', Ui.Margin);
+            Console.WriteLine(m + Ui.C("  Watcher ativo: ao fechar o RL, o otimizador repara INI+menu sozinho.", Ui.DimC));
+        }
         return 0;
     }
 

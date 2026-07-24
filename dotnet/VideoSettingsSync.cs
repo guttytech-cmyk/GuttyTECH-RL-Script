@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 namespace GuttyRL;
 
@@ -6,13 +7,15 @@ namespace GuttyRL;
 /// Nao apaga save nem RLSettingsData.</summary>
 internal static class VideoSettingsSync
 {
-    /// <summary>Repara VideoOptions esparso sem UI (arranque / pos-jogo).</summary>
+    /// <summary>Repara VideoOptions + reclampa INI (arranque / pos-jogo).</summary>
     public static bool HealIfNeeded(string iniPath, string mode)
     {
         try
         {
             if (GetRl().Length > 0) return false;
-            return SyncVideoSave(iniPath, mode, interactive: false);
+            bool ok = SyncVideoSave(iniPath, mode, interactive: false);
+            ok = ReclampIni(iniPath, mode) && ok;
+            return ok;
         }
         catch (Exception ex)
         {
@@ -21,9 +24,114 @@ internal static class VideoSettingsSync
         }
     }
 
+    /// <summary>
+    /// O RL no boot reescreve INI (Uncapped=False, shafts ON) e esvazia VideoOptions.
+    /// Apos Apply, arranca um watcher que reaplica quando o jogo fechar.
+    /// </summary>
+    public static void StartExitWatcher(string mode)
+    {
+        try
+        {
+            string? exe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) return;
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = exe,
+                Arguments = "WATCH " + mode,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            };
+            Process.Start(psi);
+            AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ").");
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("Watcher falhou a arrancar: " + ex.Message);
+        }
+    }
+
+    /// <summary>Espera o RL abrir (opcional) e fechar; depois reclampa INI+save.</summary>
+    public static int RunWatch(string iniPath, string mode)
+    {
+        AppMeta.Log($"WATCH {mode} iniciado.");
+        var waitStart = DateTime.UtcNow;
+        bool sawRl = GetRl().Length > 0;
+        while (!sawRl && (DateTime.UtcNow - waitStart).TotalMinutes < 10)
+        {
+            Thread.Sleep(2000);
+            sawRl = GetRl().Length > 0;
+        }
+        if (!sawRl)
+        {
+            AppMeta.Log("WATCH: RL nao abriu — heal preventivo.");
+            HealIfNeeded(iniPath, mode);
+            return 0;
+        }
+
+        AppMeta.Log("WATCH: RL detetado — a aguardar fecho...");
+        while (GetRl().Length > 0)
+            Thread.Sleep(2000);
+
+        Thread.Sleep(2500); // cloud/EOS a gravar
+        AppMeta.Log("WATCH: RL fechou — a reparar INI+save...");
+        bool ok = HealIfNeeded(iniPath, mode);
+        AppMeta.Log(ok ? "WATCH: heal OK." : "WATCH: heal falhou.");
+        return ok ? 0 : 1;
+    }
+
+    /// <summary>Reaplica CompletoForce/CriadorForce no INI sem REMOVER (pos-boot).</summary>
+    public static bool ReclampIni(string iniPath, string mode)
+    {
+        try
+        {
+            if (!File.Exists(iniPath)) return false;
+            try { File.SetAttributes(iniPath, FileAttributes.Normal); } catch { }
+
+            string text = File.ReadAllText(iniPath);
+            string forced = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
+                ? CompletoForce.Apply(text)
+                : CriadorForce.Apply(text);
+
+            forced = EnsureModeLine(forced, mode);
+            File.WriteAllText(iniPath, forced);
+            AppMeta.Log($"INI reclamp {mode} OK.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("ReclampIni falhou: " + ex.Message);
+            return false;
+        }
+    }
+
+    private static string EnsureModeLine(string content, string mode)
+    {
+        string key = "GuttyTechMode=" + mode;
+        if (content.Contains("GuttyTechMode=", StringComparison.OrdinalIgnoreCase))
+        {
+            var sb = new StringBuilder();
+            foreach (var raw in content.Replace("\r\n", "\n").Split('\n'))
+            {
+                if (raw.StartsWith("GuttyTechMode=", StringComparison.OrdinalIgnoreCase))
+                    sb.Append(key).Append("\r\n");
+                else
+                    sb.Append(raw).Append("\r\n");
+            }
+            return sb.ToString();
+        }
+        const string hdr = "[SystemSettings]";
+        int idx = content.IndexOf(hdr, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0) return key + "\r\n" + content;
+        int insert = idx + hdr.Length;
+        if (insert < content.Length && content[insert] == '\r') insert++;
+        if (insert < content.Length && content[insert] == '\n') insert++;
+        return content[..insert] + key + "\r\n" + content[insert..];
+    }
+
     public static bool SyncVideoSave(string iniPath, string mode, bool interactive, Action<int, int, string>? progress = null)
     {
-        // Nunca Prompt aqui (bloqueava com "aperte Enter" no meio da barra).
         if (!EnsureGameClosed(interactive)) return false;
 
         string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
@@ -59,7 +167,6 @@ internal static class VideoSettingsSync
         return anyOk;
     }
 
-    /// <summary>Fecha o RL sem perguntar S/N (evita travar a barra pedindo Enter).</summary>
     private static bool EnsureGameClosed(bool interactive)
     {
         var procs = GetRl();
