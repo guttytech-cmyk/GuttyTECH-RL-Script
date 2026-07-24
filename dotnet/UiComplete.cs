@@ -128,13 +128,13 @@ internal static partial class Ui
         string[] tips = mode == "CRIADOR"
             ? new[]
             {
-                "Visual preservado - sombras/efeitos ajustaveis no jogo",
-                "Troca de modo limpa o INI automaticamente",
+                "Sempre limpa (REMOVER) + aplica + sync de todas as contas",
+                "Trocou de conta? Feche o RL e reabra o GuttyTECH (auto-heal)",
             }
             : new[]
             {
-                "Menu: High Performance - efeitos OFF - FPS Unlimited",
-                "Troca de modo limpa o INI automaticamente",
+                "Menu: Desempenho / Alto desempenho / FPS Unlimited",
+                "Trocou de conta? Feche o RL e reabra o GuttyTECH (auto-heal)",
             };
 
         var c = new List<string>

@@ -23,24 +23,8 @@ internal static class Program
         "MobileModShadows", "MobileMinimizeFogShaders",
     };
 
-    // Chaves ligadas ao menu Video do RL — preservadas no CRIADOR (in-game ou re-aplicar).
-    private static readonly string[] CriadorUserKeys =
-    {
-        "UseVsync",
-        "ScreenPercentage", "MinimumScreenScale", "UpscaleScreenPercentage",
-        "DetailMode", "ParticleLODBias", "SkeletalMeshLODBias", "MaxDrawDistanceScale", "MaxAnisotropy",
-        "bAllowHighQualityMaterials", "bUseTranslucentArenaShaders",
-        "AmbientOcclusion", "DepthOfField", "Bloom", "LensFlares",
-        // DynamicShadows / DynamicLights / CompositeDynamicLights: sempre do template
-        // (INI antigo com False quebrava sombras mesmo com menu ON).
-        "MotionBlur", "MotionBlurPause", "MotionBlurSkinning",
-        "FogVolumes",
-        "bAllowD3D9MSAA", "MaxMultiSamples", "bAllowTemporalAA", "bAllowPostprocessMLAA", "MobileFXAAQuality",
-        "Distortion", "FilteredDistortion", "DropParticleDistortion", "AllowRadialBlur",
-        "AllowSubsurfaceScattering",
-        "AllowImageReflections", "AllowImageReflectionShadowing", "AllowApexCloth",
-    };
-
+    // Chaves de video do CRIADOR vêm sempre do template apos limpeza (REMOVER).
+    // Resolucao/borda: ReadDisplay.
     private static string? _cfg;
     private static bool? _cfgWritable;
 
@@ -400,7 +384,7 @@ internal static class Program
         Ui.MenuCard("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
         Ui.PanelBlank();
         Ui.PanelBottom();
-        Ui.FooterHint("Troca COMPLETO ↔ CRIADOR limpa o INI automaticamente");
+        Ui.FooterHint("COMPLETO/CRIADOR sempre limpam (REMOVER) + sync de todas as contas");
         Ui.Prompt("Escolha (1-7)");
     }
 
@@ -507,11 +491,10 @@ internal static class Program
 
         EnsureOriginalBackup();
 
-        // Troca COMPLETO ↔ CRIADOR: limpa INI como REMOVER antes de aplicar.
-        // Sem isso, o CRIADOR herdava texturas/potato do COMPLETO (CriadorUserKeys).
+        // Sempre limpa como REMOVER antes de aplicar.
+        // Troca de conta cria .save novo com VideoOptions vazio → menu Alta qualidade /
+        // 60 FPS / tela preta longa; limpar + regravar INI+save em todos os perfis.
         string? previous = DetectAppliedMode();
-        bool switching = previous is not null
-            && !previous.Equals(mode, StringComparison.OrdinalIgnoreCase);
 
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
@@ -519,20 +502,17 @@ internal static class Program
         {
             Ui.StepAnimated("Backup de seguranca", () => { Backup(); return true; });
             Ui.StepAnimated("Destravando o arquivo", () => { Unlock(_cfg!); return true; });
-            if (switching)
-            {
-                if (!Ui.StepAnimated($"Limpando modo {previous} (como REMOVER)", TryRestoreIni))
-                    return FailOrElevate(mode, interactive);
-            }
+            if (!Ui.StepAnimated("Limpando (como REMOVER) antes de aplicar", TryRestoreIni))
+                return FailOrElevate(mode, interactive);
         }
         else
         {
             Backup();
             Unlock(_cfg!);
-            if (switching && !TryRestoreIni()) return FailOrElevate(mode, interactive);
+            if (!TryRestoreIni()) return FailOrElevate(mode, interactive);
         }
 
-        // Ler display / preferencias DEPOIS do restore (INI limpo).
+        // Ler display DEPOIS do restore (INI limpo / stock).
         var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
         string template = mode == "COMPLETO" ? Templates.Completo : Templates.Criador;
         string content = ApplyDisplay(template, disp);
@@ -540,11 +520,7 @@ internal static class Program
             content = CompletoForce.Apply(content);
         else
             content = CriadorForce.Apply(content);
-        if (File.Exists(_cfg!) && mode == "CRIADOR")
-        {
-            var user = ReadSectionOverrides(_cfg!, CriadorUserKeys, textureGroups: true);
-            content = ApplySectionOverrides(content, user);
-        }
+        // Nao herdar CriadorUserKeys do INI stock pos-REMOVER — o template manda.
 
         var pacing = ReadSectionOverridesFromText(template, FramePacingKeys, textureGroups: false);
         content = ApplySectionOverrides(content, pacing);
@@ -554,7 +530,7 @@ internal static class Program
         if (interactive)
         {
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
-            if (!Ui.StepAnimated("Sincronizando menu de video", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
+            if (!Ui.StepAnimated("Sincronizando menu de video (todas as contas)", () => VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)))
             {
                 Ui.CompletionMessage(acc, "AVISO", new[]
                 {
@@ -573,7 +549,11 @@ internal static class Program
             if (mode is "CRIADOR" or "COMPLETO") UnlockCfg();
         }
 
-        Log(switching ? $"Trocou {previous} → {mode}." : $"Aplicado {mode}.");
+        string msg = previous is null ? $"Aplicado {mode} (limpo)."
+            : previous.Equals(mode, StringComparison.OrdinalIgnoreCase)
+                ? $"Reaplicado {mode} (limpo + sync contas)."
+                : $"Trocou {previous} → {mode} (limpo + sync contas).";
+        Log(msg);
         RefreshWritableCache();
         if (interactive) Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
         return 0;

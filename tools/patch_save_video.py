@@ -158,21 +158,11 @@ def _force_video_profile(obj: dict, *, completo: bool) -> None:
 
 
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
-    # Sempre reescreve se estiver esparso/quebrado (causa classica do menu voltar).
-    if _is_sparse_or_broken(obj, completo=completo):
-        _force_video_profile(obj, completo=completo)
-        return True
-
-    if completo:
-        if not _completo_options_ok(obj):
-            _force_video_profile(obj, completo=True)
-            return True
-        return False
-
-    if not _criador_options_ok(obj) or _looks_like_completo_options(obj):
-        _force_video_profile(obj, completo=False)
-        return True
-    return False
+    # Sempre regrava o perfil completo.
+    # Troca de conta Epic cria .save novo com VideoOptions=[] → cliente rejeita
+    # o bloco e cai em Alta qualidade / 60 FPS / raios+clima ON / boot lento.
+    _force_video_profile(obj, completo=completo)
+    return True
 
 
 def _patch_gameplay(obj: dict, *, completo: bool) -> bool:
