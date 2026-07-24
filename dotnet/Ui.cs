@@ -2,7 +2,7 @@ using System.Text;
 
 namespace GuttyRL;
 
-/// <summary>Camada visual ANSI true-color (paleta GUTTYTECH). Banner, paineis, badges, steps.</summary>
+/// <summary>Camada visual ANSI true-color — rework v22.3.43 (paleta GUTTYTECH).</summary>
 internal static partial class Ui
 {
     // ---- ANSI base ----
@@ -21,10 +21,14 @@ internal static partial class Ui
     public static readonly (int r, int g, int b) White = (240, 240, 244);
     public static readonly (int r, int g, int b) Gray = (158, 164, 174);
     public static readonly (int r, int g, int b) DimC = (104, 108, 116);
-    public static readonly (int r, int g, int b) Border = (58, 60, 66);
+    public static readonly (int r, int g, int b) Border = (48, 50, 56);
+    public static readonly (int r, int g, int b) BorderHi = (72, 74, 82);
     public static readonly (int r, int g, int b) Green = (66, 214, 124);
     public static readonly (int r, int g, int b) Amber = (255, 178, 54);
     public static readonly (int r, int g, int b) Cyan = (60, 206, 224);
+    public static readonly (int r, int g, int b) BgDeep = (10, 10, 10);   // #0A0A0A
+    public static readonly (int r, int g, int b) BgPanel = (18, 18, 18);  // #121212
+    public static readonly (int r, int g, int b) BgRow = (22, 22, 24);
 
     public static void Init(bool ansiOk)
     {
@@ -34,8 +38,8 @@ internal static partial class Ui
         {
             int maxW = SafeLargestWindowWidth();
             int maxH = SafeLargestWindowHeight();
-            int w = Math.Clamp(98, 72, Math.Max(72, maxW));
-            int h = Math.Clamp(36, 24, Math.Max(24, maxH));
+            int w = Math.Clamp(100, 72, Math.Max(72, maxW));
+            int h = Math.Clamp(38, 24, Math.Max(24, maxH));
             if (w <= maxW && h <= maxH)
             {
                 try { Console.SetBufferSize(Math.Max(w, Console.BufferWidth), Math.Max(500, Console.BufferHeight)); } catch { }
@@ -44,16 +48,17 @@ internal static partial class Ui
             }
         }
         catch { }
+        try { Console.Title = "GUTTYTECH  ·  RL INI OPTIMIZER  " + AppMeta.Version; } catch { }
     }
 
     private static int SafeLargestWindowWidth()
     {
-        try { return Math.Max(72, Console.LargestWindowWidth); } catch { return 98; }
+        try { return Math.Max(72, Console.LargestWindowWidth); } catch { return 100; }
     }
 
     private static int SafeLargestWindowHeight()
     {
-        try { return Math.Max(24, Console.LargestWindowHeight); } catch { return 36; }
+        try { return Math.Max(24, Console.LargestWindowHeight); } catch { return 38; }
     }
 
     public static string Fg((int r, int g, int b) c) => _ansi ? $"\x1b[38;2;{c.r};{c.g};{c.b}m" : "";
@@ -65,10 +70,9 @@ internal static partial class Ui
     public static void HideCursor() { if (_ansi) Console.Write(Hide); }
     public static void ShowCursor() { if (_ansi) Console.Write(ShowCur); }
 
-    private static int WinW { get { try { return Console.WindowWidth; } catch { return 98; } } }
+    private static int WinW { get { try { return Console.WindowWidth; } catch { return 100; } } }
     private static int WinH { get { try { return Console.WindowHeight; } catch { return 40; } } }
 
-    /// <summary>Gradiente horizontal: colore cada caractere de 'a' ate 'b'.</summary>
     public static string Gradient(string text, (int r, int g, int b) a, (int r, int g, int b) b2)
     {
         if (!_ansi) return text;
@@ -78,7 +82,6 @@ internal static partial class Ui
         return sb.Append(Reset).ToString();
     }
 
-    // ---- Banner (wordmark construido a partir de glifos por letra) ----
     private static readonly Dictionary<char, string[]> Glyphs = new()
     {
         ['G'] = new[] { " ██████╗ ", "██╔════╝ ", "██║  ███╗", "██║   ██║", "╚██████╔╝", " ╚═════╝ " },
@@ -108,23 +111,40 @@ internal static partial class Ui
 
     public static void Banner(bool animate)
     {
-        if (WinH < 30) { BannerCompact(); return; }   // notebooks baixos: nao empurra o menu
+        if (WinH < 30) { BannerCompact(); return; }
         var rows = BuildWordmark("GUTTYTECH");
         int width = rows[0].Length;
         int pad = Math.Max(2, (WinW - width) / 2);
         string margin = new(' ', pad);
+
+        // Faixa superior de marca
+        string rule = new string('─', Math.Min(width, WinW - 8));
+        int rpad = Math.Max(2, (WinW - rule.Length) / 2);
         Console.WriteLine();
+        Console.WriteLine(new string(' ', rpad) + Fg(RedLo) + rule + Reset);
+        Console.WriteLine();
+
         for (int i = 0; i < rows.Length; i++)
         {
-            var col = Lerp(RedHi, RedLo, i / 5.0);
+            var col = Lerp(RedHi, Red, i / 5.0);
             Console.WriteLine(margin + Fg(col) + rows[i] + (_ansi ? Reset : ""));
-            if (animate) Thread.Sleep(45);
+            if (animate) Thread.Sleep(38);
         }
-        // subtitulo letter-spaced + tag
-        string sub = "R O C K E T   L E A G U E   ·   I N I   O P T I M I Z E R";
-        int spad = Math.Max(2, (WinW - sub.Length - 18) / 2);
+
+        string sub = "ROCKET LEAGUE  ·  INI OPTIMIZER";
+        string badge = " " + AppMeta.Version + " ";
+        string tess = " TESSERACT ";
+        int lineW = sub.Length + badge.Length + tess.Length + 6;
+        int spad = Math.Max(2, (WinW - lineW) / 2);
         Console.WriteLine();
-        Console.WriteLine(new string(' ', spad) + C(sub, Gray) + "   " + Bg(Red) + Fg(White) + " " + AppMeta.Version + " " + Reset + " " + C("TESSERACT", RedHi));
+        Console.WriteLine(
+            new string(' ', spad)
+            + C(sub, Gray)
+            + "  "
+            + Bg(Red) + Bold + Fg(White) + badge + Reset
+            + " "
+            + Fg(RedHi) + tess + Reset);
+        Console.WriteLine(new string(' ', rpad) + Fg(RedLo) + rule + Reset);
         Console.WriteLine();
     }
 
@@ -134,8 +154,11 @@ internal static partial class Ui
         int pad = Math.Max(2, (WinW - word.Length) / 2);
         string m = new(' ', pad);
         Console.WriteLine();
-        Console.WriteLine(m + Bold + Gradient(word, RedHi, RedLo) + Reset);
-        Console.WriteLine(m + C("RL INI OPTIMIZER", Gray) + "  " + Bg(Red) + Fg(White) + " " + AppMeta.Version + " " + Reset + " " + C("TESSERACT", RedHi));
+        Console.WriteLine(m + Bold + Gradient(word, RedHi, Red) + Reset);
+        Console.WriteLine(
+            m + C("RL INI OPTIMIZER", Gray)
+            + "  " + Bg(Red) + Fg(White) + Bold + " " + AppMeta.Version + " " + Reset
+            + " " + C("TESSERACT", RedHi));
         Console.WriteLine();
     }
 
@@ -145,23 +168,31 @@ internal static partial class Ui
         HideCursor();
         Cls();
         Banner(animate: true);
-        // barra de carregamento
-        int total = 34;
-        int pad = Math.Max(2, (WinW - total - 24) / 2);
+
+        int total = 28;
+        string label = "BOOT SEQUENCE";
+        int pad = Math.Max(2, (WinW - total - label.Length - 12) / 2);
         string m = new(' ', pad);
+        string[] ticks = { "▣", "▢" };
+
         for (int i = 0; i <= total; i++)
         {
             int p = i * 100 / total;
-            string filled = new('▰', i);
-            string empty = new('▱', total - i);
-            Console.Write("\r" + m + C("INICIALIZANDO  ", DimC) + Fg(Red) + filled + Fg(Border) + empty + Reset + C($"  {p,3}%", Gray));
-            Thread.Sleep(11);
+            var fillCol = Lerp(RedLo, RedHi, (double)i / total);
+            var sb = new StringBuilder();
+            for (int k = 0; k < total; k++)
+            {
+                if (k < i) sb.Append(Fg(fillCol)).Append(ticks[0]);
+                else sb.Append(Fg(Border)).Append(ticks[1]);
+            }
+            Console.Write("\r" + m + C(label + "  ", DimC) + sb + Reset + C($"  {p,3}%", Gray));
+            Thread.Sleep(12);
         }
-        Thread.Sleep(120);
+        Console.WriteLine();
+        Thread.Sleep(90);
         ShowCursor();
     }
 
-    // ---- Medida de largura visivel (ignora ANSI) ----
     public static int VisLen(string s)
     {
         int n = 0; bool esc = false;
@@ -174,9 +205,8 @@ internal static partial class Ui
         return n;
     }
 
-    // ---- Painel arredondado com titulo ----
-    public static int Margin => Math.Max(2, (WinW - 74) / 2);
-    private const int Inner = 70; // largura interna do painel
+    public static int Margin => Math.Max(2, (WinW - 78) / 2);
+    private const int Inner = 74;
 
     public static void PanelTop(string title)
     {
@@ -185,7 +215,7 @@ internal static partial class Ui
         string left = "╭─";
         int rest = Inner - 1 - t.Length;
         if (rest < 0) rest = 0;
-        Console.WriteLine(m + Fg(Border) + left + Reset + B(t, Red) + Fg(Border) + new string('─', rest) + "╮" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + left + Reset + B(t, Red) + Fg(BorderHi) + new string('─', rest) + "╮" + Reset);
     }
 
     public static void PanelLine(string content)
@@ -193,7 +223,10 @@ internal static partial class Ui
         string m = new(' ', Margin);
         int padLen = Inner - VisLen(content);
         if (padLen < 0) padLen = 0;
-        Console.WriteLine(m + Fg(Border) + "│ " + Reset + content + new string(' ', padLen) + Fg(Border) + "│" + Reset);
+        Console.WriteLine(
+            m + Fg(BorderHi) + "│" + Reset
+            + Bg(BgPanel) + " " + content + new string(' ', padLen) + Reset
+            + Fg(BorderHi) + "│" + Reset);
     }
 
     public static void PanelBlank() => PanelLine("");
@@ -201,19 +234,34 @@ internal static partial class Ui
     public static void PanelBottom()
     {
         string m = new(' ', Margin);
-        Console.WriteLine(m + Fg(Border) + "╰" + new string('─', Inner + 1) + "╯" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + "╰" + new string('─', Inner + 1) + "╯" + Reset);
     }
 
     public static void Gap() => Console.WriteLine();
 
-    // ---- Badge de status: bolinha colorida + texto ----
-    public static string Dot((int r, int g, int b) c, string text) => C("•", c) + " " + C(text, White);
+    /// <summary>Chip/badge com fundo colorido.</summary>
+    public static string Chip(string text, (int r, int g, int b) bg, (int r, int g, int b)? fg = null)
+    {
+        var f = fg ?? White;
+        return Bg(bg) + Bold + Fg(f) + " " + text + " " + Reset;
+    }
 
-    // ---- Linha de label + valor dentro do painel ----
+    public static string Dot((int r, int g, int b) c, string text) => C("●", c) + " " + C(text, White);
+
     public static string Field(string label, string valueColored)
         => C(label.PadRight(10), DimC) + valueColored;
 
-    // ---- Step animado (sem borda; usa \r para reescrever) ----
+    /// <summary>Card de opcao do menu: badge numerado + titulo + descricao.</summary>
+    public static void MenuCard(string n, string title, string desc, (int r, int g, int b) accent, string? tag = null)
+    {
+        string badge = Bg(accent) + Bold + Fg(White) + " " + n + " " + Reset;
+        string tagPart = string.IsNullOrEmpty(tag)
+            ? ""
+            : "  " + Fg(accent) + "·" + Reset + " " + C(tag, accent);
+        PanelLine(badge + "  " + B(title, White) + tagPart);
+        PanelLine("     " + C(desc, DimC));
+    }
+
     public static bool Step(string label, Func<bool> work)
     {
         string m = new(' ', Margin);
@@ -225,12 +273,11 @@ internal static partial class Ui
         return ok;
     }
 
-    // ---- Prompt de escolha ----
     public static void Prompt(string text)
     {
         ShowCursor();
         string m = new(' ', Margin);
-        Console.Write("\n" + m + Fg(Red) + "▶ " + Reset + B(text, White) + " ");
+        Console.Write("\n" + m + Bg(Red) + Fg(White) + Bold + " ▶ " + Reset + " " + B(text, White) + " ");
     }
 
     public static void PressEnter()
@@ -248,5 +295,12 @@ internal static partial class Ui
         string m = new(' ', Margin);
         Console.WriteLine(m + Bg(accent) + Fg(White) + Bold + "  " + text + "  " + Reset);
         Gap();
+    }
+
+    public static void FooterHint(string text)
+    {
+        string m = new(' ', Margin);
+        Console.WriteLine();
+        Console.WriteLine(m + Fg(DimC) + "  " + text + Reset);
     }
 }

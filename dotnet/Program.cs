@@ -153,10 +153,12 @@ internal static class Program
             }, Ui.MAmber);
             Ui.Gap();
             Ui.PanelTop("OPCOES");
-            MenuOption("1", "PERMISSOES", "Destrava INI e libera gravacao na pasta", Ui.Amber);
-            MenuOption("2", "RECUPERAR BOOT", "INI padrao + save Epic (jogo nao abre)", Ui.Amber);
-            MenuOption("3", "TUDO", "Permissoes + recuperar boot de uma vez", Ui.Amber);
-            MenuOption("4", "VOLTAR", "Menu principal", Ui.DimC);
+            Ui.PanelBlank();
+            Ui.MenuCard("1", "PERMISSOES", "Destrava INI e libera gravacao na pasta", Ui.Amber);
+            Ui.MenuCard("2", "RECUPERAR BOOT", "INI padrao + save Epic (jogo nao abre)", Ui.Amber);
+            Ui.MenuCard("3", "TUDO", "Permissoes + recuperar boot de uma vez", Ui.Amber);
+            Ui.MenuCard("4", "VOLTAR", "Menu principal", Ui.DimC);
+            Ui.PanelBlank();
             Ui.PanelBottom();
             Ui.Prompt("Escolha (1-4)");
             switch (Console.ReadLine()?.Trim())
@@ -354,43 +356,44 @@ internal static class Program
         RefreshWritableCache();
 
         var (label, locked, cat) = ReadState();
-        var dot = cat == 2 ? Ui.Green : cat == 1 ? Ui.Amber : Ui.Gray;
+        var modeAccent = cat == 2 ? Ui.Green : cat == 1 ? Ui.Cyan : Ui.Gray;
         bool writable = IsCfgWritable();
         bool rlOpen = GetRl().Length > 0;
+        string applied = DetectAppliedMode() ?? "";
 
-        Ui.PanelTop("ALVO");
+        Ui.PanelTop("STATUS");
+        Ui.PanelBlank();
+        string chips =
+            Ui.Chip(string.IsNullOrEmpty(applied) ? "ORIGINAL" : applied,
+                string.IsNullOrEmpty(applied) ? Ui.BorderHi : (applied == "COMPLETO" ? Ui.Red : Ui.Cyan))
+            + "  "
+            + Ui.Chip(writable ? "GRAVAVEL" : "BLOQUEADO", writable ? (20, 80, 40) : Ui.Red)
+            + "  "
+            + Ui.Chip(rlOpen ? "RL ABERTO" : "RL FECHADO", rlOpen ? (90, 60, 10) : (24, 48, 36));
+        Ui.PanelLine("  " + chips);
+        Ui.PanelBlank();
         Ui.PanelLine(Ui.Field("Arquivo", Ui.C(FitPath(_cfg!, 58), Ui.Gray)));
-        Ui.PanelLine(Ui.Field("Estado", Ui.Dot(dot, label)));
+        Ui.PanelLine(Ui.Field("Estado", Ui.Dot(modeAccent, label)));
         string trava = locked ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Amber, "NAO");
         string adm = IsAdmin() ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Gray, "nao necessario");
         Ui.PanelLine(Ui.Field("Protegido", trava + "    " + Ui.C("Admin ", Ui.DimC) + adm));
-        string writeLabel = writable ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Red, "BLOQUEADO");
-        Ui.PanelLine(Ui.Field("Gravacao", writeLabel));
-        if (rlOpen)
-            Ui.PanelLine(Ui.Field("Jogo", Ui.Dot(Ui.Amber, "Rocket League ABERTO")));
         Ui.PanelBottom();
         Ui.Gap();
 
         Ui.PanelTop("MODOS");
-        MenuOption("1", "COMPLETO", "FPS MAXIMO - grafico de batata", Ui.Red);
-        MenuOption("2", "CRIADOR DE CONTEUDO", "Aplica todas as otimizacoes possiveis mantendo o visual bonito", Ui.Cyan);
-        MenuOption("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
-        MenuOption("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
-        MenuOption("5", "CORRIGIR ERROS", "Permissoes, boot travado, restauracao INI/save", Ui.Amber);
-        MenuOption("6", "RESTAURAR PRESETS", "Garagem: backup mais recente -> Epic automatico", Ui.Amber);
-        MenuOption("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
+        Ui.PanelBlank();
+        Ui.MenuCard("1", "COMPLETO", "FPS maximo · grafico de batata · menu High Performance", Ui.Red, "FPS");
+        Ui.MenuCard("2", "CRIADOR DE CONTEUDO", "Otimizacoes fortes mantendo o visual bonito", Ui.Cyan, "STREAM");
+        Ui.MenuCard("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
+        Ui.MenuCard("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
+        Ui.MenuCard("5", "CORRIGIR ERROS", "Permissoes, boot travado, restauracao INI/save", Ui.Amber);
+        Ui.MenuCard("6", "RESTAURAR PRESETS", "Garagem: backup mais recente -> Epic automatico", Ui.Amber);
+        Ui.MenuCard("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
+        Ui.PanelBlank();
         Ui.PanelBottom();
+        Ui.FooterHint("Troca COMPLETO ↔ CRIADOR limpa o INI automaticamente");
         Ui.Prompt("Escolha (1-7)");
     }
-
-    private static void MenuOption(string n, string title, string desc, (int r, int g, int b) c)
-    {
-        Ui.PanelLine(Ui.C("[" + n + "]", c) + " " + Ui.C("|", c) + " " + Ui.B(title, Ui.White));
-        Ui.PanelLine(Ui.C("     " + desc, Ui.DimC));
-    }
-
-    private static string Card(string n, string title, string desc, (int r, int g, int b) c)
-        => Ui.C("[" + n + "]", c) + " " + Ui.C("▌", c) + " " + Ui.B(title.PadRight(11), Ui.White) + "  " + Ui.C(desc, Ui.DimC);
 
     private static string FitPath(string p, int max)
         => p.Length <= max ? p : "..." + p[^(max - 3)..];
