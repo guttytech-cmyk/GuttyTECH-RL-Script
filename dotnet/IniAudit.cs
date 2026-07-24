@@ -17,6 +17,9 @@ internal static class IniAudit
         string forcedR = CriadorForce.Apply(Templates.Criador);
         fails += CheckFile("COMPLETO+Force", forcedC, CompletoPostForceRules);
         fails += CheckFile("CRIADOR+Force", forcedR, CriadorPostForceRules);
+        fails += CheckDuplicateKeys("CRIADOR", Templates.Criador, "SystemSettings", "MobileMinimizeFogShaders");
+        fails += CheckExclusiveDisplay("COMPLETO", Templates.Completo);
+        fails += CheckExclusiveDisplay("CRIADOR", Templates.Criador);
 
         return fails == 0 ? 0 : 1;
     }
@@ -28,7 +31,15 @@ internal static class IniAudit
         new("SystemSettings*", "MobileEnableMSAA", "^(?i)true$", "MSAA mobile ligado"),
         new("SystemSettings*", "AllowImageReflections", "^(?i)true$", "reflexos ligados"),
         new("SystemSettingsMobile", "DynamicDecals", "^(?i)true$", "decals dinamicos ligados no mobile"),
-        new("SystemSettings", "MobileFog", "^(?i)true$", "nevoa/clima ligado"),
+        new("SystemSettings*", "MobileFog", "^(?i)true$", "nevoa/clima ligado"),
+        new("SystemSettings*", "OnlyStreamInTextures", "^(?i)true$", "boot hang (OnlyStreamInTextures)"),
+        new("SystemSettings*", "WaitForGPU", "^(?i)true$", "boot hang (WaitForGPU)"),
+        new("SystemSettings*", "OneFrameThreadLag", "^(?i)false$", "frame pacing perigoso"),
+        new("SystemSettings*", "AllowPerFrameSleep", "^(?i)false$", "frame pacing perigoso"),
+        new("SystemSettings*", "AllowPerFrameYield", "^(?i)false$", "frame pacing perigoso"),
+        new("SystemSettings*", "UncappedFramerate", "^(?i)false$", "FPS capped no COMPLETO"),
+        new("SystemSettings*", "bSmoothFrameRate", "^(?i)true$", "smooth framerate ligado"),
+        new("SystemSettings", "ScreenPercentage", "^(?!100(\\.0+)?$).*$", "ScreenPercentage fora de 100 (borda preta)"),
     };
 
     private static readonly Rule[] CriadorRules =
@@ -41,12 +52,20 @@ internal static class IniAudit
         new("SystemSettings", "MotionBlur", "^(?i)true$", "motion blur ligado"),
         new("SystemSettings", "MobileFog", "^(?i)true$", "efeitos de clima ligados"),
         new("SystemSettings", "UncappedFramerate", "^(?i)false$", "FPS capped no template"),
+        new("SystemSettings*", "OnlyStreamInTextures", "^(?i)true$", "boot hang (OnlyStreamInTextures)"),
+        new("SystemSettings*", "WaitForGPU", "^(?i)true$", "boot hang (WaitForGPU)"),
     };
 
     private static readonly Rule[] CompletoPostForceRules =
     {
         new("SystemSettings*", "bAllowLightShafts", "^(?i)true$", "pos-force ainda com light shafts"),
         new("SystemSettings*", "MobileEnableMSAA", "^(?i)true$", "pos-force ainda com MSAA"),
+        new("SystemSettings*", "OnlyStreamInTextures", "^(?i)true$", "pos-force OnlyStreamInTextures"),
+        new("SystemSettings*", "WaitForGPU", "^(?i)true$", "pos-force WaitForGPU"),
+        new("SystemSettings*", "ParticleLODBias", "^(?!100$).*$", "pos-force ParticleLODBias != 100"),
+        new("SystemSettings*", "bUseTranslucentArenaShaders", "^(?i)true$", "pos-force shaders HQ"),
+        new("SystemSettings*", "MobileFog", "^(?i)true$", "pos-force MobileFog"),
+        new("SystemSettings", "ScreenPercentage", "^(?!100(\\.0+)?$).*$", "pos-force ScreenPercentage"),
     };
 
     private static readonly Rule[] CriadorPostForceRules =
@@ -84,6 +103,59 @@ internal static class IniAudit
             }
         }
         return fails;
+    }
+
+    private static int CheckDuplicateKeys(string name, string ini, string sectionName, string keyName)
+    {
+        string section = "";
+        int count = 0;
+        foreach (var raw in ini.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (raw.StartsWith('[') && raw.EndsWith(']'))
+            {
+                section = raw[1..^1];
+                continue;
+            }
+            if (!section.Equals(sectionName, StringComparison.OrdinalIgnoreCase)) continue;
+            int eq = raw.IndexOf('=');
+            if (eq <= 0) continue;
+            if (raw[..eq].Equals(keyName, StringComparison.OrdinalIgnoreCase))
+                count++;
+        }
+        if (count > 1)
+        {
+            Console.WriteLine($"[X] {name} [{sectionName}] {keyName} duplicado {count}x (last-wins)");
+            return 1;
+        }
+        return 0;
+    }
+
+    private static int CheckExclusiveDisplay(string name, string ini)
+    {
+        string section = "";
+        string? fs = null, bl = null;
+        foreach (var raw in ini.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (raw.StartsWith('[') && raw.EndsWith(']'))
+            {
+                section = raw[1..^1];
+                continue;
+            }
+            if (!section.Equals("SystemSettings", StringComparison.OrdinalIgnoreCase)) continue;
+            int eq = raw.IndexOf('=');
+            if (eq <= 0) continue;
+            string key = raw[..eq];
+            string val = raw[(eq + 1)..];
+            if (key.Equals("Fullscreen", StringComparison.OrdinalIgnoreCase)) fs = val;
+            if (key.Equals("Borderless", StringComparison.OrdinalIgnoreCase)) bl = val;
+        }
+        if (string.Equals(fs, "True", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(bl, "True", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"[X] {name} Fullscreen=True e Borderless=True ao mesmo tempo");
+            return 1;
+        }
+        return 0;
     }
 
     private static bool SectionMatch(string section, string pattern) =>

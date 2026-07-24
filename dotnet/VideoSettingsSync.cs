@@ -92,7 +92,7 @@ internal static class VideoSettingsSync
                 .Select(f => new FileInfo(f))
                 .Where(f => f.Length <= 1_200_000)
                 .OrderByDescending(f => f.LastWriteTimeUtc)
-                .Take(4);
+                .Take(6);
 
             foreach (var fi in files)
             {

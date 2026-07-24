@@ -31,6 +31,8 @@ internal static class CriadorForce
         ["MobileEnableMSAA"] = "False",
         ["MobileModShadows"] = "False",
         ["MobileFog"] = "False",
+        ["MobileHeightFog"] = "False",
+        ["MobileMinimizeFogShaders"] = "TRUE",
         ["MobileSpecular"] = "False",
         ["MobileLightShaftScale"] = "0",
         ["MobileLightShaftFirstPass"] = "0",

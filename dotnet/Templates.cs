@@ -3,7 +3,7 @@ namespace GuttyRL;
 // AUTO-GERADO a partir de templates/*.txt por gen_templates.ps1. Nao editar a mao.
 internal static class Templates
 {
-    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v23.0.2
+    public const string Completo = @";GUTTYTECH-RL-OPTIMIZER=COMPLETO;v23.0.3
 [SystemSettings]
 GuttyTechMode=COMPLETO
 UseDirectSound=True
@@ -720,7 +720,7 @@ MotionBlur=False
 
 ";
 
-    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v23.0.2
+    public const string Criador = @";GUTTYTECH-RL-OPTIMIZER=CRIADOR;v23.0.3
 [SystemSettings]
 GuttyTechMode=CRIADOR
 UseDirectSound=True
@@ -886,7 +886,6 @@ MobileClearDepthBetweenDPG=False
 MobileSceneDepthResolveForShadows=TRUE
 MobileLandscapeLodBias=0
 MobileUseShaderGroupForStartupObjects=FALSE
-MobileMinimizeFogShaders=FALSE
 MobileFXAAQuality=0
 ApexLODResourceBudget=1000000000000000000000.0
 ApexDestructionMaxChunkIslandCount=0
