@@ -442,7 +442,7 @@ internal static class Program
         Ui.MenuCard("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
         Ui.MenuCard("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
         Ui.MenuCard("5", "CORRIGIR ERROS", "Reparar perfil, boot, permissoes, diagnostico", Ui.Amber);
-        Ui.MenuCard("6", "RESTAURAR PRESETS", "Garagem: backup mais recente -> Epic automatico", Ui.Amber);
+        Ui.MenuCard("6", "RESTAURAR PRESETS", "Garagem: saves grandes (backup) -> Epic/Steam", Ui.Amber);
         Ui.MenuCard("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
         Ui.PanelBlank();
         Ui.PanelBottom();
@@ -552,6 +552,8 @@ internal static class Program
         }
 
         EnsureOriginalBackup();
+        // Presets/garagem (saves grandes) — antes de qualquer patch de video.
+        try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
 
         // Sempre limpa como REMOVER antes de aplicar.
         // Troca de conta cria .save novo com VideoOptions vazio → menu Alta qualidade /
@@ -812,6 +814,8 @@ internal static class Program
             return 1;
         }
 
+        var (bakFiles, bakGarage, bakBytes) = SaveRecovery.CountBackups();
+
         if (interactive)
         {
             Ui.Cls();
@@ -819,20 +823,49 @@ internal static class Program
             Ui.TitleBar("RESTAURAR PRESETS", Ui.MAmber);
             Ui.StepsPanel("GARAGEM / PRESETS DO CARRO", new[]
             {
-                "Pega o backup mais recente em GuttyTECH\\Backups",
-                "Copia automatico para SaveDataEpic da Epic",
-                "Nao precisa abrir pasta manualmente",
+                "Prioriza saves GRANDES (garagem), nao so video",
+                "Procura em Backups + Presets + Quarentena",
+                "Limpa cache Epic (RLSettingsData) apos copiar",
+                "Fecha o RL antes — cloud pode sobrescrever se aberto",
             }, Ui.MAmber);
+            Ui.Gap();
+            Ui.PanelTop("BACKUPS DISPONIVEIS");
+            Ui.PanelLine(Ui.C($"Ficheiros: {bakFiles}  |  Garagem(>=1.5MB): {bakGarage}  |  {bakBytes / 1024} KB", Ui.Gray));
+            Ui.PanelBottom();
+            if (bakFiles == 0)
+            {
+                Ui.CompletionMessage(Ui.MRed, "SEM BACKUP", new[]
+                {
+                    "Nao ha saves em GuttyTECH\\RL-Optimizer-v22\\Backups",
+                    "Sem backup local nao da para recuperar presets.",
+                    "Epic Launcher -> Biblioteca -> RL -> Verificar ficheiros.",
+                });
+                return 1;
+            }
+            Ui.Gap();
+            Ui.Prompt("Restaurar agora? (S/N)");
+            if (!IsYes(Console.ReadLine())) return 1;
+        }
+        else if (bakFiles == 0)
+        {
+            return 1;
         }
 
+        // Fecha RL — senao o jogo/cloud regrava por cima
+        foreach (var p in GetRl()) { try { p.Kill(); } catch { } }
+        Thread.Sleep(1500);
+
+        string summary = "";
         bool ok;
         if (interactive)
         {
-            ok = Ui.StepAnimated("Copiando backup -> Epic SaveDataEpic", () => SaveRecovery.RestoreLatestBackup(cfg));
+            ok = Ui.StepAnimated("Snapshot + restaurar garagem (Epic/Steam)", () =>
+                SaveRecovery.RestorePresets(cfg, out summary));
+            Ui.StepAnimated("A confirmar pasta", () => Directory.Exists(saveDir));
         }
         else
         {
-            ok = SaveRecovery.RestoreLatestBackup(cfg);
+            ok = SaveRecovery.RestorePresets(cfg, out summary);
         }
 
         if (interactive)
@@ -840,17 +873,20 @@ internal static class Program
             Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MRed, ok ? "PRESETS RESTAURADOS" : "FALHOU", ok
                 ? new[]
                 {
-                    "Save copiado para:",
-                    FitPath(saveDir, 52),
-                    "Abra o Rocket League e confira a garagem.",
+                    summary,
+                    "Destino: " + FitPath(saveDir, 48),
+                    "1) Abre o RL OFFLINE (ou pausa sync Epic 1x)",
+                    "2) Confirma a garagem na conta certa",
+                    "3) Depois podes voltar online",
                 }
                 : new[]
                 {
-                    "Nenhum backup em GuttyTECH\\Backups\\SaveDataEpic",
-                    "Epic Launcher -> Verificar arquivos do RL",
+                    "Nenhum save de garagem recuperavel.",
+                    "Pedidos: envia pasta Backups\\SaveDataEpic zipada.",
+                    "Epic -> Verificar ficheiros do Rocket League.",
                 });
         }
-        Log(ok ? $"RESTAURAR-PRESETS: save copiado para {saveDir}" : "RESTAURAR-PRESETS: sem backup.");
+        Log(ok ? $"RESTAURAR-PRESETS OK: {summary}" : "RESTAURAR-PRESETS: falhou.");
         return ok ? 0 : 1;
     }
 

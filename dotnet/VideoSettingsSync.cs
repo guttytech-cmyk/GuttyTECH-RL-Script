@@ -316,20 +316,33 @@ internal static class VideoSettingsSync
             Directory.CreateDirectory(dest);
             string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-            var files = Directory.EnumerateFiles(saveDir, "*.save")
+            // Leves: video sync (rapido).
+            var light = Directory.EnumerateFiles(saveDir, "*.save")
                 .Select(f => new FileInfo(f))
                 .Where(f => f.Length <= 1_200_000)
                 .OrderByDescending(f => f.LastWriteTimeUtc)
                 .Take(6);
 
-            foreach (var fi in files)
+            // Pesados: presets/garagem — so copia, sem decrypt.
+            var heavy = Directory.EnumerateFiles(saveDir, "*.save")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.Length >= SaveRecovery.GarageMinBytes && f.Length <= SaveRecovery.GarageMaxBytes)
+                .OrderByDescending(f => f.Length)
+                .ThenByDescending(f => f.LastWriteTimeUtc)
+                .Take(6);
+
+            int n = 0;
+            foreach (var fi in light.Concat(heavy).GroupBy(f => f.FullName).Select(g => g.First()))
             {
                 string backup = Path.Combine(dest, $"{ts}_{fi.Name}");
                 if (!File.Exists(backup))
+                {
                     fi.CopyTo(backup, false);
+                    n++;
+                }
             }
 
-            AppMeta.Log($"Backup save ({ts}) dos recentes leves.");
+            AppMeta.Log($"Backup save ({ts}): {n} ficheiro(s) leves+garagem.");
             return true;
         }
         catch (Exception ex)

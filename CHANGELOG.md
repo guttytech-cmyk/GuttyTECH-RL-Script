@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v24.0.0] — 2026-07-25
+### Corrigido / Melhorado — PRESETS / GARAGEM
+- **Causa:** backups so guardavam saves leves (&lt;1.2MB = video). Presets do carro ficam em saves **grandes** (~2MB+) e nao eram copiados — [6] RESTAURAR PRESETS nao tinha o que restaurar.
+- Agora o backup inclui **saves de garagem** (1.5–12MB) em todo Apply/sync + pasta `Backups\\Presets`.
+- **RESTAURAR PRESETS** prioriza o save **maior** (garagem) por conta, procura tambem Quarentena, limpa `RLSettingsData`, e pede abrir o RL offline 1x (cloud Epic).
+- Snapshot do live grande antes de restaurar (nao perde a unica copia).
+
 ## [v23.0.8] — 2026-07-25
 ### Corrigido
 - Watcher so arranca no **menu interativo** (Apply/Reparar). No CLI evitava-se hang do `-Wait` UAC/PowerShell no processo-filho; auto-heal no proximo arranque cobre o CLI.
