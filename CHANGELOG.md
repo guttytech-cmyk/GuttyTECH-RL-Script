@@ -5,7 +5,7 @@ Formato baseado em *Keep a Changelog*; datas em UTC.
 
 ## [v23.0.6] — 2026-07-25
 ### Corrigido (pos-monitor CRIADOR+COMPLETO)
-- Watcher **desprende** do processo pai (`cmd start /B`) — Apply/CORRIGIR-PERFIL ja nao ficam presos no `-Wait`.
+- Watcher **desprende** do job do pai (`CreateProcess` + `BREAKAWAY_FROM_JOB`) — Apply/CORRIGIR-PERFIL ja nao ficam presos no `-Wait`.
 - Save: flags omitidas pelo jogo (ex. `bShowLensFlares`) deixam de marcar falso BAD; so falha se estiverem `True` indevidamente.
 - Steam `.save` corrompido/stub: ignorado sem falhar o heal Epic.
 
