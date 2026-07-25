@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace GuttyRL;
@@ -8,45 +7,6 @@ namespace GuttyRL;
 /// Nao apaga save nem RLSettingsData.</summary>
 internal static class VideoSettingsSync
 {
-    private const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
-    private const uint CREATE_NO_WINDOW = 0x08000000;
-    private const uint DETACHED_PROCESS = 0x00000008;
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct STARTUPINFO
-    {
-        public int cb;
-        public string? lpReserved;
-        public string? lpDesktop;
-        public string? lpTitle;
-        public int dwX, dwY, dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags;
-        public short wShowWindow, cbReserved2;
-        public IntPtr lpReserved2, hStdInput, hStdOutput, hStdError;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct PROCESS_INFORMATION
-    {
-        public IntPtr hProcess, hThread;
-        public int dwProcessId, dwThreadId;
-    }
-
-    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-    private static extern bool CreateProcessW(
-        string? lpApplicationName,
-        StringBuilder lpCommandLine,
-        IntPtr lpProcessAttributes,
-        IntPtr lpThreadAttributes,
-        bool bInheritHandles,
-        uint dwCreationFlags,
-        IntPtr lpEnvironment,
-        string? lpCurrentDirectory,
-        ref STARTUPINFO lpStartupInfo,
-        out PROCESS_INFORMATION lpProcessInformation);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool CloseHandle(IntPtr hObject);
-
     /// <summary>Repara VideoOptions + reclampa INI (arranque / pos-jogo).</summary>
     public static bool HealIfNeeded(string iniPath, string mode)
     {
@@ -79,34 +39,25 @@ internal static class VideoSettingsSync
 
             StopExistingWatchers();
 
-            // BREAKAWAY_FROM_JOB: o pai (Apply/CORRIGIR-PERFIL) pode sair sem
-            // o PowerShell/UAC -Wait ficar preso no WATCH.
-            string cmdLine = "\"" + exe + "\" WATCH " + mode;
-            var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
-            var sb = new StringBuilder(cmdLine);
-            uint flags = CREATE_BREAKAWAY_FROM_JOB | CREATE_NO_WINDOW | DETACHED_PROCESS;
-            if (!CreateProcessW(null, sb, IntPtr.Zero, IntPtr.Zero, false, flags, IntPtr.Zero, null, ref si, out var pi))
-            {
-                // Fallback se o processo nao estiver num job
-                flags = CREATE_NO_WINDOW | DETACHED_PROCESS;
-                sb = new StringBuilder(cmdLine);
-                if (!CreateProcessW(null, sb, IntPtr.Zero, IntPtr.Zero, false, flags, IntPtr.Zero, null, ref si, out pi))
-                {
-                    AppMeta.Log("Watcher CreateProcess falhou: " + Marshal.GetLastWin32Error());
-                    return;
-                }
-            }
+            // Pasta de extract SEPARADA — o single-file .NET partilha mutex de extracao
+            // com o pai; sem isto o Apply/CORRIGIR-PERFIL nao termina enquanto o WATCH vive.
+            string extractDir = Path.Combine(AppMeta.GuttyDir, "watch-extract");
+            try { Directory.CreateDirectory(extractDir); } catch { }
 
-            try
+            var psi = new ProcessStartInfo
             {
-                WriteWatcherLock(pi.dwProcessId, mode);
-                AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ", pid=" + pi.dwProcessId + ").");
-            }
-            finally
-            {
-                if (pi.hThread != IntPtr.Zero) CloseHandle(pi.hThread);
-                if (pi.hProcess != IntPtr.Zero) CloseHandle(pi.hProcess);
-            }
+                FileName = exe,
+                Arguments = "WATCH " + mode,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            };
+            psi.Environment["DOTNET_BUNDLE_EXTRACT_BASE_DIR"] = extractDir;
+
+            var child = Process.Start(psi);
+            if (child is not null)
+                WriteWatcherLock(child.Id, mode);
+            AppMeta.Log("Watcher pos-jogo arrancado (" + mode + ", pid=" + (child?.Id.ToString() ?? "?") + ").");
         }
         catch (Exception ex)
         {

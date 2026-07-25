@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.7] — 2026-07-25
+### Corrigido
+- Watcher usa `DOTNET_BUNDLE_EXTRACT_BASE_DIR` proprio — o pai (Apply/REPARAR) ja nao fica preso no exit por causa do mutex do single-file.
+
 ## [v23.0.6] — 2026-07-25
 ### Corrigido (pos-monitor CRIADOR+COMPLETO)
 - Watcher **desprende** do job do pai (`CreateProcess` + `BREAKAWAY_FROM_JOB`) — Apply/CORRIGIR-PERFIL ja nao ficam presos no `-Wait`.
