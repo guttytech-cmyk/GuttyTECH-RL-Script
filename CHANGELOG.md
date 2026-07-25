@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v23.0.8] — 2026-07-25
+### Corrigido
+- Watcher so arranca no **menu interativo** (Apply/Reparar). No CLI evitava-se hang do `-Wait` UAC/PowerShell no processo-filho; auto-heal no proximo arranque cobre o CLI.
+
 ## [v23.0.7] — 2026-07-25
 ### Corrigido
 - Watcher usa `DOTNET_BUNDLE_EXTRACT_BASE_DIR` proprio — o pai (Apply/REPARAR) ja nao fica preso no exit por causa do mutex do single-file.

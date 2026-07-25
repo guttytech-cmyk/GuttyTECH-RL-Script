@@ -623,10 +623,11 @@ internal static class Program
                 : $"Trocou {previous} → {mode} (limpo + sync contas).";
         Log(msg);
         RefreshWritableCache();
-        // Watcher: quando o utilizador abrir/fechar o RL, repara o que o boot apagar.
-        VideoSettingsSync.StartExitWatcher(mode);
+        // Watcher so no menu interativo — no CLI o -Wait do PowerShell/UAC
+        // agarrava o processo-filho e parecia travado (auto-heal no proximo arranque cobre).
         if (interactive)
         {
+            VideoSettingsSync.StartExitWatcher(mode);
             Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
             Console.WriteLine();
             string m = new string(' ', Ui.Margin);

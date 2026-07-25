@@ -229,7 +229,8 @@ internal static class ErrorRepair
             purgeOk = SaveRecovery.PurgeRlSettingsData();
         }
 
-        VideoSettingsSync.StartExitWatcher(mode!);
+        if (interactive)
+            VideoSettingsSync.StartExitWatcher(mode!);
         bool ok = unlockOk && reclampOk && syncOk && purgeOk;
         AppMeta.Log($"REPARAR PERFIL {mode}: ok={ok} reclamp={reclampOk} sync={syncOk} purge={purgeOk}");
 
