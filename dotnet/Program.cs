@@ -397,12 +397,13 @@ internal static class Program
         if (mode is "CORRIGIR-PERFIL" or "REPARAR" or "REPARAR-PERFIL") return CorrigirPerfil(interactive);
         if (mode is "DIAGNOSTICO" or "DIAG") return CorrigirDiagnostico(interactive);
         if (mode is "RESTAURAR-PRESETS" or "RESTAURAR-SAVES") return RestoreLatestSaves(interactive);
+        if (mode is "CORRIGIR-SAVE" or "LOAD-FAILURE" or "HEAL-SAVE") return CorrigirSaveLoadFailure(interactive);
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
         if (mode is "CORRIGIR" or "HEAL") return CorrigirPermissoes(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
         Ui.PanelTop("SINTAXE");
         Ui.PanelLine(Ui.C("GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER | CORRIGIR]", Ui.Gray));
-        Ui.PanelLine(Ui.C("[CORRIGIR-PERFIL | CORRIGIR-BOOT | DIAG | RESTAURAR-PRESETS]", Ui.DimC));
+        Ui.PanelLine(Ui.C("[CORRIGIR-PERFIL | CORRIGIR-BOOT | DIAG | RESTAURAR-PRESETS | CORRIGIR-SAVE]", Ui.DimC));
         Ui.PanelBottom();
         return 2;
     }
@@ -1086,6 +1087,65 @@ internal static class Program
         }
         Log(ok ? $"RESTAURAR-PRESETS OK: {summary}" : "RESTAURAR-PRESETS: falhou.");
         return ok ? 0 : 1;
+    }
+
+    private static int CorrigirSaveLoadFailure(bool interactive)
+    {
+        if (!CheckGame(interactive)) return 1;
+        string? cfg = _cfg ?? ResolveConfigPath();
+        if (cfg is null)
+        {
+            if (interactive)
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao encontrada." });
+            return 1;
+        }
+
+        if (interactive)
+        {
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MAmber);
+            Ui.TitleBar("CORRIGIR SAVE — LOAD FAILURE", Ui.MAmber);
+            Ui.StepsPanel("STEAM / SAVE LOCAL", new[]
+            {
+                "Fecha o Rocket League",
+                "Quarentena saves Steam suspeitos + remote Steam Cloud (252950)",
+                "Limpa cache RLSettingsData",
+                "Repoe garagem do cofre Best se existir",
+                "Escreve guia no Desktop — abre OFFLINE 1x",
+            }, Ui.MAmber);
+            Ui.Gap();
+            foreach (string line in SaveRecovery.AssessSaveHealth(cfg))
+                Ui.PanelLine(Ui.C(line, line.Contains("!!") ? Ui.Amber : Ui.Gray));
+            Ui.Gap();
+            Ui.Prompt("Corrigir agora? (S/N)");
+            if (!IsYes(Console.ReadLine())) return 1;
+        }
+
+        foreach (var p in GetRl()) { try { p.Kill(); } catch { } }
+        Thread.Sleep(1200);
+        VideoSettingsSync.StopExistingWatchers();
+
+        string summary = "";
+        bool ok;
+        if (interactive)
+            ok = Ui.StepAnimated("Heal LOAD FAILURE (Steam+local)", () => SaveRecovery.HealLoadFailure(cfg, out summary));
+        else
+            ok = SaveRecovery.HealLoadFailure(cfg, out summary);
+
+        if (interactive)
+        {
+            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MAmber, ok ? "SAVE PREPARADO" : "POUCO A FAZER", new[]
+            {
+                summary,
+                "1) Steam Cloud OFF no Rocket League (temporario)",
+                "2) Abre OFFLINE — se LOAD FAILURE: DISABLE AUTOSAVE",
+                "3) Fecha > RESTAURAR PRESETS no Gutty > abre OFFLINE outra vez",
+                "4) Guia: Desktop\\GuttyTECH-RL-LOAD-FAILURE.txt",
+            });
+        }
+
+        Log(ok ? $"CORRIGIR-SAVE OK: {summary}" : "CORRIGIR-SAVE: sem mudancas relevantes");
+        return 0;
     }
 
     private static Dictionary<string, string> DefaultDisplay() => new(StringComparer.OrdinalIgnoreCase)

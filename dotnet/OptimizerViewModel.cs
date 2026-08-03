@@ -64,6 +64,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         DiagnosticoCommand = CreateOperationCommand(OptimizerAction.Diagnostico);
         CorrigirTudoCommand = CreateOperationCommand(OptimizerAction.CorrigirTudo);
         RestaurarPresetsCommand = CreateOperationCommand(OptimizerAction.RestaurarPresets);
+        CorrigirSaveCommand = CreateOperationCommand(OptimizerAction.CorrigirSave);
         ConfirmOperationCommand = new AsyncRelayCommand(
             ConfirmOperationAsync,
             ShowUnexpectedError,
@@ -102,6 +103,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     public ICommand DiagnosticoCommand { get; }
     public ICommand CorrigirTudoCommand { get; }
     public ICommand RestaurarPresetsCommand { get; }
+    public ICommand CorrigirSaveCommand { get; }
     public ICommand RefreshStatusCommand { get; }
 
     public string LaunchCommandText { get; }
@@ -552,6 +554,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             OptimizerAction.Diagnostico => "GERANDO PACOTE DE LOGS",
             OptimizerAction.CorrigirTudo => "CORRIGINDO TUDO",
             OptimizerAction.RestaurarPresets => "RESTAURANDO PRESETS",
+            OptimizerAction.CorrigirSave => "CORRIGINDO SAVE / LOAD FAILURE",
             _ => "EXECUTANDO OPERAÇÃO",
         };
 
@@ -577,8 +580,12 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                 "DESBLOQUEAR AGORA"),
             OptimizerAction.RestaurarPresets => (
                 "RESTAURAR PRESETS?",
-                "Vamos repor a maior garagem guardada (cofre Best) nas contas Epic/Steam. Depois abra o jogo OFFLINE na 1ª sessão para a cloud não apagar de novo.",
+                "Vamos repor a maior garagem guardada (cofre Best) nas contas Epic/Steam e quarentenar o remote Steam Cloud. Depois abra o jogo OFFLINE na 1ª sessão.",
                 "RESTAURAR BACKUP"),
+            OptimizerAction.CorrigirSave => (
+                "LOAD FAILURE — CORRIGIR SAVE?",
+                "Para o aviso Save Data failed to load (Steam): quarentena saves locais suspeitos + remote Steam Cloud (252950), limpa cache e tenta repor o Best. Guia no Desktop. Depois abre OFFLINE.",
+                "CORRIGIR SAVE"),
             _ => (string.Empty, string.Empty, string.Empty),
         };
 

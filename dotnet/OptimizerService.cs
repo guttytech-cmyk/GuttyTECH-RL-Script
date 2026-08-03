@@ -178,7 +178,10 @@ internal sealed class OptimizerService
                 "Caminho de boot aplicado (não reaplica o otimizador). Confirme que o jogo abre e só então volte a aplicar o modo."),
             OptimizerAction.RestaurarPresets => Success(
                 "PRESETS RESTAURADOS",
-                "Garagem reposta a partir do cofre Best/backups. Abra o Rocket League OFFLINE na primeira sessão para a cloud não sobrescrever."),
+                "Garagem reposta + Steam Cloud remote em quarentena. Abra OFFLINE na 1ª sessão; Steam: cloud OFF temporário."),
+            OptimizerAction.CorrigirSave => Success(
+                "LOAD FAILURE TRATADO",
+                "Saves Steam suspeitos + remote Cloud em quarentena. Guia no Desktop. Abra OFFLINE; se o aviso aparecer use DISABLE AUTOSAVE, depois RESTAURAR PRESETS."),
             _ => Success("OPERAÇÃO CONCLUÍDA", "O estado do otimizador foi atualizado."),
         };
 
@@ -244,6 +247,7 @@ internal sealed class OptimizerService
             OptimizerAction.RecuperarBoot => "CORRIGIR-BOOT",
             OptimizerAction.CorrigirTudo => "CORRIGIR-TUDO",
             OptimizerAction.RestaurarPresets => "RESTAURAR-PRESETS",
+            OptimizerAction.CorrigirSave => "CORRIGIR-SAVE",
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
         };
 
@@ -253,6 +257,7 @@ internal sealed class OptimizerService
             OptimizerAction.Completo or OptimizerAction.Criador => "Criando backup e limpando perfil anterior",
             OptimizerAction.Remover => "Parando watcher e preservando presets",
             OptimizerAction.RestaurarPresets => "Localizando o melhor backup de garagem",
+            OptimizerAction.CorrigirSave => "Analisando saves Steam e remote Cloud",
             _ => "Analisando INI, saves e permissões",
         };
 
@@ -267,6 +272,7 @@ internal sealed class OptimizerService
             OptimizerAction.RecuperarBoot => "Desbloqueando boot (stock + quarentena)",
             OptimizerAction.CorrigirTudo => "Executando desbloqueio nuclear do boot",
             OptimizerAction.RestaurarPresets => "Restaurando garagem Epic e Steam",
+            OptimizerAction.CorrigirSave => "Quarentena Steam Cloud + saves partidos",
             _ => "Executando operação",
         };
 

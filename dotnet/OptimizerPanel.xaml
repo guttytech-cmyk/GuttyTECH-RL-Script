@@ -803,7 +803,7 @@
                                Text="RECUPERAÇÃO" />
                     <TextBlock Margin="0,2,0,0"
                                Style="{DynamicResource BodyTextStyle}"
-                               Text="Ações isoladas ou cadeia completa para recuperar o perfil." />
+                               Text="Permissões, perfil, boot, LOAD FAILURE Steam e presets." />
 
                     <UniformGrid Margin="0,26,0,0" Columns="2">
                         <Button MinHeight="132"
@@ -918,7 +918,7 @@
                                 Margin="8"
                                 Focusable="False"
                                 Style="{DynamicResource CardButtonStyle}"
-                                Command="{Binding DiagnosticoCommand}">
+                                Command="{Binding RestaurarPresetsCommand}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="44" />
@@ -927,29 +927,46 @@
                                 <Border Width="36"
                                         Height="36"
                                         VerticalAlignment="Top"
-                                        Background="{DynamicResource CyanMutedBrush}"
-                                        BorderBrush="{DynamicResource CyanBrush}"
+                                        Background="{DynamicResource SuccessMutedBrush}"
+                                        BorderBrush="{DynamicResource SuccessBrush}"
                                         BorderThickness="1"
                                         CornerRadius="8">
                                     <TextBlock HorizontalAlignment="Center"
                                                VerticalAlignment="Center"
                                                FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="14"
-                                               Foreground="{DynamicResource CyanBrush}"
+                                               Foreground="{DynamicResource SuccessBrush}"
                                                Text="04" />
                                 </Border>
                                 <StackPanel Grid.Column="1">
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="22"
-                                               Text="LOGS PRO GUTTY" />
+                                               Text="RESTAURAR PRESETS" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Gera o pacote zip com logs e diagnóstico pra mandar pro Gutty."
+                                               Text="Repõe a melhor garagem local nas contas Epic e Steam."
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
                         </Button>
                     </UniformGrid>
+
+                    <Button Margin="0,8,0,0"
+                            MinHeight="72"
+                            Padding="24,16"
+                            Focusable="False"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Command="{Binding CorrigirSaveCommand}">
+                        <StackPanel HorizontalAlignment="Left">
+                            <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                       FontSize="22"
+                                       Text="CORRIGIR SAVE — LOAD FAILURE" />
+                            <TextBlock Margin="0,2,0,0"
+                                       Style="{DynamicResource BodyTextStyle}"
+                                       Text="Steam: Save Data failed to load — quarentena saves + Cloud remote, guia no Desktop"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
 
                     <Button Margin="0,8,0,0"
                             MinHeight="72"
@@ -969,32 +986,6 @@
                                        TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>
-
-                    <Border Margin="0,18,0,0"
-                            MinHeight="88"
-                            Padding="22"
-                            Style="{DynamicResource SurfaceBorderStyle}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
-                                           Text="GARAGEM E PRESETS" />
-                                <TextBlock Margin="0,4,20,0"
-                                           Style="{DynamicResource BodyTextStyle}"
-                                           Text="Recupera o melhor save local para os perfis Epic e Steam."
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                            <Button Grid.Column="1"
-                                    VerticalAlignment="Center"
-                                    Focusable="False"
-                                    Style="{DynamicResource SecondaryButtonStyle}"
-                                    Command="{Binding RestaurarPresetsCommand}"
-                                    Content="RESTAURAR PRESETS" />
-                        </Grid>
-                    </Border>
                 </StackPanel>
             </ScrollViewer>
 

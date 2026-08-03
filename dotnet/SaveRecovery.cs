@@ -65,16 +65,18 @@ internal static class SaveRecovery
         int reinforced = ReinforceLiveAccounts(iniPath);
         if (reinforced > 0) parts.Add($"reforco contas={reinforced}");
 
-        // 4) Limpa cache Epic (cloud costuma regravar o menu)
+        // 4) Limpa cache Epic (cloud costuma regravar o menu) + Steam Cloud remote
         bool purge = PurgeRlSettingsData();
         if (purge) parts.Add("cache limpo");
+        int cloud = QuarantineSteamCloudRemote();
+        if (cloud > 0) parts.Add($"Steam Cloud remote={cloud}");
 
         // 5) 2o passe — cloud/Defender por vezes reescreve nos primeiros ms
         Thread.Sleep(700);
         int secondPass = ReinforceLiveAccounts(iniPath) + RestoreBestVaultInto(iniPath);
         if (secondPass > 0) parts.Add($"2o passe={secondPass}");
 
-        bool ok = epic || steam || reinforced > 0 || secondPass > 0;
+        bool ok = epic || steam || reinforced > 0 || secondPass > 0 || cloud > 0;
         summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups de garagem";
         AppMeta.Log("RESTAURAR-PRESETS: " + summary + (ok ? " OK" : " FALHOU"));
         return ok;
@@ -586,10 +588,301 @@ internal static class SaveRecovery
             steamQ = QuarantineSaves(steam);
 
         bool purge = PurgeRlSettingsData();
-        AppMeta.Log($"UNBREAK-SAVES: epicQ={epicQ} steamQ={steamQ} purge={purge}");
+        int cloudQ = QuarantineSteamCloudRemote();
+        AppMeta.Log($"UNBREAK-SAVES: epicQ={epicQ} steamQ={steamQ} purge={purge} steamCloud={cloudQ}");
         return epicQ && steamQ && purge;
     }
 
     /// <summary>Alias legado — mesma logica nuclear que UnbreakSaves (sem reforco Best).</summary>
     public static bool FullRecovery(string iniPath) => UnbreakSaves(iniPath);
+
+    /// <summary>
+    /// LOAD FAILURE (Save Data failed to load) — tipico Steam Cloud / save local partido.
+    /// Quarentena saves live + remote Steam Cloud, limpa cache, repoe Best se houver.
+    /// </summary>
+    public static bool HealLoadFailure(string iniPath, out string summary)
+    {
+        var parts = new List<string>();
+        try { BackupGaragePresets(iniPath); } catch { }
+
+        string? steam = SaveDirFromIni(iniPath, epic: false);
+        string? epic = SaveDirFromIni(iniPath, epic: true);
+
+        int badSteam = QuarantineSuspectSaves(steam, "Steam");
+        int badEpic = QuarantineSuspectSaves(epic, "Epic");
+        if (badSteam > 0) parts.Add($"Steam suspeitos={badSteam}");
+        if (badEpic > 0) parts.Add($"Epic suspeitos={badEpic}");
+
+        // Se ainda ha saves Steam live (mesmo "ok" no tamanho), MOVE todos —
+        // LOAD FAILURE muitas vezes vem de ficheiro grande mas corrompido.
+        if (steam is not null && Directory.Exists(steam)
+            && Directory.EnumerateFiles(steam, "*.save").Any())
+        {
+            if (QuarantineSaves(steam))
+                parts.Add("Steam live -> quarentena");
+        }
+
+        int cloud = QuarantineSteamCloudRemote();
+        if (cloud > 0) parts.Add($"Steam Cloud remote={cloud}");
+
+        bool purge = PurgeRlSettingsData();
+        if (purge) parts.Add("cache limpo");
+
+        // Repoe garagem Best (Steam + Epic) se existir — evita tutorial eterno
+        bool restored = RestoreInto(steam, preferNewest: true, preferGarage: true, parts)
+                        | RestoreInto(epic, preferNewest: true, preferGarage: true, parts);
+        int reinforced = ReinforceLiveAccounts(iniPath);
+        if (reinforced > 0) parts.Add($"reforco={reinforced}");
+
+        WriteSteamLoadFailureGuide();
+
+        bool ok = badSteam > 0 || badEpic > 0 || cloud > 0 || restored || reinforced > 0 || purge;
+        summary = parts.Count > 0 ? string.Join("; ", parts) : "nada a reparar";
+        AppMeta.Log("HEAL-LOAD-FAILURE: " + summary + (ok ? " OK" : " SEM MUDANCAS"));
+        return ok;
+    }
+
+    public static IReadOnlyList<string> AssessSaveHealth(string? iniPath)
+    {
+        var lines = new List<string>();
+        string? steam = SaveDirFromIni(iniPath ?? "", epic: false);
+        string? epic = SaveDirFromIni(iniPath ?? "", epic: true);
+
+        void Score(string tag, string? dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+            {
+                lines.Add($"{tag}: pasta ausente");
+                return;
+            }
+
+            var files = Directory.EnumerateFiles(dir, "*.save")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.Exists)
+                .ToList();
+            if (files.Count == 0)
+            {
+                lines.Add($"{tag}: 0 saves (RL cria novo — ok apos DISABLE AUTOSAVE)");
+                return;
+            }
+
+            int zero = files.Count(f => f.Length == 0);
+            int tiny = files.Count(f => f.Length > 0 && f.Length < SoftGarageMinBytes);
+            int garage = files.Count(f => f.Length >= SoftGarageMinBytes && f.Length <= GarageMaxBytes);
+            int huge = files.Count(f => f.Length > GarageMaxBytes);
+            int corruptHeader = files.Count(LooksCorruptHeader);
+
+            lines.Add($"{tag}: {files.Count} save(s) | garagem={garage} stub={tiny} zero={zero} enorme={huge}");
+            if (zero > 0 || corruptHeader > 0)
+                lines.Add($"  !! {tag}: LOAD FAILURE provavel (zero={zero}, header mau={corruptHeader}) — use CORRIGIR SAVE");
+            else if (tiny > 0 && garage == 0)
+                lines.Add($"  !! {tag}: so stubs — Steam Cloud pode estar a esmagar a garagem");
+        }
+
+        Score("Steam", steam);
+        Score("Epic", epic);
+
+        int cloudDirs = CountSteamCloudRemoteDirs();
+        if (cloudDirs > 0)
+            lines.Add($"Steam Cloud remote: {cloudDirs} pasta(s) userdata\\252950 — risco de conflito");
+        else
+            lines.Add("Steam Cloud remote: nao detetado / vazio");
+
+        return lines;
+    }
+
+    private static int QuarantineSuspectSaves(string? saveDir, string tag)
+    {
+        if (saveDir is null || !Directory.Exists(saveDir)) return 0;
+        try
+        {
+            var suspects = Directory.EnumerateFiles(saveDir, "*.save")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.Exists && (f.Length == 0 || f.Length > GarageMaxBytes || LooksCorruptHeader(f)))
+                .ToList();
+            if (suspects.Count == 0) return 0;
+
+            string q = Path.Combine(AppMeta.BackupDir, "Quarantine",
+                DateTime.Now.ToString("yyyyMMdd_HHmmss") + "_" + tag + "_suspect");
+            Directory.CreateDirectory(q);
+            int n = 0;
+            foreach (var fi in suspects)
+            {
+                try
+                {
+                    string dest = Path.Combine(q, fi.Name);
+                    if (File.Exists(dest)) File.Delete(dest);
+                    File.Move(fi.FullName, dest);
+                    n++;
+                }
+                catch { }
+            }
+
+            AppMeta.Log($"Suspect {tag}: {n} -> {q}");
+            return n;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("QuarantineSuspectSaves: " + ex.Message);
+            return 0;
+        }
+    }
+
+    private static bool LooksCorruptHeader(FileInfo fi)
+    {
+        try
+        {
+            if (fi.Length == 0) return true;
+            if (fi.Length < 64) return true;
+            Span<byte> buf = stackalloc byte[16];
+            using var fs = fi.OpenRead();
+            int read = fs.Read(buf);
+            if (read < 4) return true;
+            // UE3 saves RL costumam comecar com bytes nao-ASCII lixo; 0x00*16 e tipico truncado
+            bool allZero = true;
+            for (int i = 0; i < read; i++)
+            {
+                if (buf[i] != 0) { allZero = false; break; }
+            }
+            return allZero;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    /// <summary>Rocket League Steam AppID 252950 — remote cloud cache em userdata.</summary>
+    public static int QuarantineSteamCloudRemote()
+    {
+        int moved = 0;
+        try
+        {
+            foreach (string remote in EnumerateSteamCloudRemoteDirs())
+            {
+                if (!Directory.Exists(remote)) continue;
+                var files = Directory.EnumerateFiles(remote, "*", SearchOption.AllDirectories).ToList();
+                if (files.Count == 0) continue;
+
+                string q = Path.Combine(AppMeta.BackupDir, "Quarantine",
+                    "SteamCloud_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + "_" + Path.GetFileName(Path.GetDirectoryName(remote)));
+                Directory.CreateDirectory(q);
+
+                foreach (string f in files)
+                {
+                    try
+                    {
+                        string rel = Path.GetRelativePath(remote, f);
+                        string dest = Path.Combine(q, rel);
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                        if (File.Exists(dest)) File.Delete(dest);
+                        File.Move(f, dest);
+                        moved++;
+                    }
+                    catch { }
+                }
+
+                // remotecache.vdf ao lado de remote/
+                string? appRoot = Path.GetDirectoryName(remote);
+                if (appRoot is not null)
+                {
+                    string cache = Path.Combine(appRoot, "remotecache.vdf");
+                    if (File.Exists(cache))
+                    {
+                        try
+                        {
+                            string dest = Path.Combine(q, "remotecache.vdf");
+                            if (File.Exists(dest)) File.Delete(dest);
+                            File.Move(cache, dest);
+                            moved++;
+                        }
+                        catch { }
+                    }
+                }
+
+                AppMeta.Log($"Steam Cloud remote quarentenado: {remote} ({files.Count} ficheiros)");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("QuarantineSteamCloudRemote: " + ex.Message);
+        }
+
+        return moved;
+    }
+
+    private static int CountSteamCloudRemoteDirs() =>
+        EnumerateSteamCloudRemoteDirs().Count(Directory.Exists);
+
+    private static IEnumerable<string> EnumerateSteamCloudRemoteDirs()
+    {
+        foreach (string steamRoot in EnumerateSteamRoots())
+        {
+            string userdata = Path.Combine(steamRoot, "userdata");
+            if (!Directory.Exists(userdata)) continue;
+            foreach (string userDir in Directory.EnumerateDirectories(userdata))
+            {
+                string remote = Path.Combine(userDir, "252950", "remote");
+                yield return remote;
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateSteamRoots()
+    {
+        var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");
+            string? path = key?.GetValue("SteamPath") as string;
+            if (!string.IsNullOrWhiteSpace(path))
+                roots.Add(path.Replace('/', '\\'));
+        }
+        catch { }
+
+        string[] guesses =
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Steam"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Steam"),
+            @"D:\Steam",
+            @"E:\Steam",
+        };
+        foreach (string g in guesses)
+            if (Directory.Exists(g)) roots.Add(g);
+
+        return roots;
+    }
+
+    private static void WriteSteamLoadFailureGuide()
+    {
+        try
+        {
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrWhiteSpace(desktop) || !Directory.Exists(desktop))
+                desktop = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            string path = Path.Combine(desktop, "GuttyTECH-RL-LOAD-FAILURE.txt");
+            string text =
+                "GUTTYTECH — LOAD FAILURE (Steam)" + Environment.NewLine +
+                "=================================" + Environment.NewLine +
+                "O Gutty ja quarentenou saves suspeitos e o remote da Steam Cloud (App 252950)." + Environment.NewLine +
+                Environment.NewLine +
+                "AGORA FAZ ISTO:" + Environment.NewLine +
+                "1) Steam > Rocket League > Propriedades > Geral" + Environment.NewLine +
+                "   > DESATIVA \"Manter os meus jogos guardados na Steam Cloud\" (temporario)" + Environment.NewLine +
+                "2) Abre o Rocket League OFFLINE (modo offline Steam) 1x" + Environment.NewLine +
+                "3) Se aparecer LOAD FAILURE: clica DISABLE AUTOSAVE (entra no menu; NAO e tutorial na maioria das contas online)" + Environment.NewLine +
+                "4) Fecha o jogo > no Gutty: RESTAURAR PRESETS" + Environment.NewLine +
+                "5) Abre OFFLINE outra vez, confirma garagem, so depois reativa a Steam Cloud" + Environment.NewLine +
+                Environment.NewLine +
+                "Backups: " + AppMeta.BackupDir + Environment.NewLine;
+
+            File.WriteAllText(path, text);
+            AppMeta.Log("Guia LOAD FAILURE: " + path);
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("WriteSteamLoadFailureGuide: " + ex.Message);
+        }
+    }
 }

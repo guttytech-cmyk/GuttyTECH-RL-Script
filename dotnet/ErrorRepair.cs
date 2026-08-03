@@ -111,8 +111,17 @@ internal static class ErrorRepair
         int epicN = CountSaves(epic);
         int steamN = CountSaves(steam);
         lines.Add($"Saves Epic: {epicN} | Steam: {steamN}");
+        foreach (string health in SaveRecovery.AssessSaveHealth(cfg))
+        {
+            lines.Add(health);
+            if (health.Contains("!!", StringComparison.Ordinal))
+                issues = true;
+        }
+
         if (bootRisk)
             lines.Add("ACAO: use RECUPERAR BOOT / CORRIGIR TUDO (caminho nuclear).");
+        else if (issues && lines.Any(l => l.Contains("LOAD FAILURE", StringComparison.OrdinalIgnoreCase)))
+            lines.Add("ACAO: use CORRIGIR SAVE (LOAD FAILURE) — Steam Cloud + saves locais.");
 
         return (lines, issues);
     }

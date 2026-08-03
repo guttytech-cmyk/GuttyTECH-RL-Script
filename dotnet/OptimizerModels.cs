@@ -12,6 +12,7 @@ internal enum OptimizerAction
     Diagnostico,
     CorrigirTudo,
     RestaurarPresets,
+    CorrigirSave,
 }
 
 internal enum OptimizerSection

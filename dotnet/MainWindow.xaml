@@ -74,10 +74,12 @@
                                 Click="OnMinimizeClick"
                                 Focusable="False">
                             <Path Width="10"
-                                  Height="1"
-                                  Stretch="Fill"
-                                  Fill="{DynamicResource TextPrimaryBrush}"
-                                  Data="M0,0 H10" />
+                                  Height="10"
+                                  Stretch="Uniform"
+                                  Stroke="{DynamicResource TextPrimaryBrush}"
+                                  StrokeThickness="1.4"
+                                  Fill="Transparent"
+                                  Data="M1,5 H9" />
                         </Button>
                         <Button x:Name="MaximizeButton"
                                 Style="{DynamicResource CaptionButtonStyle}"
