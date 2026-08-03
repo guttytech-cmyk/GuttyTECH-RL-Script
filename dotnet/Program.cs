@@ -28,14 +28,26 @@ internal static class Program
     private static string? _cfg;
     private static bool? _cfgWritable;
 
+    [STAThread]
     private static int Main(string[] args)
     {
+        if (args.Length == 0)
+            ConsoleWindowService.Hide();
+        else
+            ConsoleWindowService.PrepareForCli(
+                args[0].Equals("CONSOLE", StringComparison.OrdinalIgnoreCase));
         StartupGuard.Install();
         return StartupGuard.Run(() => Run(args));
     }
 
     private static int Run(string[] args)
     {
+        if (args.Length == 0)
+            return RunDesktop();
+
+        if (args[0].Equals("CONSOLE", StringComparison.OrdinalIgnoreCase))
+            args = Array.Empty<string>();
+
         try
         {
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; Environment.Exit(0); };
@@ -61,8 +73,8 @@ internal static class Program
             Ui.Cls();
             Ui.Banner(false);
             Ui.PanelTop("ERRO");
-            Ui.PanelLine(Ui.C("X  Pasta do Rocket League nao encontrada.", Ui.Red));
-            Ui.PanelLine(Ui.C("Abra o jogo 1x pela Epic para criar as pastas.", Ui.Gray));
+            Ui.PanelLine(Ui.Dot(Ui.Red, "Pasta do Rocket League não encontrada."));
+            Ui.PanelLine(Ui.C("Abra o jogo uma vez pela Epic para criar as pastas.", Ui.Gray));
             Ui.PanelLine(Ui.C("Caminho esperado: Documents\\My Games\\Rocket League\\...", Ui.DimC));
             Ui.PanelBottom();
             AppMeta.Log("Pasta Config do RL nao encontrada.");
@@ -140,6 +152,13 @@ internal static class Program
         }
     }
 
+    private static int RunDesktop()
+    {
+        var application = new App();
+        var window = new MainWindow();
+        return application.Run(window);
+    }
+
     private static int RunHeal(bool interactive) => CorrigirPermissoes(interactive);
 
     private static void CorrigirErrosMenu()
@@ -152,9 +171,9 @@ internal static class Program
             Ui.TitleBar("CORRIGIR ERROS", Ui.MAmber);
             Ui.StepsPanel("RESTAURACAO E CORRECAO", new[]
             {
-                "Menu High Quality / 60 FPS / pos-boot → REPARAR PERFIL",
-                "Jogo NAO abre de todo → RECUPERAR BOOT (stock)",
-                "Pasta bloqueada / Defender → PERMISSOES",
+                "Jogo NAO abre → [3] RECUPERAR BOOT ou [5] CORRIGIR TUDO (nuclear)",
+                "Jogo abre mas menu High Quality / 60 FPS → [2] REPARAR PERFIL",
+                "Pasta bloqueada / Defender → [1] PERMISSOES",
                 "Presets do carro: menu principal [6]",
             }, Ui.MAmber);
             Ui.Gap();
@@ -162,13 +181,13 @@ internal static class Program
             Ui.PanelBlank();
             Ui.MenuCard("1", "PERMISSOES", "Destrava INI e libera gravacao na pasta", Ui.Amber);
             Ui.MenuCard("2", "REPARAR PERFIL", "Mantem COMPLETO/CRIADOR — reclampa INI+menu", Ui.Green);
-            Ui.MenuCard("3", "RECUPERAR BOOT", "Stock INI+save (so se o jogo nao abre)", Ui.Amber);
+            Ui.MenuCard("3", "RECUPERAR BOOT", "Nuclear: stock INI + quarentena saves", Ui.Amber);
             Ui.MenuCard("4", "DIAGNOSTICO", "Mostra o que esta errado no INI/pasta", Ui.Cyan);
-            Ui.MenuCard("5", "TUDO", "Permissoes + reparar (ou boot stock se preciso)", Ui.Amber);
+            Ui.MenuCard("5", "TUDO", "Desbloqueio nuclear — prioridade abrir o jogo", Ui.Amber);
             Ui.MenuCard("6", "VOLTAR", "Menu principal", Ui.DimC);
             Ui.PanelBlank();
             Ui.PanelBottom();
-            Ui.Prompt("Escolha (1-6)");
+            Ui.Prompt("Selecione uma operação  [1–6]");
             switch (Console.ReadLine()?.Trim())
             {
                 case "1": CorrigirPermissoes(true); Ui.EnterButton(); break;
@@ -283,7 +302,6 @@ internal static class Program
 
     private static int CorrigirBoot(bool interactive)
     {
-        if (!CheckGame(interactive)) return 1;
         if (interactive)
         {
             Ui.Cls();
@@ -291,75 +309,33 @@ internal static class Program
             Ui.TitleBar("RECUPERAR BOOT", Ui.MAmber);
             Ui.StepsPanel("ULTIMO RECURSO — JOGO NAO ABRE", new[]
             {
-                "REMOVE o otimizador (volta INI stock/original)",
-                "Restaura save Epic+Steam do backup mais antigo",
-                "Purga RLSettingsData (cache Epic)",
-                "Se o jogo ABRE mas o menu esta errado: use REPARAR PERFIL",
+                "Fecha o RL e o watcher automatico",
+                "REMOVE o otimizador (INI stock/original)",
+                "Remove boot-killers (OnlyStream/WaitForGPU)",
+                "Quarentena saves suspeitos (garagem fica no cofre Best)",
+                "Purga RLSettingsData — NAO reaplica COMPLETO/CRIADOR",
             }, Ui.MAmber);
             Ui.Gap();
             Ui.Prompt("Confirma recuperar boot STOCK? (S/N)");
             if (!IsYes(Console.ReadLine()))
                 return 1;
-
-            string? existing = DetectAppliedMode();
-            if (existing is "COMPLETO" or "CRIADOR")
-            {
-                Ui.Gap();
-                Ui.PanelTop("MODO " + existing + " DETETADO");
-                Ui.PanelLine(Ui.C("Em vez de stock, posso REPARAR o perfil (mantem FPS).", Ui.Green));
-                Ui.PanelBottom();
-                Ui.Prompt("Reparar perfil em vez de stock? (S/N)");
-                if (IsYes(Console.ReadLine()))
-                    return CorrigirPerfil(true);
-            }
         }
 
         if (!EnsureConfigDir())
         {
             if (interactive)
-                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao existe.", "Abra o jogo 1x pela Epic." });
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao existe.", "Abra o jogo 1x pela Epic/Steam." });
             return 1;
         }
 
-        if (File.Exists(_cfg!))
-        {
-            if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
-        }
-        else if (!FolderAccess.EnsureWriteAccess(Path.GetDirectoryName(_cfg!)!, interactive))
-        {
-            return 1;
-        }
-
-        bool iniOk;
-        bool saveOk;
-        if (interactive)
-        {
-            Ui.StepAnimated("Destravando o arquivo", () => { if (File.Exists(_cfg!)) Unlock(_cfg!); return true; });
-            Ui.StepAnimated("Backup de seguranca", () => { if (File.Exists(_cfg!)) Backup(); return true; });
-            iniOk = Ui.StepAnimated("Restaurando INI stock (boot)", TryRestoreIni);
-            saveOk = Ui.StepAnimated("Restaurando save Epic/Steam + cache", () => SaveRecovery.FullRecovery(_cfg!));
-        }
-        else
-        {
-            if (File.Exists(_cfg!)) { Unlock(_cfg!); Backup(); }
-            iniOk = TryRestoreIni();
-            saveOk = SaveRecovery.FullRecovery(_cfg!);
-        }
-
-        VideoSettingsSync.StopExistingWatchers();
-        Log("CORRIGIR-BOOT concluido.");
+        int code = ErrorRepair.UnbreakBoot(
+            _cfg,
+            TryRestoreIni,
+            () => { if (_cfg is not null && File.Exists(_cfg)) Unlock(_cfg); },
+            interactive);
         RefreshWritableCache();
-        if (interactive)
-        {
-            Ui.CompletionMessage(iniOk && saveOk ? Ui.OkGreen : Ui.MAmber, "BOOT RECUPERADO (STOCK)", new[]
-            {
-                "INI e saves restaurados — otimizador removido.",
-                "Abra o Rocket League e confirme que entra no menu.",
-                "Depois aplique COMPLETO ou CRIADOR de novo.",
-                "Presets sumiram? Menu [6] RESTAURAR PRESETS.",
-            });
-        }
-        return iniOk && saveOk ? 0 : 1;
+        Log("CORRIGIR-BOOT concluido code=" + code);
+        return code;
     }
 
     private static int CorrigirTudo(bool interactive)
@@ -369,22 +345,48 @@ internal static class Program
             Ui.Cls();
             Ui.MiniBannerIfTall(Ui.MAmber);
             Ui.TitleBar("CORRIGIR TUDO", Ui.MAmber);
-            Ui.StepsPanel("ORDEM INTELIGENTE", new[]
+            Ui.StepsPanel("PRIORIDADE: FAZER O JOGO ABRIR", new[]
             {
-                "1) Permissoes / Defender / ACL",
-                "2) Se ha COMPLETO/CRIADOR → REPARAR PERFIL",
-                "3) Se nao ha modo → RECUPERAR BOOT stock",
+                "1) Fecha RL + watcher",
+                "2) Liberta pasta / permissoes",
+                "3) INI stock + remocao de boot-killers",
+                "4) Quarentena de saves + purge cache Epic",
+                "5) Depois de abrir o menu: reaplique COMPLETO/CRIADOR",
             }, Ui.MAmber);
+            Ui.Gap();
+            Ui.Prompt("Executar correcao nuclear agora? (S/N)");
+            if (!IsYes(Console.ReadLine()))
+                return 1;
         }
 
-        int a = CorrigirPermissoes(interactive);
-        string? mode = DetectAppliedMode();
-        int b;
-        if (mode is "COMPLETO" or "CRIADOR")
-            b = CorrigirPerfil(interactive);
-        else
-            b = CorrigirBoot(interactive);
-        return a == 0 && b == 0 ? 0 : 1;
+        if (!EnsureConfigDir())
+        {
+            if (interactive)
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao existe.", "Abra o jogo 1x pela Epic/Steam." });
+            return 1;
+        }
+
+        // Sempre caminho nuclear — RepararPerfil em cima de perfil quebrado mantinha o jogo morto.
+        int code = ErrorRepair.UnbreakBoot(
+            _cfg,
+            TryRestoreIni,
+            () => { if (_cfg is not null && File.Exists(_cfg)) Unlock(_cfg); },
+            interactive);
+        RefreshWritableCache();
+        Log("CORRIGIR-TUDO concluido code=" + code);
+        return code;
+    }
+
+    /// <summary>Usado por ErrorRepair.UnbreakBoot sem aceder ao campo privado _cfg.</summary>
+    internal static void BackupIniForRepair(string cfgPath)
+    {
+        try
+        {
+            if (!File.Exists(cfgPath)) return;
+            string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            File.Copy(cfgPath, Path.Combine(AppMeta.BackupDir, $"TASystemSettings.{ts}.bak"), true);
+        }
+        catch { }
     }
 
     private static int Dispatch(string mode, bool interactive)
@@ -398,8 +400,76 @@ internal static class Program
         if (mode is "COMPLETO" or "CRIADOR") return Apply(mode, interactive);
         if (mode is "CORRIGIR" or "HEAL") return CorrigirPermissoes(interactive);
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
-        Console.WriteLine(Ui.C("  Use: GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER | CORRIGIR | CORRIGIR-PERFIL | CORRIGIR-BOOT | DIAG | RESTAURAR-PRESETS]", Ui.Gray));
+        Ui.PanelTop("SINTAXE");
+        Ui.PanelLine(Ui.C("GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER | CORRIGIR]", Ui.Gray));
+        Ui.PanelLine(Ui.C("[CORRIGIR-PERFIL | CORRIGIR-BOOT | DIAG | RESTAURAR-PRESETS]", Ui.DimC));
+        Ui.PanelBottom();
         return 2;
+    }
+
+    internal static string LaunchCommandForGui => LaunchRecommended;
+
+    internal static void EnsureEngineInitializedForGui()
+    {
+        try { Directory.CreateDirectory(AppMeta.BackupDir); } catch { }
+        _cfg = ResolveConfigPath();
+        if (_cfg is not null)
+        {
+            AppMeta.Log($"GUI INI: {_cfg}");
+            // Snapshot preventivo: se a garagem ainda esta grande, guarda no Best agora
+            try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
+        }
+        RefreshWritableCache();
+    }
+
+    internal static int DispatchForGui(string mode)
+    {
+        if (_cfg is null)
+            EnsureEngineInitializedForGui();
+        return Dispatch(mode, interactive: false);
+    }
+
+    internal static SupportLogService.PackResult CreateSupportPackForGui()
+    {
+        if (_cfg is null)
+            EnsureEngineInitializedForGui();
+        OptimizerStatus status = GetStatusForGui();
+        return SupportLogService.CreateSupportPack(_cfg, DetectAppliedMode, status);
+    }
+
+    internal static OptimizerStatus GetStatusForGui()
+    {
+        if (_cfg is null)
+            EnsureEngineInitializedForGui();
+
+        string path = _cfg ?? string.Empty;
+        bool exists = !string.IsNullOrWhiteSpace(path) && SafeExists(path);
+        string mode = DetectAppliedMode() ?? "ORIGINAL";
+        string label;
+        bool locked;
+
+        if (exists)
+        {
+            (label, locked, _) = ReadState();
+        }
+        else
+        {
+            label = string.IsNullOrWhiteSpace(path)
+                ? "Perfil do Rocket League ainda não localizado"
+                : "INI ausente — abra o Rocket League uma vez";
+            locked = false;
+        }
+
+        RefreshWritableCache();
+        return new OptimizerStatus(
+            mode,
+            label,
+            IsCfgWritable(),
+            GetRl().Length > 0,
+            path,
+            locked,
+            IsAdmin(),
+            exists);
     }
 
     // -------------------------------------------------------------- Menu
@@ -422,32 +492,32 @@ internal static class Program
             Ui.Chip(string.IsNullOrEmpty(applied) ? "ORIGINAL" : applied,
                 string.IsNullOrEmpty(applied) ? Ui.BorderHi : (applied == "COMPLETO" ? Ui.Red : Ui.Cyan))
             + "  "
-            + Ui.Chip(writable ? "GRAVAVEL" : "BLOQUEADO", writable ? (20, 80, 40) : Ui.Red)
+            + Ui.Chip(writable ? "GRAVÁVEL" : "BLOQUEADO", writable ? Ui.GreenBg : Ui.Red)
             + "  "
-            + Ui.Chip(rlOpen ? "RL ABERTO" : "RL FECHADO", rlOpen ? (90, 60, 10) : (24, 48, 36));
+            + Ui.Chip(rlOpen ? "RL ABERTO" : "RL FECHADO", rlOpen ? Ui.AmberBg : Ui.GreenBg);
         Ui.PanelLine("  " + chips);
         Ui.PanelBlank();
         Ui.PanelLine(Ui.Field("Arquivo", Ui.C(FitPath(_cfg!, 58), Ui.Gray)));
         Ui.PanelLine(Ui.Field("Estado", Ui.Dot(modeAccent, label)));
-        string trava = locked ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Amber, "NAO");
-        string adm = IsAdmin() ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Gray, "nao necessario");
+        string trava = locked ? Ui.Dot(Ui.Green, "ATIVO") : Ui.Dot(Ui.DimC, "INATIVO");
+        string adm = IsAdmin() ? Ui.Dot(Ui.Green, "ATIVO") : Ui.Dot(Ui.Gray, "não necessário");
         Ui.PanelLine(Ui.Field("Protegido", trava + "    " + Ui.C("Admin ", Ui.DimC) + adm));
         Ui.PanelBottom();
         Ui.Gap();
 
         Ui.PanelTop("MODOS");
         Ui.PanelBlank();
-        Ui.MenuCard("1", "COMPLETO", "FPS maximo - grafico de batata - menu High Performance", Ui.Red, "FPS");
-        Ui.MenuCard("2", "CRIADOR DE CONTEUDO", "Otimizacoes fortes mantendo o visual bonito", Ui.Cyan, "STREAM");
-        Ui.MenuCard("3", "REMOVER", "Restaura so o INI (preserva presets do carro)", Ui.Amber);
-        Ui.MenuCard("4", "COMANDO DE INICIALIZACAO", "Copia o comando mais foda p/ Steam ou Epic", Ui.Cyan);
-        Ui.MenuCard("5", "CORRIGIR ERROS", "Reparar perfil, boot, permissoes, diagnostico", Ui.Amber);
-        Ui.MenuCard("6", "RESTAURAR PRESETS", "Garagem: saves grandes (backup) -> Epic/Steam", Ui.Amber);
-        Ui.MenuCard("7", "SAIR", "Fechar o GuttyRL", Ui.DimC);
+        Ui.MenuCard("1", "COMPLETO", "FPS máximo · visual competitivo · High Performance", Ui.Red, "FPS");
+        Ui.MenuCard("2", "CRIADOR DE CONTEÚDO", "Performance forte · visual preservado", Ui.Cyan, "STREAM");
+        Ui.MenuCard("3", "REMOVER", "Para watcher + INI stock + limpa cache (preserva presets)", Ui.Amber);
+        Ui.MenuCard("4", "COMANDO DE INICIALIZAÇÃO", "Copia o comando compatível com Steam e Epic", Ui.Cyan);
+        Ui.MenuCard("5", "CORRIGIR ERROS", "Perfil, boot, permissões e diagnóstico", Ui.Amber);
+        Ui.MenuCard("6", "RESTAURAR PRESETS", "Recupera a garagem dos backups Epic/Steam", Ui.Amber);
+        Ui.MenuCard("7", "SAIR", "Encerra o RL Optimizer", Ui.DimC);
         Ui.PanelBlank();
         Ui.PanelBottom();
-        Ui.FooterHint("COMPLETO/CRIADOR: limpa + aplica + sync rapido (perfis recentes)");
-        Ui.Prompt("Escolha (1-7)");
+        Ui.FooterHint("COMPLETO e CRIADOR executam limpeza, aplicação e sincronização");
+        Ui.Prompt("Selecione um modo  [1–7]");
     }
 
     private static string FitPath(string p, int max)
@@ -455,57 +525,35 @@ internal static class Program
 
     // -------------------------------------------------------------- Launch Options
     // Pesquisado/validado no RL (UE3): boot + micro-FPS in-game. EAC-safe para online.
+    // Steam e Epic usam o MESMO comando — tela unica, copia no open.
     private const string LaunchRecommended = "-nomovie -NOSPLASH -nomansky +mat_antialias 0 -high";
     private const string LaunchNoPriority = "-nomovie -NOSPLASH -nomansky +mat_antialias 0";
 
     private static void LaunchOptions()
     {
-        while (true)
-        {
-            Ui.HideCursor();
-            Ui.Cls();
-            Ui.MiniBannerIfTall(Ui.MCyan);
-            Ui.TitleBar("COMANDO DE INICIALIZACAO", Ui.MCyan);
-            Console.WriteLine();
-            Ui.LaunchParam("[1]", Ui.MCyan, "STEAM", "como colar na Steam (passo a passo)");
-            Ui.LaunchParam("[2]", Ui.MCyan, "EPIC GAMES", "como colar na Epic (passo a passo)");
-            Ui.LaunchParam("[3]", Ui.DarkGray, "VOLTAR", "menu principal");
-            Ui.Prompt("Escolha (1-3)");
-            switch (Console.ReadLine()?.Trim())
-            {
-                case "1": ShowPlatform("STEAM", LaunchRecommended, true); break;
-                case "2": ShowPlatform("EPIC GAMES", LaunchRecommended, false); break;
-                case "3": return;
-            }
-        }
-    }
-
-    private static void ShowPlatform(string platform, string cmd, bool isSteam)
-    {
         Ui.HideCursor();
         Ui.Cls();
         Ui.MiniBannerIfTall(Ui.MCyan);
-        Ui.TitleBar(platform + " - COMANDO DE INICIALIZACAO", Ui.MCyan);
-
-        string[] steps = isSteam
-            ? new[]
-            {
-                "1. Steam > botao direito no Rocket League > Propriedades",
-                "2. Geral > Opcoes de Inicializacao",
-                "3. Cole (Ctrl+V) e feche — NAO use %command%"
-            }
-            : new[]
-            {
-                "1. Epic > Biblioteca > ... no Rocket League > Gerenciar",
-                "2. Marque 'Argumentos de linha de comando adicionais'",
-                "3. Cole (Ctrl+V) o comando e salve"
-            };
-        Ui.StepsPanel("PASSO A PASSO", steps, Ui.MCyan);
+        Ui.TitleBar("COMANDO DE INICIALIZACAO", Ui.MCyan);
 
         Ui.Gap();
-        Ui.LaunchHeading("COPIAR E COLAR");
-        Ui.CopyStatus(CopyToClipboard(cmd));
-        Ui.CodeBox(cmd);
+        Ui.LaunchHeading("COPIAR E COLAR (Steam = Epic)");
+        Ui.CopyStatus(ClipboardUtil.TryCopy(LaunchRecommended));
+        Ui.CodeBox(LaunchRecommended);
+
+        Ui.StepsPanel("STEAM", new[]
+        {
+            "Steam > botao direito no Rocket League > Propriedades",
+            "Geral > Opcoes de Inicializacao",
+            "Cole (Ctrl+V) e feche — NAO use %command%"
+        }, Ui.MCyan);
+
+        Ui.StepsPanel("EPIC GAMES", new[]
+        {
+            "Epic > Biblioteca > ... no Rocket League > Gerenciar",
+            "Marque 'Argumentos de linha de comando adicionais'",
+            "Cole (Ctrl+V) o comando e salve"
+        }, Ui.MCyan);
 
         Ui.LaunchHeading("O que cada flag faz");
         Ui.LaunchParam("+", Ui.OkGreen, "-nomovie", "pula intro");
@@ -516,22 +564,6 @@ internal static class Program
         Ui.LaunchNote("Sem -high: " + LaunchNoPriority);
 
         Ui.EnterButton();
-    }
-
-    private static bool CopyToClipboard(string text)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo("clip.exe")
-            { RedirectStandardInput = true, UseShellExecute = false, CreateNoWindow = true };
-            using var p = Process.Start(psi);
-            if (p is null) return false;
-            p.StandardInput.Write(text);
-            p.StandardInput.Close();
-            p.WaitForExit(3000);
-            return p.ExitCode == 0;
-        }
-        catch { return false; }
     }
 
     // -------------------------------------------------------------- Apply
@@ -598,6 +630,7 @@ internal static class Program
         if (interactive)
         {
             if (!Ui.StepAnimated("Gravando otimizacao", () => DoWrite(content, mode))) return FailOrElevate(mode, interactive);
+            Ui.StepAnimated("Validando boot-safe", () => ErrorRepair.ForceBootSafeIni(_cfg!));
             if (!Ui.StepWithBar("Sincronizando menu de video", bar =>
                     VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive, bar)))
             {
@@ -608,6 +641,7 @@ internal static class Program
                 });
                 return 1;
             }
+            ErrorRepair.ForceBootSafeIni(_cfg!);
             if (mode is "CRIADOR" or "COMPLETO")
                 Ui.StepAnimated("Mantendo video ajustavel no jogo", UnlockCfg);
             Ui.FlushInput();
@@ -615,7 +649,9 @@ internal static class Program
         else
         {
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
+            ErrorRepair.ForceBootSafeIni(_cfg!);
             if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)) return 1;
+            ErrorRepair.ForceBootSafeIni(_cfg!);
             if (mode is "CRIADOR" or "COMPLETO") UnlockCfg();
         }
 
@@ -631,9 +667,7 @@ internal static class Program
         {
             VideoSettingsSync.StartExitWatcher(mode);
             Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
-            Console.WriteLine();
-            string m = new string(' ', Ui.Margin);
-            Console.WriteLine(m + Ui.C("  Watcher ativo: ao fechar o RL, o otimizador repara INI+menu sozinho.", Ui.DimC));
+            Ui.FooterHint("MONITOR ATIVO  ·  reparo automático ao fechar o Rocket League");
         }
         return 0;
     }
@@ -723,16 +757,76 @@ internal static class Program
     // -------------------------------------------------------------- Remover
     private static int Remover(bool interactive)
     {
-        if (!CheckGame(interactive)) return 1;
-        if (interactive) { Ui.Cls(); Ui.MiniBannerIfTall(Ui.MAmber); Ui.TitleBar("REMOVENDO / RESTAURANDO", Ui.MAmber); }
+        if (interactive)
+        {
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MAmber);
+            Ui.TitleBar("REMOVER OTIMIZACAO", Ui.MAmber);
+            Ui.StepsPanel("O QUE VAI SER FEITO", new[]
+            {
+                "Para o watcher automatico (impede o modo de voltar sozinho)",
+                "Fecha o Rocket League se estiver aberto",
+                "Preserva presets/garagem no cofre Best",
+                "Restaura INI stock/original + boot-safe",
+                "Limpa cache Epic (RLSettingsData) e runtime do watcher",
+                "Presets e backups Gutty ficam — so o otimizador ativo sai",
+            }, Ui.MAmber);
+        }
 
         if (!EnsureConfigDir())
         {
             if (interactive)
-                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao existe.", "Abra o jogo 1x pela Epic." });
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Pasta Config do RL nao existe.", "Abra o jogo 1x pela Epic/Steam." });
             return 1;
         }
 
+        var report = new List<string>();
+
+        // 1) Watcher PRIMEIRO — senao HealIfNeeded regrava COMPLETO apos o restore.
+        if (interactive)
+            Ui.StepAnimated("Parando watcher automatico", () => { VideoSettingsSync.CleanWatcherRuntime(); return true; });
+        else
+            VideoSettingsSync.CleanWatcherRuntime();
+        report.Add("watcher parado");
+
+        // 2) Fechar RL
+        bool killed;
+        if (interactive)
+        {
+            if (GetRl().Length > 0)
+            {
+                Ui.Gap();
+                Ui.PanelTop("ROCKET LEAGUE ABERTO");
+                Ui.PanelLine(Ui.C("O jogo sobrescreve o INI ao fechar — precisa sair agora.", Ui.Amber));
+                Ui.PanelBottom();
+                Ui.Prompt("Fechar o jogo agora? (S/N)");
+                if (!IsYes(Console.ReadLine()))
+                    return 1;
+            }
+            killed = Ui.StepAnimated("Fechando Rocket League", () =>
+            {
+                ErrorRepair.ForceCloseRocketLeague();
+                return GetRl().Length == 0;
+            });
+            if (!killed && GetRl().Length > 0)
+            {
+                Ui.CompletionMessage(Ui.MRed, "ACAO BLOQUEADA", new[] { "Nao consegui fechar o Rocket League.", "Feche-o manualmente e tente de novo." });
+                return 1;
+            }
+        }
+        else
+        {
+            ErrorRepair.ForceCloseRocketLeague();
+            if (GetRl().Length > 0)
+            {
+                Log("REMOVER: RL ainda aberto apos kill.");
+                return 1;
+            }
+            killed = true;
+        }
+        report.Add(killed ? "RL fechado" : "RL ja fechado");
+
+        // 3) Permissoes
         if (File.Exists(_cfg!))
         {
             if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
@@ -742,36 +836,124 @@ internal static class Program
             return 1;
         }
 
+        // 4) Snapshot garagem
+        int snapped = 0;
+        if (interactive)
+            Ui.StepAnimated("Preservando presets/garagem", () =>
+            {
+                snapped = SaveRecovery.BackupGaragePresets(_cfg);
+                return true;
+            });
+        else
+            snapped = SaveRecovery.BackupGaragePresets(_cfg);
+        if (snapped > 0) report.Add($"presets={snapped}");
+
+        // 5) Unlock + backup + stock INI
+        bool iniOk;
         if (interactive)
         {
-            Ui.StepAnimated("Destravando o arquivo", () => { if (File.Exists(_cfg!)) Unlock(_cfg!); return true; });
-            Ui.StepAnimated("Backup de seguranca", () => { if (File.Exists(_cfg!)) Backup(); return true; });
-            if (!Ui.StepAnimated("Restaurando INI (sem tocar no save)", TryRestoreIni))
-                return FailOrElevate("REMOVER", interactive);
-            Log("REMOVER concluido (so INI).");
-            RefreshWritableCache();
-            Ui.CompletionMessage(Ui.MAmber, "RESTAURADO", new[]
+            Ui.StepAnimated("Destravando TASystemSettings.ini", () =>
             {
-                "INI restaurado. Save Epic e presets do carro intactos.",
-                "Menu errado? [5] CORRIGIR ERROS -> REPARAR PERFIL.",
-                "Jogo nao abre? [5] -> RECUPERAR BOOT (stock).",
+                if (File.Exists(_cfg!)) Unlock(_cfg!);
+                return true;
             });
+            Ui.StepAnimated("Backup de seguranca do INI", () =>
+            {
+                if (File.Exists(_cfg!)) Backup();
+                return true;
+            });
+            iniOk = Ui.StepAnimated("Restaurando INI stock (sem otimizador)", TryRestoreIni);
+            Ui.StepAnimated("Removendo marcas Gutty do INI", () => StripGuttyMarkers(_cfg!));
         }
         else
         {
             if (File.Exists(_cfg!)) { Unlock(_cfg!); Backup(); }
-            if (!TryRestoreIni()) return FailOrElevate("REMOVER", interactive);
-            Log("REMOVER concluido (so INI).");
-            RefreshWritableCache();
+            iniOk = TryRestoreIni();
+            StripGuttyMarkers(_cfg!);
         }
-        return 0;
+        report.Add(iniOk ? "INI stock OK" : "INI FALHOU");
+
+        // 6) Cache Epic — evita menu/FPS otimizado a lutar com INI stock
+        bool purgeOk;
+        if (interactive)
+            purgeOk = Ui.StepAnimated("Limpando cache Epic (RLSettingsData)", SaveRecovery.PurgeRlSettingsData);
+        else
+            purgeOk = SaveRecovery.PurgeRlSettingsData();
+        report.Add(purgeOk ? "cache limpo" : "cache parcial");
+
+        // 7) Garantir que o watcher nao voltou e modo detetado sumiu
+        VideoSettingsSync.StopExistingWatchers();
+        string? left = DetectAppliedMode();
+        if (left is not null)
+        {
+            StripGuttyMarkers(_cfg!);
+            TryRestoreIni();
+            left = DetectAppliedMode();
+        }
+        bool clean = left is null && iniOk;
+        report.Add(clean ? "modo Gutty ausente" : "modo residual=" + (left ?? "?"));
+
+        RefreshWritableCache();
+        Log("REMOVER: " + string.Join("; ", report));
+
+        if (interactive)
+        {
+            Ui.CompletionMessage(clean ? Ui.OkGreen : Ui.MAmber, clean ? "OTIMIZACAO REMOVIDA" : "REMOCAO PARCIAL", new[]
+            {
+                string.Join(" · ", report),
+                "Presets/garagem: intactos (cofre Best).",
+                "Se colou flags em Steam/Epic, remova-as manualmente.",
+                "Abra o RL 1x — o menu pode pedir APLICAR video (normal).",
+                "Para reaplicar depois: COMPLETO ou CRIADOR.",
+            });
+        }
+
+        return clean ? 0 : 1;
+    }
+
+    /// <summary>Remove GuttyTechMode / comentarios Gutty se sobrarem apos restore.</summary>
+    private static bool StripGuttyMarkers(string iniPath)
+    {
+        try
+        {
+            if (!File.Exists(iniPath)) return true;
+            string text = File.ReadAllText(iniPath);
+            var sb = new StringBuilder();
+            bool changed = false;
+            foreach (string raw in text.Replace("\r\n", "\n").Split('\n'))
+            {
+                string t = raw.TrimStart();
+                if (t.StartsWith("GuttyTechMode=", StringComparison.OrdinalIgnoreCase)
+                    || t.StartsWith("GUTTYTECH-RL-OPTIMIZER=", StringComparison.OrdinalIgnoreCase)
+                    || t.Contains("GUTTYTECH-RL-OPTIMIZER", StringComparison.OrdinalIgnoreCase)
+                        && t.StartsWith(';'))
+                {
+                    changed = true;
+                    continue;
+                }
+                sb.Append(raw).Append("\r\n");
+            }
+            if (changed)
+            {
+                try { File.SetAttributes(iniPath, FileAttributes.Normal); } catch { }
+                File.WriteAllText(iniPath, sb.ToString(), new UTF8Encoding(false));
+                ErrorRepair.ForceBootSafeIni(iniPath);
+                Log("Marcas Gutty removidas do INI.");
+            }
+            return DetectAppliedMode() is null;
+        }
+        catch (Exception ex)
+        {
+            Log("StripGuttyMarkers: " + ex.Message);
+            return false;
+        }
     }
 
     private static bool TryRestoreIni()
     {
         try
         {
-            bool fromOriginal = File.Exists(AppMeta.OrigBackup);
+            bool fromOriginal = File.Exists(AppMeta.OrigBackup) && IsSafeOriginalBackup(AppMeta.OrigBackup);
             if (fromOriginal)
             {
                 if (File.Exists(_cfg!)) File.Delete(_cfg!);
@@ -790,6 +972,22 @@ internal static class Program
                 File.WriteAllText(_cfg!, content, new UTF8Encoding(false));
             }
             try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { }
+            // Sempre neutralizar boot-killers mesmo se OrigBackup estiver limpo na maior parte.
+            ErrorRepair.ForceBootSafeIni(_cfg!);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>OrigBackup so conta se nao tiver modo Gutty nem boot-killers.</summary>
+    private static bool IsSafeOriginalBackup(string path)
+    {
+        try
+        {
+            string text = File.ReadAllText(path);
+            if (text.Contains("GuttyTechMode=", StringComparison.OrdinalIgnoreCase)) return false;
+            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=", StringComparison.OrdinalIgnoreCase)) return false;
+            if (ErrorRepair.HasBootKillers(text)) return false;
             return true;
         }
         catch { return false; }
@@ -823,14 +1021,14 @@ internal static class Program
             Ui.TitleBar("RESTAURAR PRESETS", Ui.MAmber);
             Ui.StepsPanel("GARAGEM / PRESETS DO CARRO", new[]
             {
-                "Prioriza saves GRANDES (garagem), nao so video",
-                "Procura em Backups + Presets + Quarentena",
-                "Limpa cache Epic (RLSettingsData) apos copiar",
-                "Fecha o RL antes — cloud pode sobrescrever se aberto",
+                "Prioriza o maior save de cada conta (cofre Best sticky)",
+                "Procura em Best + Backups + Presets + Quarentena",
+                "Reforca contas live pequeninas e faz 2o passe anti-cloud",
+                "Abra o RL OFFLINE depois — cloud Epic pode regravar online",
             }, Ui.MAmber);
             Ui.Gap();
             Ui.PanelTop("BACKUPS DISPONIVEIS");
-            Ui.PanelLine(Ui.C($"Ficheiros: {bakFiles}  |  Garagem(>=1.5MB): {bakGarage}  |  {bakBytes / 1024} KB", Ui.Gray));
+            Ui.PanelLine(Ui.C($"Ficheiros: {bakFiles}  |  Garagem(>=250KB): {bakGarage}  |  {bakBytes / 1024} KB", Ui.Gray));
             Ui.PanelBottom();
             if (bakFiles == 0)
             {
@@ -877,12 +1075,12 @@ internal static class Program
                     "Destino: " + FitPath(saveDir, 48),
                     "1) Abre o RL OFFLINE (ou pausa sync Epic 1x)",
                     "2) Confirma a garagem na conta certa",
-                    "3) Depois podes voltar online",
+                    "3) Se sumir de novo online: restaura outra vez e fica offline 1 sessao",
                 }
                 : new[]
                 {
-                    "Nenhum save de garagem recuperavel.",
-                    "Pedidos: envia pasta Backups\\SaveDataEpic zipada.",
+                    "Nenhum save de garagem recuperavel nos backups.",
+                    "Pasta: GuttyTECH\\RL-Optimizer-v22\\Backups\\Presets\\Best",
                     "Epic -> Verificar ficheiros do Rocket League.",
                 });
         }
@@ -1083,7 +1281,10 @@ internal static class Program
         if (Environment.GetEnvironmentVariable("GUTTYRL_SKIP_GAMECHECK") == "1") return true;
         if (GetRl().Length == 0) return true;
         Ui.SectionTitle("ROCKET LEAGUE ABERTO", Ui.Amber);
-        Console.WriteLine(Ui.C("  O jogo sobrescreve o arquivo ao fechar. Feche-o antes de aplicar.", Ui.Gray));
+        Ui.PanelTop("AÇÃO NECESSÁRIA");
+        Ui.PanelLine(Ui.C("O jogo sobrescreve o arquivo ao fechar.", Ui.Gray));
+        Ui.PanelLine(Ui.C("Feche-o antes de aplicar qualquer modo.", Ui.DimC));
+        Ui.PanelBottom();
         if (!interactive) { Console.WriteLine(Ui.C("  Feche o jogo e rode de novo.", Ui.Red)); return false; }
         Ui.Prompt("Fechar o jogo agora? (S/N)");
         if (!IsYes(Console.ReadLine())) return false;
@@ -1093,7 +1294,7 @@ internal static class Program
             Thread.Sleep(500);
             if (GetRl().Length == 0) return true;
         }
-        Console.WriteLine(Ui.C("  Nao consegui fechar. Feche manualmente.", Ui.Red));
+        Ui.CompletionMessage(Ui.Red, "AÇÃO BLOQUEADA", new[] { "Não consegui fechar o jogo.", "Feche-o manualmente e tente novamente." });
         return false;
     }
 
@@ -1133,8 +1334,14 @@ internal static class Program
         try
         {
             string text = File.ReadAllText(_cfg!);
-            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=") || text.Contains("MaxLODSize=16"))
-            { Log("Arquivo atual ja otimizado; original nao capturado - usar stock no REMOVER."); return; }
+            if (text.Contains("GUTTYTECH-RL-OPTIMIZER=", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("GuttyTechMode=", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("MaxLODSize=16")
+                || ErrorRepair.HasBootKillers(text))
+            {
+                Log("Arquivo atual ja otimizado/poluido; original nao capturado - usar stock no REMOVER.");
+                return;
+            }
             File.Copy(_cfg!, AppMeta.OrigBackup, true);
             try { File.SetAttributes(AppMeta.OrigBackup, FileAttributes.Normal); } catch { }
             Log("Backup original pristino criado.");
@@ -1267,7 +1474,8 @@ internal static class Program
     private static void Goodbye()
     {
         Ui.Gap();
-        Console.WriteLine(Ui.C(new string(' ', Ui.Margin) + "GUTTYTECH - TESSERACT  ", Ui.Red) + Ui.C("// ate a proxima.", Ui.DimC));
+        Console.WriteLine(new string(' ', Ui.Margin) + Ui.B("GUTTYTECH  /  TESSERACT", Ui.Red)
+            + Ui.C("    SESSÃO ENCERRADA", Ui.DimC));
         Ui.Gap();
     }
 

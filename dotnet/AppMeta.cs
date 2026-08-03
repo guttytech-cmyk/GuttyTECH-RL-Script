@@ -5,6 +5,13 @@ internal static class AppMeta
 {
     public const string Version = "v24.0.0";
 
+    public const string GitHubOwner = "guttytech-cmyk";
+    public const string GitHubRepo = "GuttyTECH-RL-Script";
+    public static string GitHubReleasesLatestApi =>
+        $"https://api.github.com/repos/{GitHubOwner}/{GitHubRepo}/releases/latest";
+    public static string GitHubReleasesPage =>
+        $"https://github.com/{GitHubOwner}/{GitHubRepo}/releases";
+
     public static string GuttyDir =>
         Path.Combine(
             Environment.GetEnvironmentVariable("GUTTYRL_HOME") is { Length: > 0 } home
@@ -16,6 +23,7 @@ internal static class AppMeta
     public static string LogFile => Path.Combine(GuttyDir, "log.txt");
     public static string CrashLog => Path.Combine(GuttyDir, "crash.log");
     public static string OrigBackup => Path.Combine(BackupDir, "TASystemSettings.original.ini");
+    public static string UpdateDismissedFile => Path.Combine(GuttyDir, "update-dismissed.tag");
 
     public const string IniRelative = @"My Games\Rocket League\TAGame\Config\TASystemSettings.ini";
 

@@ -2,19 +2,30 @@ using System.Text.RegularExpressions;
 
 namespace GuttyRL;
 
-/// <summary>Backup/restauro de saves Epic/Steam (presets/garagem) + purge RLSettingsData.</summary>
+/// <summary>
+/// Backup/restauro de saves Epic/Steam (presets/garagem) + purge RLSettingsData.
+/// Cofre sticky Best: nunca deixa um save grande ser substituido por um pequenino.
+/// </summary>
 internal static class SaveRecovery
 {
     private static readonly Regex BackupName = new(
         @"^\d{8}_\d{6}_(.+)$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    /// <summary>Saves de garagem/presets sao tipicamente &gt;1.5MB; video-only fica abaixo.</summary>
-    public const long GarageMinBytes = 1_500_000;
-    public const long GarageMaxBytes = 12_000_000;
+    /// <summary>
+    /// Saves com presets/garagem costumam ficar acima disto.
+    /// 1.5MB era demasiado alto — contas com poucos presets nunca entravam no backup.
+    /// </summary>
+    public const long GarageMinBytes = 400_000;
+
+    /// <summary>Abaixo disto quase sempre e so video/menu stub.</summary>
+    public const long SoftGarageMinBytes = 250_000;
+
+    public const long GarageMaxBytes = 16_000_000;
 
     public static string BackupRoot => Path.Combine(AppMeta.BackupDir, "SaveDataEpic");
     public static string PresetsRoot => Path.Combine(AppMeta.BackupDir, "Presets");
+    public static string BestRoot => Path.Combine(PresetsRoot, "Best");
 
     public static string? SaveDirFromIni(string iniPath, bool epic = true)
     {
@@ -37,24 +48,43 @@ internal static class SaveRecovery
     public static bool RestorePresets(string iniPath, out string summary)
     {
         var parts = new List<string>();
-        // Snapshot do que ainda esta live (pode ser a unica copia grande)
+
+        // 0) Promove backups antigos grandes para o cofre Best (pcs que ja tinham historico)
+        int seeded = SeedBestVaultFromArchives();
+        if (seeded > 0) parts.Add($"best herdado={seeded}");
+
+        // 1) Snapshot do que ainda esta live (pode ser a unica copia grande)
         int snapped = SnapshotLiveGarage(iniPath);
         if (snapped > 0) parts.Add($"snapshot live={snapped}");
 
+        // 2) Restaura Epic + Steam a partir de todos os cofres
         bool epic = RestoreInto(SaveDirFromIni(iniPath, epic: true), preferNewest: true, preferGarage: true, parts);
         bool steam = RestoreInto(SaveDirFromIni(iniPath, epic: false), preferNewest: true, preferGarage: true, parts);
+
+        // 3) Reforca contas live pequeninas com o Best sticky da mesma conta
+        int reinforced = ReinforceLiveAccounts(iniPath);
+        if (reinforced > 0) parts.Add($"reforco contas={reinforced}");
+
+        // 4) Limpa cache Epic (cloud costuma regravar o menu)
         bool purge = PurgeRlSettingsData();
         if (purge) parts.Add("cache limpo");
 
-        summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups";
-        AppMeta.Log("RESTAURAR-PRESETS: " + summary);
-        return epic || steam;
+        // 5) 2o passe — cloud/Defender por vezes reescreve nos primeiros ms
+        Thread.Sleep(700);
+        int secondPass = ReinforceLiveAccounts(iniPath) + RestoreBestVaultInto(iniPath);
+        if (secondPass > 0) parts.Add($"2o passe={secondPass}");
+
+        bool ok = epic || steam || reinforced > 0 || secondPass > 0;
+        summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups de garagem";
+        AppMeta.Log("RESTAURAR-PRESETS: " + summary + (ok ? " OK" : " FALHOU"));
+        return ok;
     }
 
     /// <summary>Copia saves de garagem (grandes) — so file copy, sem decrypt.</summary>
     public static int BackupGaragePresets(string? iniPath)
     {
         if (iniPath is null) return 0;
+        try { SeedBestVaultFromArchives(); } catch { }
         int n = 0;
         n += BackupGarageFromDir(SaveDirFromIni(iniPath, epic: true));
         n += BackupGarageFromDir(SaveDirFromIni(iniPath, epic: false));
@@ -77,14 +107,15 @@ internal static class SaveRecovery
 
             Directory.CreateDirectory(BackupRoot);
             Directory.CreateDirectory(PresetsRoot);
+            Directory.CreateDirectory(BestRoot);
             string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
             var heavy = Directory.EnumerateFiles(saveDir, "*.save")
                 .Select(f => new FileInfo(f))
-                .Where(f => f.Length >= GarageMinBytes && f.Length <= GarageMaxBytes)
+                .Where(f => f.Exists && f.Length >= SoftGarageMinBytes && f.Length <= GarageMaxBytes)
                 .OrderByDescending(f => f.Length)
                 .ThenByDescending(f => f.LastWriteTimeUtc)
-                .Take(8)
+                .Take(16)
                 .ToList();
 
             int n = 0;
@@ -95,17 +126,22 @@ internal static class SaveRecovery
                 string destB = Path.Combine(PresetsRoot, name);
                 if (!File.Exists(destA))
                 {
-                    fi.CopyTo(destA, false);
+                    SafeCopy(fi.FullName, destA, overwrite: false);
                     n++;
                 }
+
                 if (!File.Exists(destB))
                 {
-                    try { fi.CopyTo(destB, false); } catch { }
+                    try { SafeCopy(fi.FullName, destB, overwrite: false); } catch { }
                 }
+
+                // Cofre sticky: so sobe, nunca desce.
+                if (UpdateBestVault(fi.Name, fi.FullName, fi.Length))
+                    AppMeta.Log($"Best vault atualizado: {fi.Name} ({fi.Length / 1024}KB)");
             }
 
             if (n > 0)
-                AppMeta.Log($"Backup garagem/presets: {n} save(s) grandes ({ts}).");
+                AppMeta.Log($"Backup garagem/presets: {n} save(s) ({ts}).");
             return n;
         }
         catch (Exception ex)
@@ -113,6 +149,70 @@ internal static class SaveRecovery
             AppMeta.Log("BackupGarage: " + ex.Message);
             return 0;
         }
+    }
+
+    /// <summary>Atualiza Best/{conta}.save apenas se o novo for maior.</summary>
+    public static bool UpdateBestVault(string accountFileName, string sourcePath, long sourceLength)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(accountFileName) || !File.Exists(sourcePath))
+                return false;
+            if (sourceLength < SoftGarageMinBytes || sourceLength > GarageMaxBytes)
+                return false;
+
+            Directory.CreateDirectory(BestRoot);
+            string bestPath = Path.Combine(BestRoot, accountFileName);
+            if (File.Exists(bestPath))
+            {
+                long bestLen = new FileInfo(bestPath).Length;
+                if (sourceLength <= bestLen)
+                    return false;
+            }
+
+            SafeCopy(sourcePath, bestPath, overwrite: true);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("UpdateBestVault: " + ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Varre backups antigos e enche o Best com o maior save de cada conta.</summary>
+    public static int SeedBestVaultFromArchives()
+    {
+        int n = 0;
+        try
+        {
+            Directory.CreateDirectory(BestRoot);
+            foreach (string root in new[] { BackupRoot, PresetsRoot, Path.Combine(AppMeta.BackupDir, "Quarantine") })
+            {
+                if (!Directory.Exists(root)) continue;
+                foreach (string path in Directory.EnumerateFiles(root, "*.save", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        if (string.Equals(Path.GetDirectoryName(path), BestRoot, StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        var fi = new FileInfo(path);
+                        if (fi.Length < SoftGarageMinBytes || fi.Length > GarageMaxBytes) continue;
+                        var m = BackupName.Match(fi.Name);
+                        string account = m.Success ? m.Groups[1].Value : fi.Name;
+                        if (UpdateBestVault(account, fi.FullName, fi.Length))
+                            n++;
+                    }
+                    catch { }
+                }
+            }
+            if (n > 0) AppMeta.Log($"Best vault herdado de arquivos: {n}.");
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("SeedBestVault: " + ex.Message);
+        }
+        return n;
     }
 
     public static (int files, int garage, long bytes) CountBackups()
@@ -129,7 +229,7 @@ internal static class SaveRecovery
                     var fi = new FileInfo(f);
                     files++;
                     bytes += fi.Length;
-                    if (fi.Length >= GarageMinBytes) garage++;
+                    if (fi.Length >= SoftGarageMinBytes) garage++;
                 }
                 catch { }
             }
@@ -139,6 +239,7 @@ internal static class SaveRecovery
 
     private static IEnumerable<string> EnumerateBackupRoots()
     {
+        yield return BestRoot;
         yield return BackupRoot;
         yield return PresetsRoot;
         string q = Path.Combine(AppMeta.BackupDir, "Quarantine");
@@ -153,9 +254,6 @@ internal static class SaveRecovery
         var groups = CollectBackupGroups();
         if (groups.Count == 0)
             return preferNewest ? false : QuarantineSaves(saveDir);
-
-        if (!Directory.Exists(saveDir) && preferNewest)
-            return false;
 
         try
         {
@@ -173,16 +271,24 @@ internal static class SaveRecovery
                         ? g.OrderByDescending(x => x.File.LastWriteTimeUtc).First().File
                         : g.OrderBy(x => x.File.LastWriteTimeUtc).First().File;
 
+                // Em modo presets, nao vale a pena repor stubs pequeninos por cima do live
+                if (preferGarage && pick.Length < SoftGarageMinBytes)
+                    continue;
+
                 string dest = Path.Combine(saveDir, g.Key);
-                File.Copy(pick.FullName, dest, true);
+                if (!SafeCopy(pick.FullName, dest, overwrite: true))
+                    continue;
+
                 restored++;
                 bytes += pick.Length;
-                if (pick.Length >= GarageMinBytes) garageHits++;
+                if (pick.Length >= SoftGarageMinBytes) garageHits++;
                 AppMeta.Log($"Save restaurado: {g.Key} <- {pick.Name} ({pick.Length / 1024}KB, {tag})");
             }
 
-            parts?.Add($"{tag}:{restored} ficheiros ({bytes / 1024}KB, {garageHits} garagem)");
-            return restored > 0;
+            if (restored > 0)
+                parts?.Add($"{tag}:{restored} ficheiros ({bytes / 1024}KB, {garageHits} garagem)");
+
+            return preferGarage ? garageHits > 0 : restored > 0;
         }
         catch (Exception ex)
         {
@@ -191,21 +297,123 @@ internal static class SaveRecovery
         }
     }
 
+    /// <summary>
+    /// Se a conta live esta pequena e existe Best/backup maior com o MESMO nome, forca a copia.
+    /// </summary>
+    private static int ReinforceLiveAccounts(string iniPath)
+    {
+        int n = 0;
+        n += ReinforceDir(SaveDirFromIni(iniPath, epic: true));
+        n += ReinforceDir(SaveDirFromIni(iniPath, epic: false));
+        return n;
+    }
+
+    private static int ReinforceDir(string? saveDir)
+    {
+        if (saveDir is null) return 0;
+        try
+        {
+            if (!Directory.Exists(saveDir))
+                Directory.CreateDirectory(saveDir);
+
+            var groups = CollectBackupGroups()
+                .ToDictionary(g => g.Key, g => PickGaragePreferred(g), StringComparer.OrdinalIgnoreCase);
+
+            int n = 0;
+
+            // Contas ja presentes no live
+            foreach (string livePath in Directory.EnumerateFiles(saveDir, "*.save"))
+            {
+                var live = new FileInfo(livePath);
+                string name = live.Name;
+                if (!groups.TryGetValue(name, out var best))
+                    continue;
+                if (best.Length < SoftGarageMinBytes)
+                    continue;
+                if (live.Exists && live.Length >= best.Length)
+                    continue;
+
+                if (SafeCopy(best.FullName, livePath, overwrite: true))
+                {
+                    n++;
+                    AppMeta.Log($"Reforco conta live: {name} {live.Length / 1024}KB -> {best.Length / 1024}KB");
+                }
+            }
+
+            // Contas so no Best/backup que ainda nao existem no live
+            foreach (var kv in groups)
+            {
+                if (kv.Value.Length < SoftGarageMinBytes) continue;
+                string dest = Path.Combine(saveDir, kv.Key);
+                if (File.Exists(dest))
+                {
+                    long cur = new FileInfo(dest).Length;
+                    if (cur >= kv.Value.Length) continue;
+                }
+
+                if (SafeCopy(kv.Value.FullName, dest, overwrite: true))
+                {
+                    n++;
+                    AppMeta.Log($"Injetado save ausente/fraco: {kv.Key} ({kv.Value.Length / 1024}KB)");
+                }
+            }
+
+            return n;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("ReinforceDir: " + ex.Message);
+            return 0;
+        }
+    }
+
+    private static int RestoreBestVaultInto(string iniPath)
+    {
+        if (!Directory.Exists(BestRoot)) return 0;
+        int n = 0;
+        foreach (bool epic in new[] { true, false })
+        {
+            string? dir = SaveDirFromIni(iniPath, epic);
+            if (dir is null) continue;
+            try
+            {
+                Directory.CreateDirectory(dir);
+                foreach (string best in Directory.EnumerateFiles(BestRoot, "*.save"))
+                {
+                    var fi = new FileInfo(best);
+                    if (fi.Length < SoftGarageMinBytes) continue;
+                    string dest = Path.Combine(dir, fi.Name);
+                    bool need = !File.Exists(dest) || new FileInfo(dest).Length < fi.Length;
+                    if (need && SafeCopy(best, dest, overwrite: true))
+                        n++;
+                }
+            }
+            catch { }
+        }
+        return n;
+    }
+
     private static FileInfo PickGaragePreferred(IGrouping<string, (string Orig, FileInfo File)> g)
     {
-        // 1) Maior save de garagem (>=1.5MB), mais recente
-        var big = g.Where(x => x.File.Length >= GarageMinBytes)
-            .OrderByDescending(x => x.File.LastWriteTimeUtc)
+        // 1) Maior save de garagem, preferindo o Best vault e depois o mais recente
+        var big = g.Where(x => x.File.Length >= SoftGarageMinBytes)
+            .OrderByDescending(x => IsBestVaultPath(x.File.FullName) ? 1 : 0)
             .ThenByDescending(x => x.File.Length)
+            .ThenByDescending(x => x.File.LastWriteTimeUtc)
             .Select(x => x.File)
             .FirstOrDefault();
         if (big is not null) return big;
 
-        // 2) Sem garagem no backup: o MAIOR disponivel (melhor que o mais novo pequenino)
+        // 2) Sem garagem: o MAIOR disponivel (melhor que o mais novo pequenino)
         return g.OrderByDescending(x => x.File.Length)
             .ThenByDescending(x => x.File.LastWriteTimeUtc)
             .First().File;
     }
+
+    private static bool IsBestVaultPath(string path) =>
+        path.IndexOf($"{Path.DirectorySeparatorChar}Best{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0
+        || path.IndexOf("/Best/", StringComparison.OrdinalIgnoreCase) >= 0
+        || path.IndexOf("\\Best\\", StringComparison.OrdinalIgnoreCase) >= 0;
 
     private static List<IGrouping<string, (string Orig, FileInfo File)>> CollectBackupGroups()
     {
@@ -213,20 +421,84 @@ internal static class SaveRecovery
         foreach (string root in EnumerateBackupRoots())
         {
             if (!Directory.Exists(root)) continue;
-            IEnumerable<string> files = Directory.EnumerateFiles(root, "*.save", SearchOption.AllDirectories);
-            foreach (string path in files)
+            foreach (string path in Directory.EnumerateFiles(root, "*.save", SearchOption.AllDirectories))
             {
-                var fi = new FileInfo(path);
-                string name = fi.Name;
-                var m = BackupName.Match(name);
-                string orig = m.Success ? m.Groups[1].Value : name; // quarentena sem prefixo ts
-                all.Add((orig, fi));
+                try
+                {
+                    var fi = new FileInfo(path);
+                    if (!fi.Exists || fi.Length <= 0) continue;
+                    string name = fi.Name;
+                    // Best vault guarda o nome original da conta (sem prefixo timestamp)
+                    bool fromBest = string.Equals(fi.DirectoryName, BestRoot, StringComparison.OrdinalIgnoreCase);
+                    if (fromBest)
+                    {
+                        all.Add((name, fi));
+                        continue;
+                    }
+
+                    var m = BackupName.Match(name);
+                    string orig = m.Success ? m.Groups[1].Value : name;
+                    all.Add((orig, fi));
+                }
+                catch { }
             }
         }
 
         return all
             .GroupBy(x => x.Orig, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static bool SafeCopy(string source, string dest, bool overwrite)
+    {
+        try
+        {
+            string? dir = Path.GetDirectoryName(dest);
+            if (!string.IsNullOrWhiteSpace(dir))
+                Directory.CreateDirectory(dir);
+
+            if (File.Exists(dest))
+            {
+                if (!overwrite) return false;
+                try { File.SetAttributes(dest, FileAttributes.Normal); } catch { }
+            }
+
+            // Copia para temp na mesma pasta e depois replace — mais resistente a locks
+            string tmp = dest + ".guttytmp";
+            try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+            File.Copy(source, tmp, true);
+            try { File.SetAttributes(tmp, FileAttributes.Normal); } catch { }
+
+            if (File.Exists(dest))
+            {
+                try { File.Replace(tmp, dest, null); }
+                catch
+                {
+                    File.Copy(tmp, dest, true);
+                    try { File.Delete(tmp); } catch { }
+                }
+            }
+            else
+            {
+                File.Move(tmp, dest);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log($"SafeCopy falhou ({Path.GetFileName(dest)}): {ex.Message}");
+            try
+            {
+                File.Copy(source, dest, overwrite);
+                return true;
+            }
+            catch (Exception ex2)
+            {
+                AppMeta.Log($"SafeCopy fallback falhou: {ex2.Message}");
+                return false;
+            }
+        }
     }
 
     public static bool QuarantineSaves(string saveDir)
@@ -237,6 +509,17 @@ internal static class SaveRecovery
 
             var saves = Directory.EnumerateFiles(saveDir, "*.save").ToList();
             if (saves.Count == 0) return true;
+
+            // Preserva grandes na Best antes de quarentenar
+            foreach (string f in saves)
+            {
+                try
+                {
+                    var fi = new FileInfo(f);
+                    UpdateBestVault(fi.Name, fi.FullName, fi.Length);
+                }
+                catch { }
+            }
 
             string q = Path.Combine(AppMeta.BackupDir, "Quarantine",
                 DateTime.Now.ToString("yyyyMMdd_HHmmss"));
@@ -284,15 +567,29 @@ internal static class SaveRecovery
         }
     }
 
-    /// <summary>Ultimo recurso: save mais antigo (stock-ish) Epic+Steam + purge cache.</summary>
-    public static bool FullRecovery(string iniPath)
+    /// <summary>
+    /// Boot recovery: preserva Best, quarentena saves live e limpa cache.
+    /// NAO reinsere Best/garagem — save grande corrompido e uma causa tipica de "jogo nao abre".
+    /// O RL recria saves limpos na 1ª abertura; presets voltam via RestorePresets depois.
+    /// </summary>
+    public static bool UnbreakSaves(string iniPath)
     {
-        bool epic = RestoreInto(SaveDirFromIni(iniPath, epic: true), preferNewest: false, preferGarage: false);
-        bool steam = RestoreInto(SaveDirFromIni(iniPath, epic: false), preferNewest: false, preferGarage: false);
+        try { BackupGaragePresets(iniPath); } catch { }
+
+        bool epicQ = true;
+        bool steamQ = true;
+        string? epic = SaveDirFromIni(iniPath, epic: true);
+        string? steam = SaveDirFromIni(iniPath, epic: false);
+        if (epic is not null && Directory.Exists(epic))
+            epicQ = QuarantineSaves(epic);
+        if (steam is not null && Directory.Exists(steam))
+            steamQ = QuarantineSaves(steam);
+
         bool purge = PurgeRlSettingsData();
-        bool anyStore = Directory.Exists(SaveDirFromIni(iniPath, true) ?? "")
-            || Directory.Exists(SaveDirFromIni(iniPath, false) ?? "");
-        if (!anyStore) return purge;
-        return (epic || steam) && purge;
+        AppMeta.Log($"UNBREAK-SAVES: epicQ={epicQ} steamQ={steamQ} purge={purge}");
+        return epicQ && steamQ && purge;
     }
+
+    /// <summary>Alias legado — mesma logica nuclear que UnbreakSaves (sem reforco Best).</summary>
+    public static bool FullRecovery(string iniPath) => UnbreakSaves(iniPath);
 }

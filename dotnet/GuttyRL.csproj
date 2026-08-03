@@ -1,13 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <StartupObject>GuttyRL.Program</StartupObject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>GuttyTECH_RL</AssemblyName>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- WPF text shaping requires full globalization data. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <Product>GUTTYTECH RL INI Optimizer</Product>
     <AssemblyTitle>GUTTYTECH RL INI Optimizer</AssemblyTitle>
     <Company>GUTTYTECH</Company>
@@ -24,6 +27,7 @@
     <EmbeddedResource Include="embed-bundle.zip" Condition="Exists('embed-bundle.zip')">
       <LogicalName>GuttyRL.embed-bundle.zip</LogicalName>
     </EmbeddedResource>
+    <Resource Include="Assets\gutty-avatar.png" />
   </ItemGroup>
 
   <Target Name="BuildEmbedBundle" BeforeTargets="BeforeBuild">

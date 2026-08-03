@@ -4,22 +4,34 @@ using System.Text.RegularExpressions;
 
 namespace GuttyRL;
 
-/// <summary>Diagnostico e reparacao (menu CORRIGIR ERROS) — perfil otimizado vs boot stock.</summary>
+/// <summary>
+/// Diagnostico e reparacao (menu CORRIGIR ERROS).
+/// UnbreakBoot = caminho nuclear quando o Rocket League nao abre.
+/// </summary>
 internal static class ErrorRepair
 {
-    private static readonly Regex BootKiller = new(
-        @"^(OnlyStreamInTextures|WaitForGPU)=(True)$",
-        RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
+    private static readonly (string Key, string Value)[] BootSafeKeys =
+    {
+        ("OnlyStreamInTextures", "False"),
+        ("WaitForGPU", "False"),
+        ("OneFrameThreadLag", "True"),
+        ("AllowPerFrameSleep", "True"),
+        ("AllowPerFrameYield", "True"),
+    };
 
-    public static int Diagnostico(string? cfg, Func<string?> detectMode, bool interactive)
+    public static (IReadOnlyList<string> Lines, bool Issues) CollectDiagnosticReport(
+        string? cfg,
+        Func<string?> detectMode)
     {
         var lines = new List<string>();
         bool issues = false;
+        bool bootRisk = false;
 
         if (cfg is null || !File.Exists(cfg))
         {
             lines.Add("INI: AUSENTE — abra o RL 1x pela Epic/Steam.");
             issues = true;
+            bootRisk = true;
         }
         else
         {
@@ -29,11 +41,10 @@ internal static class ErrorRepair
             if (!writable) issues = true;
 
             string text = "";
-            try { text = File.ReadAllText(cfg); } catch { issues = true; }
+            try { text = File.ReadAllText(cfg); } catch { issues = true; bootRisk = true; }
 
             string? mode = detectMode();
             lines.Add(mode is null ? "Modo Gutty: NENHUM (stock / parcial)" : "Modo Gutty: " + mode);
-            if (mode is null) issues = true;
 
             var map = ParseSystemSettings(text);
             void Check(string key, string want, bool critical = true)
@@ -46,6 +57,17 @@ internal static class ErrorRepair
                     lines.Add($"  !! {key}={got ?? "?"} (esperado {want})");
                     if (critical) issues = true;
                 }
+            }
+
+            if (HasBootKillers(text))
+            {
+                lines.Add("  !! BOOT RISK: OnlyStreamInTextures/WaitForGPU=True");
+                issues = true;
+                bootRisk = true;
+            }
+            else
+            {
+                lines.Add("  OK boot-safe (OnlyStream/WaitForGPU)");
             }
 
             if (mode == "COMPLETO")
@@ -64,14 +86,6 @@ internal static class ErrorRepair
                 Check("OnlyStreamInTextures", "False");
                 Check("WaitForGPU", "False");
             }
-            else
-            {
-                if (HasBootKillers(text))
-                {
-                    lines.Add("  !! Boot killers ativos (OnlyStream/WaitForGPU=True)");
-                    issues = true;
-                }
-            }
         }
 
         bool rlOpen = Process.GetProcessesByName("RocketLeague").Length > 0;
@@ -85,8 +99,9 @@ internal static class ErrorRepair
             {
                 string pidLine = File.ReadAllLines(lockPath).FirstOrDefault() ?? "";
                 lines.Add("Watcher: lock ativo (pid " + pidLine + ")");
+                issues = true;
             }
-            catch { lines.Add("Watcher: lock presente"); }
+            catch { lines.Add("Watcher: lock presente"); issues = true; }
         }
         else
             lines.Add("Watcher: inativo");
@@ -96,7 +111,15 @@ internal static class ErrorRepair
         int epicN = CountSaves(epic);
         int steamN = CountSaves(steam);
         lines.Add($"Saves Epic: {epicN} | Steam: {steamN}");
+        if (bootRisk)
+            lines.Add("ACAO: use RECUPERAR BOOT / CORRIGIR TUDO (caminho nuclear).");
 
+        return (lines, issues);
+    }
+
+    public static int Diagnostico(string? cfg, Func<string?> detectMode, bool interactive)
+    {
+        (IReadOnlyList<string> lines, bool issues) = CollectDiagnosticReport(cfg, detectMode);
         AppMeta.Log("DIAG: " + string.Join(" | ", lines));
 
         if (interactive)
@@ -107,7 +130,7 @@ internal static class ErrorRepair
             Ui.Gap();
             Ui.PanelTop(issues ? "PROBLEMAS DETETADOS" : "ESTADO OK");
             foreach (string l in lines)
-                Ui.PanelLine(Ui.C(l, l.Contains("!!") || l.Contains("BLOQUE") || l.Contains("AUSENTE") || l.Contains("ABERTO")
+                Ui.PanelLine(Ui.C(l, l.Contains("!!") || l.Contains("BLOQUE") || l.Contains("AUSENTE") || l.Contains("ABERTO") || l.Contains("ACAO")
                     ? Ui.Amber : Ui.Gray));
             Ui.PanelBottom();
             Ui.Gap();
@@ -115,8 +138,8 @@ internal static class ErrorRepair
             {
                 Ui.StepsPanel("SUGESTAO", new[]
                 {
-                    "Menu quebrado / pos-boot / APLICAR → [2] REPARAR PERFIL",
-                    "Jogo nao abre de todo → [3] RECUPERAR BOOT (stock)",
+                    "Jogo NAO abre → [3] RECUPERAR BOOT ou [5] CORRIGIR TUDO",
+                    "Jogo abre mas menu errado → [2] REPARAR PERFIL",
                     "Pasta bloqueada → [1] PERMISSOES",
                 }, Ui.MAmber);
             }
@@ -133,6 +156,142 @@ internal static class ErrorRepair
         return issues ? 1 : 0;
     }
 
+    /// <summary>
+    /// Caminho nuclear: faz o Rocket League voltar a abrir.
+    /// Nao reaplica COMPLETO/CRIADOR. Nao reinsere saves Best (podem estar corrompidos).
+    /// </summary>
+    public static int UnbreakBoot(
+        string? cfg,
+        Func<bool> restoreStockIni,
+        Action unlockIni,
+        bool interactive)
+    {
+        var report = new List<string>();
+        if (interactive)
+        {
+            Ui.Cls();
+            Ui.MiniBannerIfTall(Ui.MAmber);
+            Ui.TitleBar("RECUPERAR BOOT — JOGO NAO ABRE", Ui.MAmber);
+            Ui.StepsPanel("CAMINHO NUCLEAR", new[]
+            {
+                "Fecha o Rocket League e o watcher automatico",
+                "Preserva garagem no cofre Best (sem reaplicar agora)",
+                "Volta o INI para stock/original sem otimizador",
+                "Remove chaves que travam o boot",
+                "Quarentena saves suspeitos + limpa cache Epic",
+                "Depois: abra o RL 1x e so entao reaplique o modo",
+            }, Ui.MAmber);
+        }
+
+        if (cfg is null)
+        {
+            if (interactive)
+                Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Caminho do INI desconhecido.", "Abra o Rocket League 1x pela Epic/Steam." });
+            return 1;
+        }
+
+        // 1) Matar jogo + watcher (sem perguntar no modo GUI)
+        bool killed = ForceCloseRocketLeague();
+        report.Add(killed ? "RL fechado" : "RL ja estava fechado");
+        VideoSettingsSync.StopExistingWatchers();
+        report.Add("watcher parado");
+
+        if (interactive)
+        {
+            Ui.StepAnimated("Encerrando Rocket League / watcher", () =>
+            {
+                ForceCloseRocketLeague();
+                VideoSettingsSync.StopExistingWatchers();
+                return true;
+            });
+        }
+
+        // 2) Permissões mínimas
+        bool accessOk;
+        if (interactive)
+            accessOk = Ui.StepAnimated("Liberando escrita na pasta", () => FolderAccess.EnsureWriteAccess(cfg, interactive: false));
+        else
+            accessOk = FolderAccess.EnsureWriteAccess(cfg, interactive: false);
+        report.Add(accessOk ? "pasta gravavel" : "pasta ainda bloqueada");
+
+        // 3) Snapshot da garagem ANTES de quarentenar
+        int snapped = 0;
+        if (interactive)
+            Ui.StepAnimated("Preservando presets no cofre Best", () =>
+            {
+                snapped = SaveRecovery.BackupGaragePresets(cfg);
+                return true;
+            });
+        else
+            snapped = SaveRecovery.BackupGaragePresets(cfg);
+        if (snapped > 0) report.Add($"best snapshot={snapped}");
+
+        // 4) Unlock + stock INI
+        bool unlockOk = true;
+        bool iniOk;
+        if (interactive)
+        {
+            unlockOk = Ui.StepAnimated("Destravando TASystemSettings.ini", () =>
+            {
+                try { unlockIni(); File.SetAttributes(cfg, FileAttributes.Normal); return true; }
+                catch { return false; }
+            });
+            Ui.StepAnimated("Backup de seguranca do INI", () => { try { Program.BackupIniForRepair(cfg); return true; } catch { return true; } });
+            iniOk = Ui.StepAnimated("Restaurando INI stock (sem otimizador)", restoreStockIni);
+            Ui.StepAnimated("Removendo boot-killers", () => ForceBootSafeIni(cfg));
+        }
+        else
+        {
+            try { unlockIni(); File.SetAttributes(cfg, FileAttributes.Normal); } catch { unlockOk = false; }
+            try { Program.BackupIniForRepair(cfg); } catch { }
+            iniOk = restoreStockIni();
+            ForceBootSafeIni(cfg);
+        }
+
+        report.Add(iniOk ? "INI stock OK" : "INI stock FALHOU");
+        report.Add(unlockOk ? "INI destravado" : "INI lock residual");
+
+        // 5) Quarentena dos saves live (nao reinsere Best — pode ser o save que trava)
+        bool saveOk;
+        if (interactive)
+            saveOk = Ui.StepAnimated("Quarentena de saves + purge cache", () => SaveRecovery.UnbreakSaves(cfg));
+        else
+            saveOk = SaveRecovery.UnbreakSaves(cfg);
+        report.Add(saveOk ? "saves/cache limpos" : "saves/cache parcial");
+
+        // 6) Verificacao final
+        bool bootSafe = true;
+        try
+        {
+            if (File.Exists(cfg))
+            {
+                string text = File.ReadAllText(cfg);
+                bootSafe = !HasBootKillers(text) && ForceBootSafeIni(cfg);
+                try { File.SetAttributes(cfg, FileAttributes.Normal); } catch { }
+            }
+            else bootSafe = false;
+        }
+        catch { bootSafe = false; }
+        report.Add(bootSafe ? "boot-safe verificado" : "boot-safe FALHOU");
+
+        AppMeta.Log("UNBREAK-BOOT: " + string.Join("; ", report));
+
+        bool ok = iniOk && bootSafe;
+        if (interactive)
+        {
+            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MAmber, ok ? "JOGO DESBLOQUEADO" : "RECUPERACAO PARCIAL", new[]
+            {
+                string.Join(" · ", report),
+                "1) Epic/Steam → Verificar ficheiros do Rocket League",
+                "2) Abra o jogo 1x e confirme que entra no menu",
+                "3) So depois aplique COMPLETO ou CRIADOR de novo",
+                "4) Presets: use RESTAURAR PRESETS se a garagem sumir",
+            });
+        }
+
+        return ok ? 0 : 1;
+    }
+
     /// <summary>Mantém COMPLETO/CRIADOR: unlock + reclamp INI + sync menu + purge cache.</summary>
     public static int RepararPerfil(string? cfg, Func<string?> detectMode, bool interactive)
     {
@@ -142,6 +301,8 @@ internal static class ErrorRepair
                 Ui.CompletionMessage(Ui.MRed, "ERRO", new[] { "Caminho do INI desconhecido." });
             return 1;
         }
+
+        ForceCloseRocketLeague();
 
         if (Process.GetProcessesByName("RocketLeague").Length > 0)
         {
@@ -154,13 +315,9 @@ internal static class ErrorRepair
                 Ui.Prompt("Fechar o jogo agora? (S/N)");
                 if (!IsYes(Console.ReadLine()))
                     return 1;
-                foreach (var p in Process.GetProcessesByName("RocketLeague"))
-                {
-                    try { p.Kill(); } catch { }
-                }
-                Thread.Sleep(2000);
+                ForceCloseRocketLeague();
             }
-            else
+            else if (Process.GetProcessesByName("RocketLeague").Length > 0)
                 return 1;
         }
 
@@ -175,6 +332,7 @@ internal static class ErrorRepair
                 "Reclampa INI (Uncapped, shaders, particle, boot-safe)",
                 "Regrava menu VideoOptions nas contas Epic/Steam",
                 "Limpa cache RLSettingsData (Epic)",
+                "Se o jogo NAO abrir depois: use RECUPERAR BOOT",
             }, Ui.MAmber);
         }
 
@@ -189,7 +347,7 @@ internal static class ErrorRepair
                 Ui.Gap();
                 Ui.PanelTop("SEM MODO GUTTY");
                 Ui.PanelLine(Ui.C("Nao ha GuttyTechMode no INI.", Ui.Amber));
-                Ui.PanelLine(Ui.C("Sem isso so posso aplicar um perfil agora.", Ui.Gray));
+                Ui.PanelLine(Ui.C("Sem modo ativo, use RECUPERAR BOOT se o jogo nao abre.", Ui.Gray));
                 Ui.PanelBottom();
                 Ui.Prompt("Aplicar COMPLETO agora? (S=COMPLETO / N=cancelar)");
                 if (!IsYes(Console.ReadLine()))
@@ -207,6 +365,7 @@ internal static class ErrorRepair
         bool reclampOk;
         bool syncOk;
         bool purgeOk;
+        bool bootSafe;
 
         if (interactive)
         {
@@ -216,23 +375,27 @@ internal static class ErrorRepair
                 catch { return false; }
             });
             reclampOk = Ui.StepAnimated("Reclampando INI (" + mode + ")", () =>
-                VideoSettingsSync.ReclampIni(cfg, mode!) && StripBootKillers(cfg));
+                VideoSettingsSync.ReclampIni(cfg, mode!) && ForceBootSafeIni(cfg));
             syncOk = Ui.StepAnimated("Sincronizando menu (saves)", () =>
                 VideoSettingsSync.SyncVideoSave(cfg, mode!, interactive: false));
             purgeOk = Ui.StepAnimated("Limpando cache RLSettingsData", SaveRecovery.PurgeRlSettingsData);
+            bootSafe = Ui.StepAnimated("Validando boot-safe", () => ForceBootSafeIni(cfg));
         }
         else
         {
             try { File.SetAttributes(cfg, FileAttributes.Normal); } catch { unlockOk = false; }
-            reclampOk = VideoSettingsSync.ReclampIni(cfg, mode!) && StripBootKillers(cfg);
+            reclampOk = VideoSettingsSync.ReclampIni(cfg, mode!) && ForceBootSafeIni(cfg);
             syncOk = VideoSettingsSync.SyncVideoSave(cfg, mode!, interactive: false);
             purgeOk = SaveRecovery.PurgeRlSettingsData();
+            bootSafe = ForceBootSafeIni(cfg);
         }
 
-        if (interactive)
+        // Nao arrancar watcher se o perfil ficou com boot risk
+        if (interactive && bootSafe)
             VideoSettingsSync.StartExitWatcher(mode!);
-        bool ok = unlockOk && reclampOk && syncOk && purgeOk;
-        AppMeta.Log($"REPARAR PERFIL {mode}: ok={ok} reclamp={reclampOk} sync={syncOk} purge={purgeOk}");
+
+        bool ok = unlockOk && reclampOk && syncOk && purgeOk && bootSafe;
+        AppMeta.Log($"REPARAR PERFIL {mode}: ok={ok} reclamp={reclampOk} sync={syncOk} purge={purgeOk} bootSafe={bootSafe}");
 
         if (interactive)
         {
@@ -241,7 +404,7 @@ internal static class ErrorRepair
                 Ui.CompletionMessage(Ui.OkGreen, "PERFIL REPARADO", new[]
                 {
                     "Modo " + mode + " reaplicado no INI + menu.",
-                    "Watcher ativo: ao fechar o RL, repara sozinho.",
+                    "Boot-safe confirmado (OnlyStream/WaitForGPU=False).",
                     "Nao clique APLICAR em resolucao/sem bordas no jogo.",
                 });
             }
@@ -250,9 +413,9 @@ internal static class ErrorRepair
                 Ui.CompletionMessage(Ui.MAmber, "REPARO PARCIAL", new[]
                 {
                     reclampOk ? "INI: OK" : "INI: falhou",
-                    syncOk ? "Save/menu: OK" : "Save/menu: falhou (Python/runtime?)",
-                    purgeOk ? "Cache: OK" : "Cache: falhou",
-                    "Se o jogo nao abrir: use [3] RECUPERAR BOOT.",
+                    syncOk ? "Save/menu: OK" : "Save/menu: falhou",
+                    bootSafe ? "Boot-safe: OK" : "Boot-safe: FALHOU",
+                    "Se o jogo nao abrir: use RECUPERAR BOOT agora.",
                 });
             }
         }
@@ -260,28 +423,113 @@ internal static class ErrorRepair
         return ok ? 0 : 1;
     }
 
-    /// <summary>Remove OnlyStreamInTextures/WaitForGPU=True sem restaurar stock.</summary>
-    public static bool StripBootKillers(string iniPath)
+    public static bool ForceCloseRocketLeague()
+    {
+        bool any = false;
+        try
+        {
+            foreach (var p in Process.GetProcessesByName("RocketLeague"))
+            {
+                any = true;
+                try { p.Kill(entireProcessTree: true); } catch { try { p.Kill(); } catch { } }
+            }
+        }
+        catch { }
+
+        for (int i = 0; i < 8; i++)
+        {
+            Thread.Sleep(400);
+            if (Process.GetProcessesByName("RocketLeague").Length == 0)
+                break;
+            foreach (var p in Process.GetProcessesByName("RocketLeague"))
+            {
+                try { p.Kill(entireProcessTree: true); } catch { }
+            }
+        }
+
+        return any;
+    }
+
+    /// <summary>Garante chaves que nao podem travar o boot.</summary>
+    public static bool ForceBootSafeIni(string iniPath)
     {
         try
         {
             if (!File.Exists(iniPath)) return false;
             string text = File.ReadAllText(iniPath);
-            if (!HasBootKillers(text)) return true;
-            string fixedText = BootKiller.Replace(text, "$1=False");
-            File.WriteAllText(iniPath, fixedText);
-            AppMeta.Log("Boot killers removidos (OnlyStream/WaitForGPU -> False).");
-            return true;
+            string fixedText = text;
+            foreach (var (key, value) in BootSafeKeys)
+                fixedText = UpsertSystemSettingsKey(fixedText, key, value);
+
+            if (!string.Equals(text, fixedText, StringComparison.Ordinal))
+            {
+                try { File.SetAttributes(iniPath, FileAttributes.Normal); } catch { }
+                File.WriteAllText(iniPath, fixedText, new UTF8Encoding(false));
+                AppMeta.Log("Boot-safe INI aplicado.");
+            }
+
+            return !HasBootKillers(File.ReadAllText(iniPath));
         }
         catch (Exception ex)
         {
-            AppMeta.Log("StripBootKillers: " + ex.Message);
+            AppMeta.Log("ForceBootSafeIni: " + ex.Message);
             return false;
         }
     }
 
+    /// <summary>Remove OnlyStreamInTextures/WaitForGPU=True sem restaurar stock.</summary>
+    public static bool StripBootKillers(string iniPath) => ForceBootSafeIni(iniPath);
+
     public static bool HasBootKillers(string iniText) =>
         Regex.IsMatch(iniText, @"(?im)^(OnlyStreamInTextures|WaitForGPU)=True\s*$");
+
+    private static string UpsertSystemSettingsKey(string content, string key, string value)
+    {
+        var sb = new StringBuilder();
+        bool inSs = false;
+        bool replaced = false;
+        string want = key + "=" + value;
+        foreach (string raw in content.Replace("\r\n", "\n").Split('\n'))
+        {
+            string line = raw;
+            if (line.StartsWith('[') && line.EndsWith(']'))
+            {
+                if (inSs && !replaced)
+                {
+                    sb.Append(want).Append("\r\n");
+                    replaced = true;
+                }
+                inSs = line.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase);
+                sb.Append(line).Append("\r\n");
+                continue;
+            }
+
+            if (inSs && line.StartsWith(key + "=", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.Append(want).Append("\r\n");
+                replaced = true;
+                continue;
+            }
+
+            sb.Append(line).Append("\r\n");
+        }
+
+        if (!replaced)
+        {
+            // Append key right after [SystemSettings] header (no recursion).
+            int idx = content.IndexOf("[SystemSettings]", StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+                return "[SystemSettings]\r\n" + want + "\r\n" + content;
+
+            int lineEnd = content.IndexOf('\n', idx);
+            if (lineEnd < 0)
+                return content + "\r\n" + want + "\r\n";
+
+            return content.Insert(lineEnd + 1, want + "\r\n");
+        }
+
+        return sb.ToString();
+    }
 
     private static Dictionary<string, string> ParseSystemSettings(string text)
     {

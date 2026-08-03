@@ -1,0 +1,83 @@
+<Window x:Class="GuttyRL.UpdateToastWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="GuttyTECH — Atualização"
+        Width="380"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ShowActivated="False">
+    <Border Margin="12"
+            Padding="18"
+            Background="{DynamicResource SurfaceBrush}"
+            BorderBrush="{DynamicResource CtaBrush}"
+            BorderThickness="1"
+            CornerRadius="12"
+            Effect="{DynamicResource CardShadow}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Style="{DynamicResource EyebrowTextStyle}"
+                               Foreground="{DynamicResource CtaBrush}"
+                               Text="ATUALIZAÇÃO GITHUB" />
+                    <TextBlock Margin="0,6,0,0"
+                               FontFamily="{DynamicResource TitleFontFamily}"
+                               FontSize="26"
+                               Text="VERSÃO NOVA" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Width="28"
+                        Height="28"
+                        VerticalAlignment="Top"
+                        Focusable="False"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Content="×"
+                        Click="OnDismissClick" />
+            </Grid>
+
+            <TextBlock Grid.Row="1"
+                       Margin="0,10,0,0"
+                       Style="{DynamicResource BodyTextStyle}"
+                       Text="{Binding Message}"
+                       TextWrapping="Wrap" />
+
+            <TextBlock Grid.Row="2"
+                       Margin="0,8,0,0"
+                       Style="{DynamicResource MutedTextStyle}"
+                       Text="{Binding Detail}"
+                       TextWrapping="Wrap" />
+
+            <StackPanel Grid.Row="3"
+                        Margin="0,16,0,0"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button MinWidth="96"
+                        Margin="0,0,8,0"
+                        Focusable="False"
+                        Style="{DynamicResource SecondaryButtonStyle}"
+                        Content="DEPOIS"
+                        Click="OnDismissClick" />
+                <Button MinWidth="120"
+                        Focusable="False"
+                        Style="{DynamicResource PrimaryButtonStyle}"
+                        Content="BAIXAR"
+                        Click="OnDownloadClick" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

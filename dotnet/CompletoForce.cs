@@ -25,10 +25,9 @@ internal static class CompletoForce
         ["Bloom"] = "False",
         ["bAllowLightShafts"] = "False",
         ["LensFlares"] = "False",
-        ["DynamicShadows"] = "False",
-        ["LightEnvironmentShadows"] = "False",
-        ["CompositeDynamicLights"] = "False",
-        ["DynamicLights"] = "False",
+        // DynamicShadows / DynamicLights / Composite / LightEnvironment + pipeline de
+        // resolucao de sombra: NAO forcar — o menu in-game tem de conseguir ligar
+        // sombras dinamicas no COMPLETO (default no template continua False).
         ["SHSecondaryLighting"] = "False",
         ["MotionBlur"] = "False",
         ["MotionBlurPause"] = "False",
@@ -81,19 +80,6 @@ internal static class CompletoForce
         ["StaticDecals"] = "False",
         ["SceneCaptureStreamingMultiplier"] = "0.000000",
         ["MaxFilterBlurSampleCount"] = "2",
-        ["bAllowWholeSceneDominantShadows"] = "False",
-        ["bEnableForegroundShadowsOnWorld"] = "False",
-        ["bEnableBranchingPCFShadows"] = "False",
-        ["bAllowHardwareShadowFiltering"] = "False",
-        ["MinShadowResolution"] = "16",
-        ["MaxShadowResolution"] = "16",
-        ["MaxWholeSceneDominantShadowResolution"] = "16",
-        ["MobileShadowTextureResolution"] = "16",
-        ["ShadowFadeResolution"] = "1",
-        ["PreShadowFadeResolution"] = "1",
-        ["ShadowTexelsPerPixel"] = "0.000000",
-        ["PreShadowResolutionFactor"] = "0.000000",
-        ["ShadowFilterRadius"] = "0.000000",
     };
 
     public static string Apply(string iniText)

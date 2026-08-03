@@ -70,13 +70,13 @@ bAllowD3D9MSAA=False
 bAllowTemporalAA=False
 TemporalAA_MinDepth=0.000000
 TemporalAA_StartDepthVelocityScale=0.000000
-MinShadowResolution=16
+MinShadowResolution=64
 MinPreShadowResolution=8
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
-MaxWholeSceneDominantShadowResolution=16
-ShadowFadeResolution=1
-PreShadowFadeResolution=1
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
+MaxWholeSceneDominantShadowResolution=1344
+ShadowFadeResolution=32
+PreShadowFadeResolution=16
 ShadowFadeExponent=0.250000
 ResX=1920
 ResY=1080
@@ -85,25 +85,25 @@ Borderless=False
 AllowApexCloth=False
 ScreenPercentage=100.000000
 SceneCaptureStreamingMultiplier=0.000000
-ShadowTexelsPerPixel=0.000000
+ShadowTexelsPerPixel=1.273240
 PreShadowResolutionFactor=0.500000
 bEnableBranchingPCFShadows=False
 bAllowHardwareShadowFiltering=False
 TessellationAdaptivePixelsPerTriangle=0.000000
-bEnableForegroundShadowsOnWorld=False
+bEnableForegroundShadowsOnWorld=True
 bEnableForegroundSelfShadowing=False
-bAllowWholeSceneDominantShadows=False
+bAllowWholeSceneDominantShadows=True
 bUseConservativeShadowBounds=False
-ShadowFilterRadius=0.000000
-ShadowDepthBias=1.000000
-PerObjectShadowTransition=0.000000
-PerSceneShadowTransition=0.000000
-CSMSplitPenumbraScale=0.000000
-CSMSplitSoftTransitionDistanceScale=0.000000
-CSMSplitDepthBiasScale=0.000000
+ShadowFilterRadius=2.000000
+ShadowDepthBias=0.012000
+PerObjectShadowTransition=60.000000
+PerSceneShadowTransition=600.000000
+CSMSplitPenumbraScale=0.500000
+CSMSplitSoftTransitionDistanceScale=4.000000
+CSMSplitDepthBiasScale=0.500000
 CSMMinimumFOV=40.000000
 CSMFOVRoundFactor=4.000000
-UnbuiltWholeSceneDynamicShadowRadius=0.000000
+UnbuiltWholeSceneDynamicShadowRadius=20000.000000
 UnbuiltNumWholeSceneDynamicShadowCascades=1
 WholeSceneShadowUnbuiltInteractionThreshold=0
 bAllowFracturedDamage=False
@@ -245,15 +245,14 @@ BasedOn=SystemSettings
 BasedOn=SystemSettings
 MaxAnisotropy=0
 ShadowFilterQualityBias=0
-MinShadowResolution=16
-ShadowFadeResolution=1
+MinShadowResolution=64
+ShadowFadeResolution=32
 MinPreShadowResolution=8
-PreShadowFadeResolution=1
-ShadowTexelsPerPixel=0.000000
+PreShadowFadeResolution=16
+ShadowTexelsPerPixel=1.273240
 PreShadowResolutionFactor=0.5
-MaxShadowResolution=16
-MaxWholeSceneDominantShadowResolution=16
-CompositeDynamicLights=False
+MaxShadowResolution=1120
+MaxWholeSceneDominantShadowResolution=1344
 TEXTUREGROUP_World=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point)
 TEXTUREGROUP_WorldNormalMap=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point)
 TEXTUREGROUP_WorldSpecular=(MinLODSize=1,MaxLODSize=16,LODBias=15,MinMagFilter=Point,MipFilter=Point)
@@ -287,7 +286,7 @@ ResY=720
 
 [SystemSettingsSplitScreen2]
 BasedOn=SystemSettings
-bAllowWholeSceneDominantShadows=False
+bAllowWholeSceneDominantShadows=True
 bAllowLightShafts=False
 DetailMode=0
 
@@ -295,7 +294,6 @@ DetailMode=0
 BasedOn=SystemSettings
 Fullscreen=True
 DirectionalLightmaps=False
-DynamicLights=False
 SHSecondaryLighting=False
 StaticDecals=False
 DynamicDecals=False
@@ -314,7 +312,6 @@ bAllowLightShafts=False
 MobileModShadows=False
 MobileClearDepthBetweenDPG=False
 MaxFilterBlurSampleCount=2
-DynamicShadows=False
 MobileMaxMemory=300
 MobileLandscapeLODBias=15
 AllowRadialBlur=False
@@ -399,7 +396,6 @@ Distortion=False
 FilteredDistortion=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 MobileClearDepthBetweenDPG=True
 DirectionalLightmaps=False
 MobileHeightFog=False
@@ -429,22 +425,20 @@ BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.025
 MobileContentScaleFactor=2.0
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 
 [SystemSettingsIPhone5]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.025
 MobileContentScaleFactor=2.0
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 AllowRadialBlur=False
 
 [SystemSettingsIPodTouch4]
@@ -460,11 +454,10 @@ BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.025
 MobileContentScaleFactor=2.0
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 
 [SystemSettingsIPad]
 BasedOn=SystemSettingsMobileTextureBias
@@ -485,22 +478,20 @@ BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=1.0
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 
 [SystemSettingsIPad3]
 BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=1.40625
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 MobileMaxMemory=500
 
 [SystemSettingsIPad4]
@@ -508,11 +499,10 @@ BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=2.0
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 MobileMaxMemory=500
 AllowRadialBlur=False
 
@@ -521,11 +511,10 @@ BasedOn=SystemSettingsMobile
 MobileEnableMSAA=False
 bAllowLightShafts=False
 MobileModShadows=False
-DynamicShadows=False
 ShadowDepthBias=0.016
 MobileContentScaleFactor=1.0
-MaxShadowResolution=16
-MobileShadowTextureResolution=16
+MaxShadowResolution=1120
+MobileShadowTextureResolution=1120
 
 [SystemSettingsIPad2_Detail]
 BasedOn=SystemSettingsIPad2
@@ -700,7 +689,6 @@ DepthOfField=False
 Bloom=False
 bAllowLightShafts=False
 LensFlares=False
-DynamicShadows=False
 MotionBlur=False
 
 [SystemSettingsProfileDetailHigh]
@@ -711,7 +699,6 @@ DepthOfField=False
 Bloom=False
 bAllowLightShafts=False
 LensFlares=False
-DynamicShadows=False
 MotionBlur=False
 
 [IniVersion]

@@ -65,32 +65,33 @@ internal static class VideoSettingsSync
         }
     }
 
-    /// <summary>Mata o watcher anterior (um so processo WATCH de cada vez).</summary>
+    /// <summary>Mata watchers WATCH (lock + orfaos) para o otimizador nao voltar sozinho.</summary>
     public static void StopExistingWatchers()
     {
         try
         {
             Directory.CreateDirectory(AppMeta.GuttyDir);
-            if (!File.Exists(WatcherLockPath)) return;
 
-            string[] lines = File.ReadAllLines(WatcherLockPath);
-            if (lines.Length > 0 && int.TryParse(lines[0].Trim(), out int pid)
-                && pid > 0 && pid != Environment.ProcessId)
+            int lockPid = 0;
+            if (File.Exists(WatcherLockPath))
             {
                 try
                 {
-                    using var p = Process.GetProcessById(pid);
-                    string name = p.ProcessName;
-                    if (name.Contains("GuttyTECH_RL", StringComparison.OrdinalIgnoreCase)
-                        || name.Contains("GuttyRL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        AppMeta.Log($"Watcher antigo a terminar (pid={pid}).");
-                        p.Kill(entireProcessTree: true);
-                        p.WaitForExit(4000);
-                    }
+                    string[] lines = File.ReadAllLines(WatcherLockPath);
+                    if (lines.Length > 0)
+                        int.TryParse(lines[0].Trim(), out lockPid);
                 }
-                catch (ArgumentException) { /* ja morto */ }
-                catch (Exception ex) { AppMeta.Log("Stop watcher: " + ex.Message); }
+                catch { }
+            }
+
+            if (lockPid > 0 && lockPid != Environment.ProcessId)
+                TryKillGuttyProcess(lockPid, "lock");
+
+            // Orfaos: processos GuttyTECH_RL com argumento WATCH (lock apagado / crash).
+            foreach (int pid in FindWatchPids())
+            {
+                if (pid == Environment.ProcessId) continue;
+                TryKillGuttyProcess(pid, "WATCH orphan");
             }
 
             try { File.Delete(WatcherLockPath); } catch { }
@@ -99,6 +100,80 @@ internal static class VideoSettingsSync
         {
             AppMeta.Log("StopExistingWatchers: " + ex.Message);
         }
+    }
+
+    /// <summary>Remove artefactos do watcher (lock + extract). Nao apaga backups/presets.</summary>
+    public static void CleanWatcherRuntime()
+    {
+        StopExistingWatchers();
+        try
+        {
+            string extract = Path.Combine(AppMeta.GuttyDir, "watch-extract");
+            if (Directory.Exists(extract))
+            {
+                try { Directory.Delete(extract, recursive: true); } catch { }
+            }
+            try { File.Delete(WatcherLockPath); } catch { }
+            AppMeta.Log("Watcher runtime limpo.");
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("CleanWatcherRuntime: " + ex.Message);
+        }
+    }
+
+    private static void TryKillGuttyProcess(int pid, string reason)
+    {
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            string name = p.ProcessName;
+            if (!name.Contains("GuttyTECH_RL", StringComparison.OrdinalIgnoreCase)
+                && !name.Contains("GuttyRL", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            AppMeta.Log($"A terminar watcher ({reason}, pid={pid}).");
+            p.Kill(entireProcessTree: true);
+            p.WaitForExit(4000);
+        }
+        catch (ArgumentException) { /* ja morto */ }
+        catch (Exception ex) { AppMeta.Log("Stop watcher: " + ex.Message); }
+    }
+
+    private static List<int> FindWatchPids()
+    {
+        var ids = new List<int>();
+        try
+        {
+            // Sem System.Management: PowerShell CIM (sem wmic).
+            var psi = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments =
+                    "-NoProfile -NonInteractive -Command \"" +
+                    "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | " +
+                    "Where-Object { $_.Name -match 'GuttyTECH_RL|GuttyRL' -and $_.CommandLine -match '\\bWATCH\\b' } | " +
+                    "ForEach-Object { $_.ProcessId }\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+            using var p = Process.Start(psi);
+            if (p is null) return ids;
+            string output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit(6000);
+            foreach (string line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (int.TryParse(line.Trim(), out int pid) && pid > 0)
+                    ids.Add(pid);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("FindWatchPids: " + ex.Message);
+        }
+        return ids;
     }
 
     private static void WriteWatcherLock(int pid, string mode)
@@ -215,6 +290,8 @@ internal static class VideoSettingsSync
 
             forced = EnsureModeLine(forced, mode);
             File.WriteAllText(iniPath, forced);
+            // Nunca deixar boot-killers apos reclamp (HealIfNeeded / RepararPerfil).
+            ErrorRepair.ForceBootSafeIni(iniPath);
             AppMeta.Log($"INI reclamp {mode} OK.");
             return true;
         }
@@ -319,17 +396,17 @@ internal static class VideoSettingsSync
             // Leves: video sync (rapido).
             var light = Directory.EnumerateFiles(saveDir, "*.save")
                 .Select(f => new FileInfo(f))
-                .Where(f => f.Length <= 1_200_000)
+                .Where(f => f.Length > 0 && f.Length < SaveRecovery.SoftGarageMinBytes)
                 .OrderByDescending(f => f.LastWriteTimeUtc)
-                .Take(6);
+                .Take(8);
 
             // Pesados: presets/garagem — so copia, sem decrypt.
             var heavy = Directory.EnumerateFiles(saveDir, "*.save")
                 .Select(f => new FileInfo(f))
-                .Where(f => f.Length >= SaveRecovery.GarageMinBytes && f.Length <= SaveRecovery.GarageMaxBytes)
+                .Where(f => f.Length >= SaveRecovery.SoftGarageMinBytes && f.Length <= SaveRecovery.GarageMaxBytes)
                 .OrderByDescending(f => f.Length)
                 .ThenByDescending(f => f.LastWriteTimeUtc)
-                .Take(6);
+                .Take(12);
 
             int n = 0;
             foreach (var fi in light.Concat(heavy).GroupBy(f => f.FullName).Select(g => g.First()))
@@ -340,6 +417,10 @@ internal static class VideoSettingsSync
                     fi.CopyTo(backup, false);
                     n++;
                 }
+
+                // Cofre sticky Best — nunca perde o maior save da conta
+                if (fi.Length >= SaveRecovery.SoftGarageMinBytes)
+                    SaveRecovery.UpdateBestVault(fi.Name, fi.FullName, fi.Length);
             }
 
             AppMeta.Log($"Backup save ({ts}): {n} ficheiro(s) leves+garagem.");

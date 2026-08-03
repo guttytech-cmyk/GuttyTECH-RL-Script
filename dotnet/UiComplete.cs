@@ -1,32 +1,31 @@
 namespace GuttyRL;
 
-/// <summary>Telas de fluxo: titulo, steps, conclusao, launch options — rework v22.3.43.</summary>
+/// <summary>Componentes de fluxo, progresso e conclusão do design system.</summary>
 internal static partial class Ui
 {
-    public static readonly (int r, int g, int b) MRed = (255, 42, 42);
-    public static readonly (int r, int g, int b) MCyan = (0, 229, 255);
-    public static readonly (int r, int g, int b) MAmber = (255, 179, 0);
-    public static readonly (int r, int g, int b) OkGreen = (0, 255, 65);
-    public static readonly (int r, int g, int b) WarnYel = (255, 215, 0);
-    public static readonly (int r, int g, int b) LightGray = (192, 192, 192);
-    public static readonly (int r, int g, int b) DarkGray = (102, 102, 102);
-    private static readonly (int r, int g, int b) PanelTopBg = (28, 28, 30);
-    private static readonly (int r, int g, int b) PanelBotBg = (14, 14, 16);
-    private static readonly (int r, int g, int b) BtnBg = (36, 36, 40);
-    private static readonly (int r, int g, int b) BtnBorder = (90, 90, 98);
-    private static readonly (int r, int g, int b) SpinGray = (140, 140, 148);
+    public static readonly (int r, int g, int b) MRed = Red;
+    public static readonly (int r, int g, int b) MCyan = Cyan;
+    public static readonly (int r, int g, int b) MAmber = Amber;
+    public static readonly (int r, int g, int b) OkGreen = Green;
+    public static readonly (int r, int g, int b) WarnYel = Amber;
+    public static readonly (int r, int g, int b) LightGray = Gray;
+    public static readonly (int r, int g, int b) DarkGray = DimC;
+    private static readonly (int r, int g, int b) BtnBg = BgRow;
+    private static readonly (int r, int g, int b) BtnBorder = BorderHi;
+    private static readonly (int r, int g, int b) SpinGray = DimC;
 
-    private static readonly string[] Spin = { "|", "/", "-", "\\", "|", "/", "-", "\\", "|", "/" };
+    private static readonly string[] Spin = { "◐", "◓", "◑", "◒" };
 
-    private const int CW = 62;
-    private static string CMar => new(' ', Math.Max(2, (WinW - CW - 2) / 2));
+    private static int CW => Inner;
+    private static string CMar => new(' ', Margin);
 
     public static (int r, int g, int b) ModeColor(string m) => m == "COMPLETO" ? MRed : m == "CRIADOR" ? MCyan : MAmber;
 
     public static void FlushInput() { try { while (Console.KeyAvailable) Console.ReadKey(true); } catch { } }
 
     private static string Raw(string t, (int r, int g, int b) c) => Fg(c) + t;
-    private static string RawB(string t, (int r, int g, int b) c) => "\x1b[1m" + Fg(c) + t + "\x1b[22m";
+    private static string RawB(string t, (int r, int g, int b) c) =>
+        (_ansi ? Bold : "") + Fg(c) + t + (_ansi ? "\x1b[22m" : "");
     private static string CenterRaw(string plain, (int r, int g, int b) c, bool bold = false)
     {
         int left = Math.Max(0, (CW - plain.Length) / 2);
@@ -37,34 +36,36 @@ internal static partial class Ui
 
     public static void MiniBannerIfTall((int r, int g, int b) acc)
     {
-        if (WinH < 34) return;
+        if (WinH < 48) return;
         string brand = "GUTTYTECH";
-        string sub = "ROCKET LEAGUE  -  " + AppMeta.Version;
-        int w = Math.Max(brand.Length, sub.Length) + 8;
-        string m = new(' ', Math.Max(2, (WinW - w) / 2));
+        string sub = CW >= 30 ? "RL OPTIMIZER  /  " + AppMeta.Version : "RL  /  " + AppMeta.Version;
+        int w = Math.Min(CW, 44);
+        string m = new(' ', Math.Max(2, (WinW - w - 2) / 2));
         Console.WriteLine();
-        Console.WriteLine(m + Fg(acc) + "╭" + new string('─', w - 2) + "╮" + Reset);
-        int bp = Math.Max(0, (w - 2 - brand.Length) / 2);
-        Console.WriteLine(m + Fg(acc) + "│" + Reset + Bg(Lerp(acc, BgDeep, 0.85))
-            + new string(' ', bp) + RawB(brand, White) + new string(' ', w - 2 - bp - brand.Length)
+        Console.WriteLine(m + Fg(BorderHi) + "╭" + new string('─', w) + "╮" + Reset);
+        int bp = Math.Max(0, (w - brand.Length) / 2);
+        Console.WriteLine(m + Fg(BorderHi) + "│" + Reset + Bg(BgPanel)
+            + new string(' ', bp) + RawB(brand, acc) + new string(' ', w - bp - brand.Length)
             + Reset + Fg(acc) + "│" + Reset);
-        int sp = Math.Max(0, (w - 2 - sub.Length) / 2);
-        Console.WriteLine(m + Fg(acc) + "│" + Reset + new string(' ', sp) + C(sub, Gray)
-            + new string(' ', w - 2 - sp - sub.Length) + Fg(acc) + "│" + Reset);
-        Console.WriteLine(m + Fg(acc) + "╰" + new string('─', w - 2) + "╯" + Reset);
+        int sp = Math.Max(0, (w - sub.Length) / 2);
+        Console.WriteLine(m + Fg(BorderHi) + "│" + Reset + Bg(BgPanel) + new string(' ', sp) + C(sub, Gray)
+            + Bg(BgPanel) + new string(' ', w - sp - sub.Length) + Reset + Fg(BorderHi) + "│" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + "╰" + new string('─', w) + "╯" + Reset);
     }
 
     public static void TitleBar(string text, (int r, int g, int b) acc)
     {
         string m = CMar;
-        var glow = Lerp(acc, BgDeep, 0.82);
+        string title = text.ToUpperInvariant();
         Console.WriteLine();
-        Console.WriteLine(m + Fg(acc) + "╭" + new string('─', CW) + "╮" + Reset);
-        string body = "  " + text;
-        int pad = CW - body.Length; if (pad < 0) pad = 0;
-        Console.WriteLine(m + Fg(acc) + "│" + Bg(glow) + "\x1b[1m" + Fg(White) + body
-            + new string(' ', pad) + Reset + Fg(acc) + "│" + Reset);
-        Console.WriteLine(m + Fg(acc) + "╰" + new string('─', CW) + "╯" + Reset);
+        Console.WriteLine(m + Fg(acc) + "╭━" + Reset + " " + Chip("GUTTYTECH", acc)
+            + " " + Fg(BorderHi) + new string('━', Math.Max(0, CW - 14)) + "╮" + Reset);
+        string body = "  " + title;
+        string fitted = FitAnsi(body, CW - 2);
+        int pad = Math.Max(0, CW - VisLen(fitted));
+        Console.WriteLine(m + Fg(BorderHi) + "│" + Bg(BgPanel) + Bold + Fg(White) + fitted
+            + new string(' ', pad) + Reset + Fg(BorderHi) + "│" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + "╰" + new string('─', CW) + "╯" + Reset);
         Console.WriteLine();
     }
 
@@ -72,37 +73,38 @@ internal static partial class Ui
     {
         string m = CMar;
         HideCursor();
-        bool done = false;
+        using var completed = new ManualResetEventSlim(false);
         bool ok = false;
         var worker = new Thread(() =>
         {
             try { ok = work(); }
             catch { ok = false; }
-            finally { done = true; }
+            finally { completed.Set(); }
         })
         { IsBackground = true };
         worker.Start();
 
         int i = 0;
-        while (!done)
+        while (!completed.IsSet)
         {
             Console.Write("\r" + m + "  " + Fg(SpinGray) + Spin[i % Spin.Length] + Reset
-                + " " + Fg(LightGray) + label + "..." + Reset + "   ");
-            Thread.Sleep(70);
+                + " " + Fg(LightGray) + FitAnsi(label + "...", Math.Max(10, CW - 8)) + Reset + "   ");
+            Thread.Sleep(55);
             i++;
         }
         worker.Join();
 
-        for (int j = 0; j < 6; j++)
+        for (int j = 0; j < 3; j++)
         {
-            var sc = Lerp(SpinGray, ok ? OkGreen : MRed, (j + 1) / 6.0);
+            var sc = Lerp(SpinGray, ok ? OkGreen : MRed, (j + 1) / 3.0);
             Console.Write("\r" + m + "  " + Fg(sc) + Spin[(i + j) % Spin.Length] + Reset
-                + " " + Fg(LightGray) + label + "..." + Reset + "   ");
-            Thread.Sleep(28);
+                + " " + Fg(LightGray) + FitAnsi(label + "...", Math.Max(10, CW - 8)) + Reset + "   ");
+            Thread.Sleep(18);
         }
-        string mark = ok ? Fg(OkGreen) + "+" : Fg(MRed) + "x";
-        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset + new string(' ', 24));
-        Thread.Sleep(80);
+        string mark = ok ? Fg(OkGreen) + "◆" : Fg(MRed) + "×";
+        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White)
+            + FitAnsi(label, Math.Max(10, CW - 8)) + Reset + new string(' ', 24));
+        Thread.Sleep(30);
         return ok;
     }
 
@@ -115,7 +117,7 @@ internal static partial class Ui
         int cur = 0, total = 1;
         string detail = "";
         object gate = new();
-        bool done = false;
+        using var completed = new ManualResetEventSlim(false);
         bool ok = false;
 
         void SetBar(int c, int t, string d)
@@ -132,73 +134,79 @@ internal static partial class Ui
         {
             try { ok = work(SetBar); }
             catch { ok = false; }
-            finally { done = true; }
+            finally { completed.Set(); }
         })
         { IsBackground = true };
         worker.Start();
 
         int i = 0;
-        const int barW = 28;
-        while (!done)
+        int barW = Math.Clamp(CW - 42, 12, 28);
+        while (!completed.IsSet)
         {
             int c, t; string d;
             lock (gate) { c = cur; t = total; d = detail; }
             double pct = Math.Clamp(100.0 * c / t, 0, 100);
             int filled = (int)Math.Round(barW * pct / 100.0);
             if (filled > barW) filled = barW;
-            string bar = new string('#', filled) + new string('-', barW - filled);
-            string line = $"{label}  [{bar}]  {(int)pct,3}%  {c}/{t}  {Trunc(d, 18)}";
+            string bar = new string('━', filled) + new string('─', barW - filled);
+            int detailWidth = Math.Max(6, Math.Min(18, CW / 4));
+            string line = $"{label}  [{bar}]  {(int)pct,3}%  {c}/{t}  {Trunc(d, detailWidth)}";
             Console.Write("\r" + m + "  " + Fg(SpinGray) + Spin[i % Spin.Length] + Reset
-                + " " + Fg(LightGray) + line + Reset + "    ");
-            Thread.Sleep(60);
+                + " " + Fg(LightGray) + FitAnsi(line, Math.Max(10, CW - 4)) + Reset + "    ");
+            Thread.Sleep(50);
             i++;
         }
         worker.Join();
 
-        string mark = ok ? Fg(OkGreen) + "+" : Fg(MRed) + "x";
-        string finalBar = ok ? new string('#', barW) : new string('-', barW);
-        Console.WriteLine("\r" + m + "  " + mark + Reset + " " + Fg(White) + label + Reset
+        string mark = ok ? Fg(OkGreen) + "◆" : Fg(MRed) + "×";
+        string finalBar = ok ? new string('━', barW) : new string('─', barW);
+        string final = Fg(White) + label + Reset
             + "  " + Fg(ok ? OkGreen : MRed) + "[" + finalBar + "]" + Reset
-            + Fg(LightGray) + (ok ? "  100%" : "  falhou") + Reset + new string(' ', 20));
+            + Fg(LightGray) + (ok ? "  100%" : "  falhou") + Reset;
+        Console.WriteLine("\r" + m + "  " + mark + Reset + " "
+            + FitAnsi(final, Math.Max(10, CW - 4)) + new string(' ', 20));
         FlushInput();
-        Thread.Sleep(80);
+        Thread.Sleep(30);
         return ok;
     }
 
     private static void PanelLineBg((int r, int g, int b) acc, (int r, int g, int b) bg, string content)
     {
-        int pad = CW - VisLen(content); if (pad < 0) pad = 0;
-        Console.WriteLine(CMar + Fg(acc) + "│" + Bg(bg) + content + new string(' ', pad) + Reset + Fg(acc) + "│" + Reset);
+        string fitted = FitAnsi(content, CW);
+        int pad = Math.Max(0, CW - VisLen(fitted));
+        Console.WriteLine(CMar + Fg(BorderHi) + "│" + Bg(bg) + fitted + new string(' ', pad)
+            + Reset + Fg(BorderHi) + "│" + Reset);
     }
 
     private static void DrawPanel((int r, int g, int b) acc, List<string> content, bool reveal)
     {
         string m = CMar;
-        Console.WriteLine(m + Fg(acc) + "╭" + new string('─', CW) + "╮" + Reset);
+        Console.WriteLine(m + Fg(acc) + "╭" + new string('━', CW) + "╮" + Reset);
         int n = content.Count;
         for (int i = 0; i < n; i++)
         {
-            var bg = Lerp(PanelTopBg, PanelBotBg, n <= 1 ? 0.0 : (double)i / (n - 1));
-            PanelLineBg(acc, bg, content[i]);
-            if (reveal) Thread.Sleep(28);
+            PanelLineBg(acc, BgPanel, content[i]);
+            if (reveal) Thread.Sleep(8);
         }
-        Console.WriteLine(m + Fg(acc) + "╰" + new string('─', CW) + "╯" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + "╰" + new string('─', CW) + "╯" + Reset);
     }
 
     private static void DrawPanelTitled((int r, int g, int b) acc, string title, List<string> content, bool reveal)
     {
         string m = CMar;
-        string t = " " + title + " ";
+        string titleFit = title.ToUpperInvariant();
+        int maxTitle = Math.Max(4, CW - 5);
+        if (titleFit.Length > maxTitle) titleFit = titleFit[..Math.Max(1, maxTitle - 1)] + "…";
+        string t = " " + titleFit + " ";
         int rest = CW - 1 - t.Length; if (rest < 0) rest = 0;
-        Console.WriteLine(m + Fg(acc) + "╭─" + Reset + RawB(t, acc) + Fg(acc) + new string('─', rest) + "╮" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + "╭─" + Reset + RawB(t, acc) + Fg(BorderHi) + new string('─', rest) + "╮" + Reset);
         int n = content.Count;
         for (int i = 0; i < n; i++)
         {
-            var bg = Lerp(PanelTopBg, PanelBotBg, n <= 1 ? 0.0 : (double)i / (n - 1));
-            PanelLineBg(acc, bg, content[i]);
-            if (reveal) Thread.Sleep(28);
+            PanelLineBg(acc, BgPanel, content[i]);
+            if (reveal) Thread.Sleep(8);
         }
-        Console.WriteLine(m + Fg(acc) + "╰" + new string('─', CW) + "╯" + Reset);
+        Console.WriteLine(m + Fg(BorderHi) + "╰" + new string('─', CW) + "╯" + Reset);
     }
 
     public static void CompletionSuccess(string mode, (int r, int g, int b) acc, string backupPath)
@@ -218,14 +226,15 @@ internal static partial class Ui
         var c = new List<string>
         {
             "",
-            CenterRaw("*  CONCLUIDO  *", acc, true),
+            CenterRaw("◆  OPERAÇÃO CONCLUÍDA  ◆", acc, true),
             CenterRaw(new string('─', 16), acc),
             "",
             "  " + Raw("MODO ", LightGray) + RawB(mode, acc) + Raw("  -  ", DarkGray) + RawB("OK", OkGreen),
             "",
         };
         foreach (var tip in tips)
-            c.Add("  " + Raw("> ", acc) + Raw(tip, LightGray));
+            foreach (string line in WrapPlain(tip, CW - 7))
+                c.Add("  " + Raw("› ", acc) + Raw(line, LightGray));
         c.Add("");
         c.Add("  " + Raw("Backups  ", DimC) + Raw(Trunc(backupPath, CW - 14), DarkGray));
         c.Add("");
@@ -237,11 +246,13 @@ internal static partial class Ui
         var c = new List<string>
         {
             "",
-            CenterRaw("*  " + title + "  *", acc, true),
+            CenterRaw("◆  " + title + "  ◆", acc, true),
             CenterRaw(new string('─', Math.Min(CW - 8, title.Length + 8)), acc),
             ""
         };
-        foreach (var ln in lines) c.Add("  " + Raw(ln, LightGray));
+        foreach (var ln in lines)
+            foreach (string line in WrapPlain(ln, CW - 4))
+                c.Add("  " + Raw(line, LightGray));
         c.Add("");
         DrawPanel(acc, c, reveal: true);
     }
@@ -249,13 +260,13 @@ internal static partial class Ui
     public static void EnterButton()
     {
         FlushInput();
-        const int bw = 38;
+        int bw = Math.Min(40, Math.Max(20, CW - 4));
         string m = new(' ', Math.Max(2, (WinW - bw - 2) / 2));
         Console.WriteLine();
         Console.WriteLine(m + Fg(BtnBorder) + "╭" + new string('─', bw) + "╮" + Reset);
-        string left = "  pressione ";
+        string left = bw >= 34 ? "  PRESSIONE " : "  ";
         string key = "ENTER";
-        string right = " para continuar  ";
+        string right = bw >= 34 ? " PARA CONTINUAR  " : "  /  CONTINUAR  ";
         int inner = left.Length + key.Length + right.Length;
         int pad = bw - inner; if (pad < 0) pad = 0;
         Console.WriteLine(m + Fg(BtnBorder) + "│" + Bg(BtnBg)
@@ -289,9 +300,10 @@ internal static partial class Ui
     {
         string m = CMar;
         Console.WriteLine(m + Fg(DarkGray) + "╭" + new string('─', CW) + "╮" + Reset);
-        int pad = CW - text.Length - 2; if (pad < 0) pad = 0;
-        Console.WriteLine(m + Fg(DarkGray) + "│" + Bg((20, 22, 20)) + " \x1b[1m" + Fg(OkGreen) + text
-            + "\x1b[22m" + new string(' ', pad) + " " + Reset + Fg(DarkGray) + "│" + Reset);
+        string fitted = FitAnsi(text, CW - 2);
+        int pad = Math.Max(0, CW - VisLen(fitted) - 2);
+        Console.WriteLine(m + Fg(DarkGray) + "│" + Bg(BgPanel) + " " + Bold + Fg(OkGreen) + fitted
+            + (_ansi ? "\x1b[22m" : "") + new string(' ', pad) + " " + Reset + Fg(DarkGray) + "│" + Reset);
         Console.WriteLine(m + Fg(DarkGray) + "╰" + new string('─', CW) + "╯" + Reset);
     }
 
@@ -299,24 +311,27 @@ internal static partial class Ui
     {
         string m = CMar;
         if (ok)
-            Console.WriteLine(m + "  " + Fg(OkGreen) + "\x1b[1m+ Copiado!\x1b[22m" + Reset
+            Console.WriteLine(m + "  " + Fg(OkGreen) + Bold + "◆ COPIADO" + (_ansi ? "\x1b[22m" : "") + Reset
                 + Fg(LightGray) + "  Cole com " + Reset + Fg(White) + "Ctrl+V" + Reset
                 + Fg(LightGray) + " no launcher." + Reset);
         else
-            Console.WriteLine(m + "  " + Fg(MAmber) + "! Nao copiou sozinho" + Reset
+            Console.WriteLine(m + "  " + Fg(MAmber) + Bold + "▲ CÓPIA MANUAL" + Reset
                 + Fg(LightGray) + " — selecione o comando e Ctrl+C." + Reset);
     }
 
     public static void LaunchHeading(string text)
     {
         Console.WriteLine();
-        Console.WriteLine(CMar + "\x1b[1m" + Fg(LightGray) + text + "\x1b[22m" + Reset);
+        Console.WriteLine(CMar + Bold + Fg(White) + "  " + text.ToUpperInvariant()
+            + (_ansi ? "\x1b[22m" : "") + Reset);
     }
 
     public static void LaunchParam(string sym, (int r, int g, int b) color, string label, string desc)
     {
-        Console.WriteLine(CMar + "  " + Fg(color) + sym + Reset + " " + Fg(White) + label.PadRight(22) + Reset
-            + Fg(DarkGray) + desc + Reset);
+        int labelWidth = Math.Min(22, Math.Max(14, CW / 3));
+        string line = "  " + Fg(color) + sym + Reset + " " + Fg(White) + label.PadRight(labelWidth) + Reset
+            + Fg(DarkGray) + desc + Reset;
+        Console.WriteLine(CMar + FitAnsi(line, CW));
     }
 
     public static void LaunchNote(string text)
@@ -331,7 +346,13 @@ internal static partial class Ui
         int i = 1;
         foreach (var s in steps)
         {
-            c.Add("  " + Raw(i.ToString().PadLeft(2) + ". ", acc) + Raw(s, LightGray));
+            string prefix = i.ToString("00") + "  ";
+            bool first = true;
+            foreach (string line in WrapPlain(s, CW - 8))
+            {
+                c.Add("  " + Raw(first ? prefix : "    ", first ? acc : DarkGray) + Raw(line, LightGray));
+                first = false;
+            }
             i++;
         }
         c.Add("");

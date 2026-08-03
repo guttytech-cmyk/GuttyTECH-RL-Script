@@ -8,9 +8,6 @@ namespace GuttyRL;
 [SupportedOSPlatform("windows")]
 internal static class StartupGuard
 {
-    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern int MessageBoxW(nint hWnd, string text, string caption, uint type);
-
     public static void Install()
     {
         try { Directory.CreateDirectory(AppMeta.GuttyDir); } catch { }
@@ -71,8 +68,8 @@ internal static class StartupGuard
         }
         catch { }
 
-        try { MessageBoxW(0, hint, "GUTTYTECH - GuttyRL", 0x30); } catch { }
-        try { Thread.Sleep(15000); } catch { }
+        if (ConsoleWindowService.IsHidden)
+            FatalDialogService.TryShow("AÇÃO NECESSÁRIA", hint, AppMeta.CrashLog);
     }
 
     public static void ReportFatal(string title, Exception? ex)
@@ -93,6 +90,10 @@ internal static class StartupGuard
 
         try { File.AppendAllText(AppMeta.CrashLog, sb.ToString()); } catch { }
 
+        if (ConsoleWindowService.IsHidden
+            && FatalDialogService.TryShow(title, ex?.Message ?? "Falha de inicialização.", AppMeta.CrashLog))
+            return;
+
         try
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -112,14 +113,10 @@ internal static class StartupGuard
         }
         catch
         {
-            try
-            {
-                MessageBoxW(0,
-                    title + "\n\n" + (ex?.Message ?? "") + "\n\nLog: " + AppMeta.CrashLog,
-                    "GUTTYTECH - GuttyRL",
-                    0x10);
-            }
-            catch { }
+            FatalDialogService.TryShow(
+                title,
+                ex?.Message ?? "Falha de inicialização.",
+                AppMeta.CrashLog);
         }
     }
 

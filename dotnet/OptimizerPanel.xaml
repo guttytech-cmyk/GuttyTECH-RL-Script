@@ -1,0 +1,1304 @@
+<UserControl x:Class="GuttyRL.OptimizerPanel"
+             x:Name="PanelRoot"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BackgroundBrush}"
+             Focusable="False"
+             Opacity="0">
+
+    <UserControl.RenderTransform>
+        <TranslateTransform Y="10" />
+    </UserControl.RenderTransform>
+
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetName="PanelRoot"
+                                     Storyboard.TargetProperty="Opacity"
+                                     From="0"
+                                     To="1"
+                                     Duration="0:0:0.20" />
+                    <DoubleAnimation Storyboard.TargetName="PanelRoot"
+                                     Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                     From="10"
+                                     To="0"
+                                     Duration="0:0:0.20">
+                        <DoubleAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut" />
+                        </DoubleAnimation.EasingFunction>
+                    </DoubleAnimation>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+
+    <Grid Focusable="False">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="228" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ========== SIDEBAR ========== -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,1,0">
+            <Grid Margin="18,26,18,18" Focusable="False">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Logo + brand -->
+                <StackPanel Margin="2,0,2,32">
+                    <Border Width="52"
+                            Height="52"
+                            HorizontalAlignment="Left"
+                            BorderBrush="{DynamicResource CtaBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Background="{DynamicResource SurfaceRaisedBrush}">
+                        <Rectangle Margin="1"
+                                   RadiusX="11"
+                                   RadiusY="11">
+                            <Rectangle.Fill>
+                                <ImageBrush ImageSource="pack://application:,,,/Assets/gutty-avatar.png"
+                                            Stretch="UniformToFill"
+                                            AlignmentX="Center"
+                                            AlignmentY="Center" />
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Border>
+                    <TextBlock Margin="0,14,0,0"
+                               FontFamily="{DynamicResource TitleFontFamily}"
+                               FontSize="24"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               Text="RL OPTIMIZER" />
+                    <TextBlock Margin="0,4,0,0"
+                               Style="{DynamicResource MutedTextStyle}"
+                               Text="Otimizador competitivo do Rocket League"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- Navigation -->
+                <StackPanel Grid.Row="1">
+                    <TextBlock Margin="10,0,0,10"
+                               Style="{DynamicResource EyebrowTextStyle}"
+                               Foreground="{DynamicResource TextMutedBrush}"
+                               Text="NAVEGAÇÃO" />
+
+                    <Button Focusable="False"
+                            Command="{Binding NavigateDashboardCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDashboardVisible}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="4" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22"
+                                    Height="22"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource CtaBrush}"
+                                    CornerRadius="5">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="1" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       Text="Visão Geral" />
+                            <Border Grid.Column="2"
+                                    Width="3"
+                                    Height="18"
+                                    Background="{DynamicResource CtaBrush}"
+                                    CornerRadius="2"
+                                    Visibility="{Binding IsDashboardVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                    </Button>
+
+                    <Button Focusable="False"
+                            Command="{Binding NavigateOptimizationCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsOptimizationVisible}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="4" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22"
+                                    Height="22"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource SurfaceRaisedBrush}"
+                                    BorderBrush="{DynamicResource CtaBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="5">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource CtaBrush}"
+                                           Text="2" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       Text="Otimização" />
+                            <Border Grid.Column="2"
+                                    Width="3"
+                                    Height="18"
+                                    Background="{DynamicResource CtaBrush}"
+                                    CornerRadius="2"
+                                    Visibility="{Binding IsOptimizationVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                    </Button>
+
+                    <Button Focusable="False"
+                            Command="{Binding NavigateRecoveryCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRecoveryVisible}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="4" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22"
+                                    Height="22"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource WarningMutedBrush}"
+                                    BorderBrush="{DynamicResource WarningBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="5">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource WarningBrush}"
+                                           Text="3" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       Text="Recuperação" />
+                            <Border Grid.Column="2"
+                                    Width="3"
+                                    Height="18"
+                                    Background="{DynamicResource WarningBrush}"
+                                    CornerRadius="2"
+                                    Visibility="{Binding IsRecoveryVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                    </Button>
+
+                    <Button Focusable="False"
+                            Command="{Binding NavigateSystemCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource NavButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSystemVisible}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                                        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="4" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="22"
+                                    Height="22"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource CyanMutedBrush}"
+                                    BorderBrush="{DynamicResource CyanBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="5">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource CyanBrush}"
+                                           Text="4" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       VerticalAlignment="Center"
+                                       Text="Sistema" />
+                            <Border Grid.Column="2"
+                                    Width="3"
+                                    Height="18"
+                                    Background="{DynamicResource CyanBrush}"
+                                    CornerRadius="2"
+                                    Visibility="{Binding IsSystemVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+
+                <!-- Status footer -->
+                <Border Grid.Row="3"
+                        Padding="14,12"
+                        Background="{DynamicResource BackgroundBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10">
+                    <StackPanel>
+                        <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                   FontSize="10"
+                                   Text="ÚLTIMA ATUALIZAÇÃO" />
+                        <TextBlock Margin="0,6,0,0"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="{Binding LastUpdated}"
+                                   TextWrapping="Wrap" />
+                        <Button Margin="0,12,0,0"
+                                HorizontalAlignment="Stretch"
+                                Focusable="False"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Command="{Binding RefreshStatusCommand}"
+                                Content="ATUALIZAR"
+                                ToolTip="Atualiza o estado local e procura versão nova no GitHub" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ========== MAIN WORKSPACE ========== -->
+        <Grid Grid.Column="1"
+              Background="{DynamicResource BackgroundBrush}"
+              Focusable="False">
+
+            <!-- ===== DASHBOARD ===== -->
+            <ScrollViewer Focusable="False"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsDashboardVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="32,28,32,40">
+
+                    <StackPanel>
+                        <TextBlock Style="{DynamicResource EyebrowTextStyle}"
+                                   Text="CENTRO DE COMANDO" />
+                        <TextBlock Margin="0,4,0,0"
+                                   Style="{DynamicResource PageTitleTextStyle}"
+                                   Text="VISÃO GERAL" />
+                        <TextBlock Margin="0,2,0,0"
+                                   Style="{DynamicResource BodyTextStyle}"
+                                   Text="Estado do perfil e atalhos para as operações principais." />
+                    </StackPanel>
+
+                    <!-- Mode + status cards -->
+                    <UniformGrid Margin="0,26,0,0" Columns="5">
+                        <Border MinHeight="96"
+                                Margin="0,0,8,0"
+                                Padding="16"
+                                Style="{DynamicResource SurfaceBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                           FontSize="10"
+                                           Text="MODO" />
+                                <TextBlock Margin="0,10,0,0"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="22"
+                                           Text="{Binding AppliedMode}"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{DynamicResource MutedTextStyle}"
+                                           Text="{Binding StateLabel}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding StateLabel}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border MinHeight="96"
+                                Margin="4,0"
+                                Padding="16"
+                                Style="{DynamicResource SurfaceBorderStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource ErrorBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsWritable}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                               FontSize="10"
+                                               VerticalAlignment="Center"
+                                               Text="ACESSO" />
+                                </StackPanel>
+                                <TextBlock Margin="0,10,0,0"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="22"
+                                           Text="{Binding WritableLabel}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border MinHeight="96"
+                                Margin="4,0"
+                                Padding="16"
+                                Style="{DynamicResource SurfaceBorderStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRocketLeagueOpen}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource WarningBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                               FontSize="10"
+                                               VerticalAlignment="Center"
+                                               Text="ROCKET LEAGUE" />
+                                </StackPanel>
+                                <TextBlock Margin="0,10,0,0"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="22"
+                                           Text="{Binding RocketLeagueLabel}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border MinHeight="96"
+                                Margin="4,0"
+                                Padding="16"
+                                Style="{DynamicResource SurfaceBorderStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8"
+                                             Height="8"
+                                             Margin="0,0,8,0"
+                                             VerticalAlignment="Center"
+                                             Fill="{DynamicResource CyanBrush}" />
+                                    <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                               FontSize="10"
+                                               VerticalAlignment="Center"
+                                               Text="PROTEÇÃO" />
+                                </StackPanel>
+                                <TextBlock Margin="0,10,0,0"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="22"
+                                           Text="{Binding ProtectedLabel}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border MinHeight="96"
+                                Margin="8,0,0,0"
+                                Padding="16"
+                                Style="{DynamicResource SurfaceBorderStyle}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8"
+                                             Height="8"
+                                             Margin="0,0,8,0"
+                                             VerticalAlignment="Center"
+                                             Fill="{DynamicResource TextSecondaryBrush}" />
+                                    <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                               FontSize="10"
+                                               VerticalAlignment="Center"
+                                               Text="ADMIN" />
+                                </StackPanel>
+                                <TextBlock Margin="0,10,0,0"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="22"
+                                           Text="{Binding AdministratorLabel}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <!-- Config path -->
+                    <Border Margin="0,12,0,0"
+                            Padding="16,12"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource MutedTextStyle}"
+                                       FontSize="10"
+                                       Text="CAMINHO DO PERFIL" />
+                            <TextBlock Margin="0,6,0,0"
+                                       Style="{DynamicResource BodyTextStyle}"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="{Binding ConfigPath}"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding ConfigPath}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Main action cards -->
+                    <Grid Margin="0,28,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
+                                       Text="APLICAR PERFIL" />
+                            <TextBlock Margin="0,2,0,0"
+                                       Style="{DynamicResource MutedTextStyle}"
+                                       Text="Escolha o modo e confirme a operação." />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Focusable="False"
+                                Style="{DynamicResource GhostButtonStyle}"
+                                Command="{Binding NavigateOptimizationCommand}"
+                                Content="Ver detalhes →" />
+                    </Grid>
+
+                    <UniformGrid Columns="2">
+                        <Button MinHeight="168"
+                                Margin="0,0,8,0"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding CompletoCommand}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="40"
+                                            Height="40"
+                                            HorizontalAlignment="Left"
+                                            Background="{DynamicResource CtaBrush}"
+                                            CornerRadius="10">
+                                        <TextBlock HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="{DynamicResource TitleFontFamily}"
+                                                   FontSize="16"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                   Text="C" />
+                                    </Border>
+                                    <Border Grid.Column="1"
+                                            Style="{DynamicResource StatusChipStyle}">
+                                        <TextBlock FontSize="10"
+                                                   Foreground="{DynamicResource CtaBrush}"
+                                                   Text="FPS MÁXIMO" />
+                                    </Border>
+                                </Grid>
+                                <StackPanel Grid.Row="1" Margin="0,14,0,12">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="28"
+                                               Text="COMPLETO" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Latência mínima, visual competitivo e sincronização de contas."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Row="2"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource CtaBrush}"
+                                           Text="DETONAR COMPLETO →" />
+                            </Grid>
+                        </Button>
+
+                        <Button MinHeight="168"
+                                Margin="8,0,0,0"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding CriadorCommand}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="40"
+                                            Height="40"
+                                            HorizontalAlignment="Left"
+                                            Background="{DynamicResource CyanMutedBrush}"
+                                            BorderBrush="{DynamicResource CyanBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
+                                        <TextBlock HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="{DynamicResource TitleFontFamily}"
+                                                   FontSize="16"
+                                                   Foreground="{DynamicResource CyanBrush}"
+                                                   Text="CC" />
+                                    </Border>
+                                    <Border Grid.Column="1"
+                                            Style="{DynamicResource StatusChipStyle}">
+                                        <TextBlock FontSize="10"
+                                                   Foreground="{DynamicResource CyanBrush}"
+                                                   Text="CAPTURA" />
+                                    </Border>
+                                </Grid>
+                                <StackPanel Grid.Row="1" Margin="0,14,0,12">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="28"
+                                               Text="CRIADOR" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Performance forte com leitura visual preservada para captura."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Row="2"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource CyanBrush}"
+                                           Text="ATIVAR CRIADOR →" />
+                            </Grid>
+                        </Button>
+                    </UniformGrid>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ===== OTIMIZAÇÃO ===== -->
+            <ScrollViewer Focusable="False"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsOptimizationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="32,28,32,40">
+                    <TextBlock Style="{DynamicResource EyebrowTextStyle}"
+                               Text="PERFIS DE PERFORMANCE" />
+                    <TextBlock Margin="0,4,0,0"
+                               Style="{DynamicResource PageTitleTextStyle}"
+                               Text="OTIMIZAÇÃO" />
+                    <TextBlock Margin="0,2,0,0"
+                               Style="{DynamicResource BodyTextStyle}"
+                               Text="Selecione a intensidade. Resolução, borda e backups são preservados." />
+
+                    <UniformGrid Margin="0,26,0,0" Columns="2">
+                        <Button MinHeight="260"
+                                Margin="0,0,8,0"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding CompletoCommand}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="48"
+                                        Height="48"
+                                        HorizontalAlignment="Left"
+                                        Background="{DynamicResource CtaBrush}"
+                                        CornerRadius="12">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="20"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Text="01" />
+                                </Border>
+                                <StackPanel Grid.Row="1" Margin="0,18,0,16">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="32"
+                                               Text="COMPLETO" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="FPS máximo · shaders reduzidos · frame pacing agressivo · menu sincronizado."
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Margin="0,12,0,0"
+                                               Style="{DynamicResource MutedTextStyle}"
+                                               Text="Ideal para competitivo e menor latência possível."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Border Grid.Row="2"
+                                        Padding="14,10"
+                                        Background="{DynamicResource CtaBrush}"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Text="DETONAR MODO COMPLETO" />
+                                </Border>
+                            </Grid>
+                        </Button>
+
+                        <Button MinHeight="260"
+                                Margin="8,0,0,0"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding CriadorCommand}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border Width="48"
+                                        Height="48"
+                                        HorizontalAlignment="Left"
+                                        Background="{DynamicResource CyanMutedBrush}"
+                                        BorderBrush="{DynamicResource CyanBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="20"
+                                               Foreground="{DynamicResource CyanBrush}"
+                                               Text="02" />
+                                </Border>
+                                <StackPanel Grid.Row="1" Margin="0,18,0,16">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="32"
+                                               Text="CRIADOR DE CONTEÚDO" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Performance forte · leitura visual preservada · perfil de captura consistente."
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Margin="0,12,0,0"
+                                               Style="{DynamicResource MutedTextStyle}"
+                                               Text="Ideal para streaming, gravação e conteúdo competitivo."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Border Grid.Row="2"
+                                        Padding="14,10"
+                                        Background="{DynamicResource CyanMutedBrush}"
+                                        BorderBrush="{DynamicResource CyanBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource CyanBrush}"
+                                               Text="ATIVAR PERFIL CRIADOR" />
+                                </Border>
+                            </Grid>
+                        </Button>
+                    </UniformGrid>
+
+                    <Border Margin="0,16,0,0"
+                            Padding="22"
+                            Style="{DynamicResource SurfaceBorderStyle}">
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
+                                       Text="PROTOCOLO AUTOMÁTICO" />
+                            <UniformGrid Margin="0,18,0,0" Columns="4">
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Foreground="{DynamicResource CtaBrush}"
+                                               Text="01" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Backup" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Style="{DynamicResource MutedTextStyle}"
+                                               Text="Snapshot de segurança"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Margin="12,0">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Foreground="{DynamicResource CtaBrush}"
+                                               Text="02" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Limpeza" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Style="{DynamicResource MutedTextStyle}"
+                                               Text="Remove resíduos antigos"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Margin="12,0">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Foreground="{DynamicResource CtaBrush}"
+                                               Text="03" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Aplicação" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Style="{DynamicResource MutedTextStyle}"
+                                               Text="Grava o novo perfil"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Margin="12,0,0,0">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Foreground="{DynamicResource CtaBrush}"
+                                               Text="04" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Sincronização" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Style="{DynamicResource MutedTextStyle}"
+                                               Text="Epic, Steam e menu"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Button Margin="0,16,0,0"
+                            HorizontalAlignment="Left"
+                            Focusable="False"
+                            Style="{DynamicResource SecondaryButtonStyle}"
+                            Command="{Binding RemoverCommand}"
+                            Content="REMOVER OTIMIZAÇÃO DO SISTEMA" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ===== RECUPERAÇÃO ===== -->
+            <ScrollViewer Focusable="False"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsRecoveryVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="32,28,32,40">
+                    <TextBlock Style="{DynamicResource EyebrowTextStyle}"
+                               Foreground="{DynamicResource WarningBrush}"
+                               Text="ARSENAL DE RECUPERAÇÃO" />
+                    <TextBlock Margin="0,4,0,0"
+                               Style="{DynamicResource PageTitleTextStyle}"
+                               Text="RECUPERAÇÃO" />
+                    <TextBlock Margin="0,2,0,0"
+                               Style="{DynamicResource BodyTextStyle}"
+                               Text="Ações isoladas ou cadeia completa para recuperar o perfil." />
+
+                    <UniformGrid Margin="0,26,0,0" Columns="2">
+                        <Button MinHeight="132"
+                                Margin="0,0,8,8"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding CorrigirPermissoesCommand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource WarningMutedBrush}"
+                                        BorderBrush="{DynamicResource WarningBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="14"
+                                               Foreground="{DynamicResource WarningBrush}"
+                                               Text="01" />
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Text="CORRIGIR PERMISSÕES" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Destrava ACL, somente leitura e Acesso Controlado a Pastas."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button MinHeight="132"
+                                Margin="8,0,0,8"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding RepararPerfilCommand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource SuccessMutedBrush}"
+                                        BorderBrush="{DynamicResource SuccessBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="14"
+                                               Foreground="{DynamicResource SuccessBrush}"
+                                               Text="02" />
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Text="REPARAR PERFIL" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Mantém o modo ativo e sincroniza INI, menu e cache."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button MinHeight="132"
+                                Margin="0,8,8,8"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding RecuperarBootCommand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource WarningMutedBrush}"
+                                        BorderBrush="{DynamicResource WarningBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="14"
+                                               Foreground="{DynamicResource WarningBrush}"
+                                               Text="03" />
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Text="RECUPERAR BOOT" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Jogo não abre: INI stock + quarentena de saves. Reaplique o modo só depois."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button MinHeight="132"
+                                Margin="8"
+                                Focusable="False"
+                                Style="{DynamicResource CardButtonStyle}"
+                                Command="{Binding DiagnosticoCommand}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="36"
+                                        Height="36"
+                                        VerticalAlignment="Top"
+                                        Background="{DynamicResource CyanMutedBrush}"
+                                        BorderBrush="{DynamicResource CyanBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="14"
+                                               Foreground="{DynamicResource CyanBrush}"
+                                               Text="04" />
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                               FontSize="22"
+                                               Text="LOGS PRO GUTTY" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Gera o pacote zip com logs e diagnóstico pra mandar pro Gutty."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </UniformGrid>
+
+                    <Button Margin="0,8,0,0"
+                            MinHeight="72"
+                            Padding="24,16"
+                            Focusable="False"
+                            Style="{DynamicResource PrimaryButtonStyle}"
+                            Command="{Binding CorrigirTudoCommand}">
+                        <StackPanel HorizontalAlignment="Left">
+                            <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                       FontSize="24"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="CORRIGIR TUDO" />
+                            <TextBlock Margin="0,2,0,0"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Text="Desbloqueio nuclear — faz o jogo abrir (não reaplica o modo)"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Border Margin="0,18,0,0"
+                            MinHeight="88"
+                            Padding="22"
+                            Style="{DynamicResource SurfaceBorderStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
+                                           Text="GARAGEM E PRESETS" />
+                                <TextBlock Margin="0,4,20,0"
+                                           Style="{DynamicResource BodyTextStyle}"
+                                           Text="Recupera o melhor save local para os perfis Epic e Steam."
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Focusable="False"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Command="{Binding RestaurarPresetsCommand}"
+                                    Content="RESTAURAR PRESETS" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ===== SISTEMA ===== -->
+            <ScrollViewer Focusable="False"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsSystemVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Margin="32,28,32,40">
+                    <TextBlock Style="{DynamicResource EyebrowTextStyle}"
+                               Foreground="{DynamicResource CyanBrush}"
+                               Text="STEAM E EPIC GAMES" />
+                    <TextBlock Margin="0,4,0,0"
+                               Style="{DynamicResource PageTitleTextStyle}"
+                               Text="SISTEMA" />
+                    <TextBlock Margin="0,2,0,0"
+                               Style="{DynamicResource BodyTextStyle}"
+                               Text="Comando de inicialização e logs de suporte pra mandar pro Gutty." />
+
+                    <Border Margin="0,26,0,0"
+                            MinHeight="200"
+                            Padding="24"
+                            Style="{DynamicResource SurfaceBorderStyle}"
+                            Effect="{DynamicResource CardShadow}">
+                        <StackPanel>
+                            <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
+                                       Text="COMANDO DE INICIALIZAÇÃO PARA A STEAM E EPIC GAMES" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Style="{DynamicResource MutedTextStyle}"
+                                       Text="O mesmo comando funciona nas duas plataformas." />
+
+                            <Border Margin="0,18,0,0"
+                                    Padding="16,14"
+                                    Background="{DynamicResource BackgroundBrush}"
+                                    BorderBrush="{DynamicResource BorderStrongBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                <TextBlock FontFamily="{DynamicResource BodyFontFamily}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource CyanBrush}"
+                                           Text="{Binding LaunchCommandText}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <Button Margin="0,14,0,0"
+                                    HorizontalAlignment="Left"
+                                    Focusable="False"
+                                    Style="{DynamicResource PrimaryButtonStyle}"
+                                    Command="{Binding CopiarComandoCommand}"
+                                    Content="COPIAR COMANDO" />
+
+                            <UniformGrid Margin="0,22,0,0" Columns="2">
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock FontWeight="SemiBold" Text="Steam" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Biblioteca → Rocket League → Propriedades → Opções de inicialização."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Margin="16,0,0,0">
+                                    <TextBlock FontWeight="SemiBold" Text="Epic Games" />
+                                    <TextBlock Margin="0,6,0,0"
+                                               Style="{DynamicResource BodyTextStyle}"
+                                               Text="Biblioteca → Rocket League → Gerenciar → Argumentos adicionais."
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Margin="0,16,0,0"
+                            MinHeight="180"
+                            Padding="24"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource CtaBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Effect="{DynamicResource CardShadow}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                <TextBlock Style="{DynamicResource EyebrowTextStyle}"
+                                           Foreground="{DynamicResource CyanBrush}"
+                                           Text="SUPORTE GUTTY" />
+                                <TextBlock Margin="0,6,0,0"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="28"
+                                           Text="LOGS PRA MANDAR PRO GUTTY" />
+                                <TextBlock Margin="0,8,0,0"
+                                           Style="{DynamicResource BodyTextStyle}"
+                                           Text="Junta logs do app, INI, saves e diagnóstico num zip. Manda pro Gutty — ele abre, lê e mata o erro."
+                                           TextWrapping="Wrap" />
+                                <TextBlock Margin="0,14,0,0"
+                                           Style="{DynamicResource MutedTextStyle}"
+                                           FontSize="12"
+                                           Text="1 gera o zip  ·  2 manda pro Gutty" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    MinWidth="160"
+                                    MinHeight="48"
+                                    VerticalAlignment="Center"
+                                    Focusable="False"
+                                    Style="{DynamicResource PrimaryButtonStyle}"
+                                    Command="{Binding DiagnosticoCommand}"
+                                    Content="GERAR PACOTE" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Feedback toast -->
+            <Border Panel.ZIndex="20"
+                    Width="400"
+                    Margin="0,24,24,0"
+                    Padding="16"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Visibility="{Binding IsFeedbackVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{StaticResource SuccessMutedBrush}" />
+                        <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsFeedbackWarning}" Value="True">
+                                <Setter Property="Background" Value="{StaticResource WarningMutedBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsFeedbackError}" Value="True">
+                                <Setter Property="Background" Value="{StaticResource ErrorMutedBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource ErrorBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="28" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="22"
+                            Height="22"
+                            VerticalAlignment="Top"
+                            Background="{DynamicResource SurfaceRaisedBrush}"
+                            CornerRadius="11">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   FontWeight="Bold">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="✓" />
+                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFeedbackWarning}" Value="True">
+                                            <Setter Property="Text" Value="!" />
+                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsFeedbackError}" Value="True">
+                                            <Setter Property="Text" Value="×" />
+                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="8,0,10,0">
+                        <TextBlock FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding FeedbackTitle}" />
+                        <TextBlock Margin="0,4,0,0"
+                                   Style="{DynamicResource BodyTextStyle}"
+                                   Text="{Binding FeedbackMessage}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <Button Grid.Column="2"
+                            Width="28"
+                            Height="28"
+                            Padding="0"
+                            Focusable="False"
+                            Style="{DynamicResource GhostButtonStyle}"
+                            Command="{Binding DismissFeedbackCommand}"
+                            Content="×" />
+                </Grid>
+            </Border>
+
+            <!-- Confirmation modal -->
+            <Grid Panel.ZIndex="40"
+                  Background="{DynamicResource OverlayBrush}"
+                  Focusable="False"
+                  Visibility="{Binding IsConfirmationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Border Width="460"
+                        Padding="28"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource SurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource WarningBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Effect="{DynamicResource CardShadow}">
+                    <StackPanel>
+                        <Border Width="44"
+                                Height="44"
+                                HorizontalAlignment="Left"
+                                Background="{DynamicResource WarningMutedBrush}"
+                                BorderBrush="{DynamicResource WarningBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10">
+                            <TextBlock HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource WarningBrush}"
+                                       Text="!" />
+                        </Border>
+
+                        <TextBlock Margin="0,18,0,0"
+                                   FontFamily="{DynamicResource TitleFontFamily}"
+                                   FontSize="28"
+                                   Text="{Binding ConfirmationTitle}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,0"
+                                   Style="{DynamicResource BodyTextStyle}"
+                                   Text="{Binding ConfirmationMessage}"
+                                   TextWrapping="Wrap" />
+
+                        <Grid Margin="0,24,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Margin="0,0,6,0"
+                                    Focusable="False"
+                                    Style="{DynamicResource SecondaryButtonStyle}"
+                                    Command="{Binding CancelConfirmationCommand}"
+                                    Content="CANCELAR" />
+                            <Button Grid.Column="1"
+                                    Margin="6,0,0,0"
+                                    Focusable="False"
+                                    Style="{DynamicResource PrimaryButtonStyle}"
+                                    Command="{Binding ConfirmOperationCommand}"
+                                    Content="{Binding ConfirmationActionLabel}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Busy overlay -->
+            <Grid Panel.ZIndex="30"
+                  Background="{DynamicResource OverlayBrush}"
+                  Focusable="False"
+                  Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Border Width="420"
+                        Padding="28"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource SurfaceRaisedBrush}"
+                        BorderBrush="{DynamicResource BorderStrongBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Effect="{DynamicResource CardShadow}">
+                    <StackPanel>
+                        <Border Width="44"
+                                Height="44"
+                                HorizontalAlignment="Left"
+                                BorderBrush="{DynamicResource CtaBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Background="{DynamicResource SurfaceRaisedBrush}">
+                            <Rectangle Margin="1"
+                                       RadiusX="9"
+                                       RadiusY="9">
+                                <Rectangle.Fill>
+                                    <ImageBrush ImageSource="pack://application:,,,/Assets/gutty-avatar.png"
+                                                Stretch="UniformToFill"
+                                                AlignmentX="Center"
+                                                AlignmentY="Center" />
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </Border>
+                        <TextBlock Margin="0,18,0,0"
+                                   FontFamily="{DynamicResource TitleFontFamily}"
+                                   FontSize="26"
+                                   Text="{Binding OperationTitle}" />
+                        <TextBlock Margin="0,6,0,0"
+                                   Style="{DynamicResource BodyTextStyle}"
+                                   Text="{Binding ProgressMessage}"
+                                   TextWrapping="Wrap" />
+                        <ProgressBar Margin="0,20,0,0"
+                                     Maximum="100"
+                                     Value="{Binding ProgressValue, Mode=OneWay}" />
+                        <TextBlock Margin="0,8,0,0"
+                                   HorizontalAlignment="Right"
+                                   Style="{DynamicResource MutedTextStyle}"
+                                   Text="{Binding ProgressValue, StringFormat={}{0}%}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

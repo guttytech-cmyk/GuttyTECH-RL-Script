@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -236,13 +238,42 @@ def patch_file(path: Path, *, completo: bool) -> bool:
     raw = load_raw(path)
     if not _patch_raw(raw, completo=completo):
         return False
-    assemble_savedata(raw, path)
-    # Valida em memoria (evita 2o load_raw — o mais lento do pipeline).
-    if completo:
-        for obj in raw.get("objects", []):
-            if obj.get("__type") == "TAGame.VideoSettingsSavePC_TA":
-                if not _completo_options_ok(obj):
-                    raise RuntimeError(f"patch nao persistiu VideoOptions completos em {path.name}")
+
+    backup = path.with_suffix(path.suffix + ".guttybak")
+    tmp = path.with_suffix(path.suffix + ".guttytmp")
+    try:
+        shutil.copy2(path, backup)
+    except OSError:
+        backup = None
+
+    try:
+        assemble_savedata(raw, tmp)
+        # Valida em memoria (evita 2o load_raw — o mais lento do pipeline).
+        if completo:
+            for obj in raw.get("objects", []):
+                if obj.get("__type") == "TAGame.VideoSettingsSavePC_TA":
+                    if not _completo_options_ok(obj):
+                        raise RuntimeError(f"patch nao persistiu VideoOptions completos em {path.name}")
+        os.replace(tmp, path)
+    except Exception:
+        # Rollback atomico — nunca deixar save a meio.
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+        if backup is not None and backup.exists():
+            try:
+                os.replace(backup, path)
+            except OSError:
+                pass
+        raise
+    finally:
+        if backup is not None and backup.exists():
+            try:
+                backup.unlink()
+            except OSError:
+                pass
     return True
 
 

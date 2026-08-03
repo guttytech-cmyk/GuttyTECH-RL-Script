@@ -273,21 +273,7 @@ internal static class FolderAccess
         }
     }
 
-    private static bool CopyToClipboard(string text)
-    {
-        try
-        {
-            var psi = new ProcessStartInfo("clip.exe")
-            { RedirectStandardInput = true, UseShellExecute = false, CreateNoWindow = true };
-            using var p = Process.Start(psi);
-            if (p is null) return false;
-            p.StandardInput.Write(text);
-            p.StandardInput.Close();
-            p.WaitForExit(3000);
-            return p.ExitCode == 0;
-        }
-        catch { return false; }
-    }
+    private static bool CopyToClipboard(string text) => ClipboardUtil.TryCopy(text);
 
     private static bool IsLikelyControlledFolderAccess(string dir)
     {
