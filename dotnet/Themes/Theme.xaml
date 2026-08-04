@@ -69,6 +69,20 @@
                       ShadowDepth="3"
                       Opacity="0.28" />
 
+    <DropShadowEffect x:Key="CtaHoverGlow"
+                      Color="{StaticResource CtaColor}"
+                      BlurRadius="16"
+                      ShadowDepth="0"
+                      Opacity="0.48" />
+
+    <DropShadowEffect x:Key="CyanHoverGlow"
+                      Color="{StaticResource CyanColor}"
+                      BlurRadius="16"
+                      ShadowDepth="0"
+                      Opacity="0.42" />
+
+    <CubicEase x:Key="MotionEaseOut" EasingMode="EaseOut" />
+
     <Style TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource BodyFontFamily}" />
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
@@ -150,12 +164,14 @@
                                 <Storyboard>
                                     <DoubleAnimation Storyboard.TargetName="ButtonScale"
                                                      Storyboard.TargetProperty="ScaleX"
-                                                     To="1.012"
-                                                     Duration="0:0:0.10" />
+                                                     To="1.02"
+                                                     Duration="0:0:0.18"
+                                                     EasingFunction="{StaticResource MotionEaseOut}" />
                                     <DoubleAnimation Storyboard.TargetName="ButtonScale"
                                                      Storyboard.TargetProperty="ScaleY"
-                                                     To="1.012"
-                                                     Duration="0:0:0.10" />
+                                                     To="1.02"
+                                                     Duration="0:0:0.18"
+                                                     EasingFunction="{StaticResource MotionEaseOut}" />
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
@@ -165,17 +181,16 @@
                                     <DoubleAnimation Storyboard.TargetName="ButtonScale"
                                                      Storyboard.TargetProperty="ScaleX"
                                                      To="1"
-                                                     Duration="0:0:0.10" />
+                                                     Duration="0:0:0.16"
+                                                     EasingFunction="{StaticResource MotionEaseOut}" />
                                     <DoubleAnimation Storyboard.TargetName="ButtonScale"
                                                      Storyboard.TargetProperty="ScaleY"
                                                      To="1"
-                                                     Duration="0:0:0.10" />
+                                                     Duration="0:0:0.16"
+                                                     EasingFunction="{StaticResource MotionEaseOut}" />
                                 </Storyboard>
                             </BeginStoryboard>
                         </EventTrigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
-                        </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.86" />
                         </Trigger>
@@ -198,9 +213,11 @@
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{StaticResource CtaHoverBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource CtaHoverBrush}" />
+                <Setter Property="Effect" Value="{StaticResource CtaHoverGlow}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{StaticResource CtaPressedBrush}" />
+                <Setter Property="Effect" Value="{x:Null}" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -209,6 +226,7 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -258,7 +276,28 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
-                <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CtaBrush}" />
+                <Setter Property="Effect" Value="{StaticResource CtaHoverGlow}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Effect" Value="{x:Null}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="CardButtonCyanStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="20" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceRaisedBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource CyanBrush}" />
+                <Setter Property="Effect" Value="{StaticResource CyanHoverGlow}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Effect" Value="{x:Null}" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -268,6 +307,142 @@
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="12" />
+    </Style>
+
+    <!-- Fade + slide-in when a workspace section becomes visible -->
+    <Style x:Key="AnimatedSectionScrollViewerStyle" TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="14" />
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Visibility" Value="Visible">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0"
+                                             To="1"
+                                             Duration="0:0:0.26"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             From="14"
+                                             To="0"
+                                             Duration="0:0:0.28"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Sidebar active-rail fade -->
+    <Style x:Key="NavIndicatorStyle" TargetType="Border">
+        <Setter Property="Width" Value="3" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="CornerRadius" Value="2" />
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleY="0.55" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Dashboard status cards — start hidden for staggered enter -->
+    <Style x:Key="StatusCardEnterStyle" TargetType="Border" BasedOn="{StaticResource SurfaceBorderStyle}">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="12" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Busy overlay mask fade -->
+    <Style x:Key="BusyOverlayStyle" TargetType="Grid">
+        <Setter Property="Opacity" Value="0" />
+        <Style.Triggers>
+            <Trigger Property="Visibility" Value="Visible">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0"
+                                             To="1"
+                                             Duration="0:0:0.22"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Custom progress fill pulse while busy (NOT WPF ProgressBar) -->
+    <Style x:Key="BusyProgressFillStyle" TargetType="Border">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="Background" Value="{StaticResource CtaBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                <DataTrigger.EnterActions>
+                    <BeginStoryboard x:Name="BusyProgressPulseStoryboard">
+                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0.62"
+                                             To="1"
+                                             Duration="0:0:0.70">
+                                <DoubleAnimation.EasingFunction>
+                                    <SineEase EasingMode="EaseInOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </DataTrigger.EnterActions>
+                <DataTrigger.ExitActions>
+                    <StopStoryboard BeginStoryboardName="BusyProgressPulseStoryboard" />
+                </DataTrigger.ExitActions>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Feedback toast slide-down + fade -->
+    <Style x:Key="FeedbackBannerBaseStyle" TargetType="Border">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="-18" />
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Visibility" Value="Visible">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0"
+                                             To="1"
+                                             Duration="0:0:0.24"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             From="-18"
+                                             To="0"
+                                             Duration="0:0:0.28"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="StatusChipStyle" TargetType="Border">

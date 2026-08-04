@@ -125,11 +125,44 @@
                                        VerticalAlignment="Center"
                                        Text="Visão Geral" />
                             <Border Grid.Column="2"
-                                    Width="3"
-                                    Height="18"
-                                    Background="{DynamicResource CtaBrush}"
-                                    CornerRadius="2"
-                                    Visibility="{Binding IsDashboardVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    Background="{DynamicResource CtaBrush}">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource NavIndicatorStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDashboardVisible}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="1"
+                                                                             Duration="0:0:0.20"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="1"
+                                                                             Duration="0:0:0.22"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="0"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="0.55"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
                         </Grid>
                     </Button>
 
@@ -170,11 +203,44 @@
                                        VerticalAlignment="Center"
                                        Text="Otimização" />
                             <Border Grid.Column="2"
-                                    Width="3"
-                                    Height="18"
-                                    Background="{DynamicResource CtaBrush}"
-                                    CornerRadius="2"
-                                    Visibility="{Binding IsOptimizationVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    Background="{DynamicResource CtaBrush}">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource NavIndicatorStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOptimizationVisible}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="1"
+                                                                             Duration="0:0:0.20"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="1"
+                                                                             Duration="0:0:0.22"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="0"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="0.55"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
                         </Grid>
                     </Button>
 
@@ -215,11 +281,44 @@
                                        VerticalAlignment="Center"
                                        Text="Recuperação" />
                             <Border Grid.Column="2"
-                                    Width="3"
-                                    Height="18"
-                                    Background="{DynamicResource WarningBrush}"
-                                    CornerRadius="2"
-                                    Visibility="{Binding IsRecoveryVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    Background="{DynamicResource WarningBrush}">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource NavIndicatorStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRecoveryVisible}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="1"
+                                                                             Duration="0:0:0.20"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="1"
+                                                                             Duration="0:0:0.22"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="0"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="0.55"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
                         </Grid>
                     </Button>
 
@@ -260,11 +359,44 @@
                                        VerticalAlignment="Center"
                                        Text="Sistema" />
                             <Border Grid.Column="2"
-                                    Width="3"
-                                    Height="18"
-                                    Background="{DynamicResource CyanBrush}"
-                                    CornerRadius="2"
-                                    Visibility="{Binding IsSystemVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    Background="{DynamicResource CyanBrush}">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource NavIndicatorStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSystemVisible}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="1"
+                                                                             Duration="0:0:0.20"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="1"
+                                                                             Duration="0:0:0.22"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard>
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                             To="0"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                             To="0.55"
+                                                                             Duration="0:0:0.12"
+                                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
                         </Grid>
                     </Button>
                 </StackPanel>
@@ -307,6 +439,7 @@
             <ScrollViewer Focusable="False"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
+                          Style="{DynamicResource AnimatedSectionScrollViewerStyle}"
                           Visibility="{Binding IsDashboardVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Margin="32,28,32,40">
 
@@ -322,11 +455,80 @@
                     </StackPanel>
 
                     <!-- Mode + status cards (legendas para cliente novo) -->
-                    <UniformGrid Margin="0,26,0,0" Columns="5">
-                        <Border MinHeight="108"
+                    <UniformGrid x:Name="StatusCardsGrid" Margin="0,26,0,0" Columns="5">
+                        <UniformGrid.Triggers>
+                            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardMode"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         BeginTime="0:0:0.04"
+                                                         Duration="0:0:0.26"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardMode"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="0"
+                                                         BeginTime="0:0:0.04"
+                                                         Duration="0:0:0.28"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardPasta"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         BeginTime="0:0:0.09"
+                                                         Duration="0:0:0.26"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardPasta"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="0"
+                                                         BeginTime="0:0:0.09"
+                                                         Duration="0:0:0.28"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardJogo"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         BeginTime="0:0:0.14"
+                                                         Duration="0:0:0.26"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardJogo"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="0"
+                                                         BeginTime="0:0:0.14"
+                                                         Duration="0:0:0.28"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardIni"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         BeginTime="0:0:0.19"
+                                                         Duration="0:0:0.26"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardIni"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="0"
+                                                         BeginTime="0:0:0.19"
+                                                         Duration="0:0:0.28"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardAdmin"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1"
+                                                         BeginTime="0:0:0.24"
+                                                         Duration="0:0:0.26"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                        <DoubleAnimation Storyboard.TargetName="StatusCardAdmin"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                         To="0"
+                                                         BeginTime="0:0:0.24"
+                                                         Duration="0:0:0.28"
+                                                         EasingFunction="{StaticResource MotionEaseOut}" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </UniformGrid.Triggers>
+                        <Border x:Name="StatusCardMode"
+                                MinHeight="108"
                                 Margin="0,0,8,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}"
+                                Style="{DynamicResource StatusCardEnterStyle}"
                                 ToolTip="{Binding StateLabel}">
                             <StackPanel>
                                 <TextBlock Style="{DynamicResource MutedTextStyle}"
@@ -345,10 +547,11 @@
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="108"
+                        <Border x:Name="StatusCardPasta"
+                                MinHeight="108"
                                 Margin="4,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}"
+                                Style="{DynamicResource StatusCardEnterStyle}"
                                 ToolTip="{Binding WritableHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -382,10 +585,11 @@
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="108"
+                        <Border x:Name="StatusCardJogo"
+                                MinHeight="108"
                                 Margin="4,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}"
+                                Style="{DynamicResource StatusCardEnterStyle}"
                                 ToolTip="{Binding RocketLeagueHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -419,10 +623,11 @@
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="108"
+                        <Border x:Name="StatusCardIni"
+                                MinHeight="108"
                                 Margin="4,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}"
+                                Style="{DynamicResource StatusCardEnterStyle}"
                                 ToolTip="{Binding ProtectedHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -459,10 +664,11 @@
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="108"
+                        <Border x:Name="StatusCardAdmin"
+                                MinHeight="108"
                                 Margin="8,0,0,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}"
+                                Style="{DynamicResource StatusCardEnterStyle}"
                                 ToolTip="{Binding AdministratorHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
@@ -602,7 +808,7 @@
                                 Margin="8,0,0,0"
                                 Padding="18,16"
                                 Focusable="False"
-                                Style="{DynamicResource CardButtonStyle}"
+                                Style="{DynamicResource CardButtonCyanStyle}"
                                 Command="{Binding CriadorCommand}">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -661,6 +867,7 @@
             <ScrollViewer Focusable="False"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
+                          Style="{DynamicResource AnimatedSectionScrollViewerStyle}"
                           Visibility="{Binding IsOptimizationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Margin="32,28,32,40">
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
@@ -737,7 +944,7 @@
                                 Margin="8,0,0,0"
                                 Padding="22,20"
                                 Focusable="False"
-                                Style="{DynamicResource CardButtonStyle}"
+                                Style="{DynamicResource CardButtonCyanStyle}"
                                 Command="{Binding CriadorCommand}">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -862,6 +1069,7 @@
             <ScrollViewer Focusable="False"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
+                          Style="{DynamicResource AnimatedSectionScrollViewerStyle}"
                           Visibility="{Binding IsRecoveryVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Margin="32,28,32,40">
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
@@ -1101,6 +1309,7 @@
             <ScrollViewer Focusable="False"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
+                          Style="{DynamicResource AnimatedSectionScrollViewerStyle}"
                           Visibility="{Binding IsSystemVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Margin="32,28,32,40">
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
@@ -1285,10 +1494,29 @@
                     CornerRadius="12"
                     Visibility="{Binding IsFeedbackVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Border.Style>
-                    <Style TargetType="Border">
+                    <Style TargetType="Border" BasedOn="{StaticResource FeedbackBannerBaseStyle}">
                         <Setter Property="Background" Value="{StaticResource SuccessMutedBrush}" />
                         <Setter Property="BorderBrush" Value="{StaticResource SuccessBrush}" />
                         <Style.Triggers>
+                            <!-- Re-declared: derived Triggers replace base EnterActions -->
+                            <Trigger Property="Visibility" Value="Visible">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             From="0"
+                                                             To="1"
+                                                             Duration="0:0:0.24"
+                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                                             From="-18"
+                                                             To="0"
+                                                             Duration="0:0:0.28"
+                                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                            </Trigger>
                             <DataTrigger Binding="{Binding IsFeedbackWarning}" Value="True">
                                 <Setter Property="Background" Value="{StaticResource WarningMutedBrush}" />
                                 <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
@@ -1357,6 +1585,7 @@
             <Grid Panel.ZIndex="40"
                   Background="{DynamicResource OverlayBrush}"
                   Focusable="False"
+                  Style="{DynamicResource BusyOverlayStyle}"
                   Visibility="{Binding IsConfirmationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Border Width="460"
                         Padding="28"
@@ -1366,7 +1595,35 @@
                         BorderBrush="{DynamicResource WarningBrush}"
                         BorderThickness="1"
                         CornerRadius="14"
-                        Effect="{DynamicResource CardShadow}">
+                        Effect="{DynamicResource CardShadow}"
+                        RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform ScaleX="0.96" ScaleY="0.96" />
+                    </Border.RenderTransform>
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Style.Triggers>
+                                <Trigger Property="IsVisible" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                 From="0.96"
+                                                                 To="1"
+                                                                 Duration="0:0:0.22"
+                                                                 EasingFunction="{StaticResource MotionEaseOut}" />
+                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                 From="0.96"
+                                                                 To="1"
+                                                                 Duration="0:0:0.22"
+                                                                 EasingFunction="{StaticResource MotionEaseOut}" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <StackPanel>
                         <Border Width="44"
                                 Height="44"
@@ -1418,6 +1675,7 @@
             <Grid Panel.ZIndex="30"
                   Background="{DynamicResource OverlayBrush}"
                   Focusable="False"
+                  Style="{DynamicResource BusyOverlayStyle}"
                   Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Border Width="460"
                         Padding="28"
@@ -1454,10 +1712,7 @@
                                 Background="{DynamicResource BorderBrush}"
                                 CornerRadius="4"
                                 ClipToBounds="True">
-                            <Border HorizontalAlignment="Left"
-                                    Height="8"
-                                    Background="{DynamicResource CtaBrush}"
-                                    CornerRadius="4"
+                            <Border Style="{DynamicResource BusyProgressFillStyle}"
                                     Width="{Binding ProgressBarPixelWidth}" />
                         </Border>
                         <TextBlock Margin="0,8,0,0"
