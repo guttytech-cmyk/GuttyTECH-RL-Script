@@ -149,9 +149,17 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     public int ProgressValue
     {
         get => _progressValue;
-        // ProgressBar WPF usa BindsTwoWayByDefault — setter publico evita crash no Show().
-        set => SetProperty(ref _progressValue, Math.Clamp(value, 0, 100));
+        set
+        {
+            if (!SetProperty(ref _progressValue, Math.Clamp(value, 0, 100)))
+                return;
+            OnPropertyChanged(nameof(ProgressBarPixelWidth));
+            NotifyProgressSteps();
+        }
     }
+
+    /// <summary>Largura visual da barra (sem ProgressBar WPF — evita crash TwoWay).</summary>
+    public double ProgressBarPixelWidth => ProgressValue / 100.0 * 404.0;
 
     public string OperationTitle
     {
@@ -412,7 +420,6 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             ProgressValue = Math.Clamp(value.Percentage, 0, 100);
             ProgressMessage = value.Message;
             ProgressDetail = value.Detail ?? string.Empty;
-            NotifyProgressSteps();
         });
 
         try

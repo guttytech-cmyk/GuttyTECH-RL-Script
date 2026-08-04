@@ -154,15 +154,23 @@ internal static class Program
 
     private static int RunDesktop()
     {
-        var application = new App();
-        application.DispatcherUnhandledException += (_, e) =>
+        try
         {
-            StartupGuard.ReportFatal("Erro na interface do GuttyRL.", e.Exception);
-            e.Handled = true;
-            try { application.Shutdown(99); } catch { }
-        };
-        var window = new MainWindow();
-        return application.Run(window);
+            var application = new App();
+            application.DispatcherUnhandledException += (_, e) =>
+            {
+                StartupGuard.ReportFatal("Erro na interface do GuttyRL.", e.Exception);
+                e.Handled = true;
+                try { application.Shutdown(99); } catch { }
+            };
+            var window = new MainWindow();
+            return application.Run(window);
+        }
+        catch (Exception ex)
+        {
+            StartupGuard.ReportFatal("Falha ao abrir a janela do GuttyRL.", ex);
+            return 99;
+        }
     }
 
     private static int RunHeal(bool interactive) => CorrigirPermissoes(interactive);

@@ -1448,11 +1448,18 @@
                                    TextWrapping="Wrap"
                                    Visibility="{Binding IsProgressDetailVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                        <ProgressBar Margin="0,18,0,0"
-                                     Height="8"
-                                     Maximum="100"
-                                     IsIndeterminate="False"
-                                     Value="{Binding ProgressValue, Mode=OneWay}" />
+                        <!-- Sem ProgressBar: o controle WPF força TwoWay e crashava o Show() em vários PCs. -->
+                        <Border Margin="0,18,0,0"
+                                Height="8"
+                                Background="{DynamicResource BorderBrush}"
+                                CornerRadius="4"
+                                ClipToBounds="True">
+                            <Border HorizontalAlignment="Left"
+                                    Height="8"
+                                    Background="{DynamicResource CtaBrush}"
+                                    CornerRadius="4"
+                                    Width="{Binding ProgressBarPixelWidth}" />
+                        </Border>
                         <TextBlock Margin="0,8,0,0"
                                    HorizontalAlignment="Right"
                                    Style="{DynamicResource MutedTextStyle}"

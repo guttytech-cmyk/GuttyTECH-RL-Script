@@ -90,33 +90,40 @@ internal static class StartupGuard
 
         try { File.AppendAllText(AppMeta.CrashLog, sb.ToString()); } catch { }
 
-        if (ConsoleWindowService.IsHidden
-            && FatalDialogService.TryShow(title, ex?.Message ?? "Falha de inicialização.", AppMeta.CrashLog))
-            return;
+        string body = (ex?.Message ?? "Falha de inicialização.")
+            + Environment.NewLine + Environment.NewLine
+            + "Log: " + AppMeta.CrashLog;
+
+        // Sempre tenta MessageBox nativo — em WinExe o console nao aparece.
+        try
+        {
+            System.Windows.MessageBox.Show(
+                body,
+                "GUTTYTECH · ERRO",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error);
+        }
+        catch { }
 
         try
         {
-            Console.OutputEncoding = Encoding.UTF8;
-            Console.WriteLine();
-            Console.WriteLine(title);
-            if (ex is not null) Console.WriteLine(ex.Message);
-            Console.WriteLine();
-            Console.WriteLine("Log salvo em:");
-            Console.WriteLine(AppMeta.CrashLog);
-            Console.WriteLine();
-            Console.WriteLine("Se abriu e fechou na hora sem ver nada:");
-            Console.WriteLine("  1) Extraia o .exe do ZIP antes de rodar (nao rode de dentro do ZIP).");
-            Console.WriteLine("  2) Atualize o Windows (Configuracoes > Windows Update).");
-            Console.WriteLine("  3) Libere o .exe no antivirus / Acesso Controlado a Pastas.");
-            Console.WriteLine("  4) Abra o Rocket League 1x para criar o TASystemSettings.ini.");
-            WaitForUser();
+            if (FatalDialogService.TryShow(title, ex?.Message ?? "Falha de inicialização.", AppMeta.CrashLog))
+                return;
         }
-        catch
+        catch { }
+
+        if (!ConsoleWindowService.IsHidden)
         {
-            FatalDialogService.TryShow(
-                title,
-                ex?.Message ?? "Falha de inicialização.",
-                AppMeta.CrashLog);
+            try
+            {
+                Console.OutputEncoding = Encoding.UTF8;
+                Console.WriteLine();
+                Console.WriteLine(title);
+                if (ex is not null) Console.WriteLine(ex.Message);
+                Console.WriteLine(AppMeta.CrashLog);
+                WaitForUser();
+            }
+            catch { }
         }
     }
 
