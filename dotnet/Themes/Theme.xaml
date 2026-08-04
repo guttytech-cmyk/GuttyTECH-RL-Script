@@ -278,6 +278,20 @@
         <Setter Property="Padding" Value="10,5" />
     </Style>
 
+    <!-- Compact tag pill for mode cards (OTIMIZAÇÃO) -->
+    <Style x:Key="ModeTagChipStyle" TargetType="Border" BasedOn="{StaticResource StatusChipStyle}">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+
+    <Style x:Key="ModeBulletTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="LineHeight" Value="18" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
     <Style TargetType="ProgressBar">
         <Setter Property="Height" Value="4" />
         <Setter Property="Foreground" Value="{StaticResource CtaBrush}" />

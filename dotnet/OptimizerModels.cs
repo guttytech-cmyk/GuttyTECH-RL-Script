@@ -40,7 +40,10 @@ internal sealed record OptimizerStatus(
     bool IsAdministrator,
     bool ConfigExists);
 
-internal sealed record OperationProgress(int Percentage, string Message);
+internal sealed record OperationProgress(
+    int Percentage,
+    string Message,
+    string? Detail = null);
 
 internal sealed record OperationResult(
     bool Success,

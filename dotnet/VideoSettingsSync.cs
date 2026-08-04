@@ -353,7 +353,10 @@ internal static class VideoSettingsSync
             string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
             progress?.Invoke(0, 1, tag);
             BackupSaves(saveDir);
-            if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, progress))
+            if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, (cur, tot, detail) =>
+                {
+                    progress?.Invoke(cur, tot, string.IsNullOrWhiteSpace(detail) ? tag : $"{tag} · {detail}");
+                }))
                 anyOk = true;
             else if (tag == "Steam")
                 AppMeta.Log("Steam: save invalido/corrompido ignorado (Epic e a fonte principal).");

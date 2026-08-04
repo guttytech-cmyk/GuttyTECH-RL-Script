@@ -155,6 +155,12 @@ internal static class Program
     private static int RunDesktop()
     {
         var application = new App();
+        application.DispatcherUnhandledException += (_, e) =>
+        {
+            StartupGuard.ReportFatal("Erro na interface do GuttyRL.", e.Exception);
+            e.Handled = true;
+            try { application.Shutdown(99); } catch { }
+        };
         var window = new MainWindow();
         return application.Run(window);
     }
@@ -423,6 +429,17 @@ internal static class Program
         RefreshWritableCache();
     }
 
+    internal static Action<int, string, string?>? GuiProgress;
+
+    internal static void ReportGui(int percentage, string message, string? detail = null)
+    {
+        try
+        {
+            GuiProgress?.Invoke(Math.Clamp(percentage, 0, 100), message, detail);
+        }
+        catch { }
+    }
+
     internal static int DispatchForGui(string mode)
     {
         if (_cfg is null)
@@ -559,11 +576,11 @@ internal static class Program
         }, Ui.MCyan);
 
         Ui.LaunchHeading("O que cada flag faz");
-        Ui.LaunchParam("+", Ui.OkGreen, "-nomovie", "pula intro");
-        Ui.LaunchParam("+", Ui.OkGreen, "-NOSPLASH", "pula splash");
-        Ui.LaunchParam("+", Ui.OkGreen, "-nomansky", "ceu leve");
-        Ui.LaunchParam("+", Ui.OkGreen, "+mat_antialias 0", "AA zero");
-        Ui.LaunchParam("+", Ui.OkGreen, "-high", "prioridade alta (tire se estalar)");
+        Ui.LaunchParam("+", Ui.OkGreen, "-nomovie", "pula intros / cutscenes");
+        Ui.LaunchParam("+", Ui.OkGreen, "-NOSPLASH", "remove splash (logo)");
+        Ui.LaunchParam("+", Ui.OkGreen, "-nomansky", "ceu mais leve (menos GPU)");
+        Ui.LaunchParam("+", Ui.OkGreen, "+mat_antialias 0", "anti-aliasing off = mais FPS");
+        Ui.LaunchParam("+", Ui.OkGreen, "-high", "prioridade alta (tire se engasgar)");
         Ui.LaunchNote("Sem -high: " + LaunchNoPriority);
 
         Ui.EnterButton();
@@ -587,6 +604,7 @@ internal static class Program
         }
 
         EnsureOriginalBackup();
+        ReportGui(18, "Backup do perfil", "Preservando INI e presets da garagem");
         // Presets/garagem (saves grandes) — antes de qualquer patch de video.
         try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
 
@@ -611,8 +629,10 @@ internal static class Program
         }
         else
         {
+            ReportGui(24, "Destravando arquivo", "Removendo somente-leitura se existir");
             Backup();
             Unlock(_cfg!);
+            ReportGui(32, "Limpando modo anterior", "Reset limpo antes de gravar " + mode);
             if (!TryRestoreIni()) return FailOrElevate(mode, interactive);
         }
 
@@ -651,11 +671,28 @@ internal static class Program
         }
         else
         {
+            ReportGui(42, "Gravando otimização", mode + " → TASystemSettings.ini");
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
+            ReportGui(48, "Validando boot-safe", "Checando chaves que travam o jogo");
             ErrorRepair.ForceBootSafeIni(_cfg!);
-            if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive)) return 1;
+            ReportGui(52, "Sincronizando menu de vídeo", "Patch nas contas — esta etapa demora mais");
+            int lastSyncPct = 52;
+            Action<int, int, string> guiBar = (cur, tot, detail) =>
+            {
+                int safeTot = Math.Max(1, tot);
+                int pct = 52 + (int)Math.Round(34.0 * Math.Clamp(cur, 0, safeTot) / safeTot);
+                if (pct < lastSyncPct) pct = lastSyncPct;
+                else lastSyncPct = pct;
+                string label = string.IsNullOrWhiteSpace(detail)
+                    ? $"Conta {cur}/{safeTot}"
+                    : $"{detail} ({cur}/{safeTot})";
+                ReportGui(Math.Min(pct, 86), "Sincronizando menu de vídeo", label);
+            };
+            if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive, guiBar)) return 1;
+            ReportGui(90, "Reforçando presets", "Garantindo que a garagem não sumiu");
             ErrorRepair.ForceBootSafeIni(_cfg!);
             if (mode is "CRIADOR" or "COMPLETO") UnlockCfg();
+            ReportGui(96, "Finalizando", "INI liberado pra o menu do jogo");
         }
 
         string msg = previous is null ? $"Aplicado {mode} (limpo)."

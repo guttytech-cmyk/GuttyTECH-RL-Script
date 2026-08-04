@@ -94,7 +94,7 @@ internal sealed class OptimizerService
 
         if (before.IsRocketLeagueOpen)
         {
-            progress?.Report(new OperationProgress(12, "Fechando Rocket League para gravar com segurança"));
+            progress?.Report(new OperationProgress(8, "Fechando Rocket League", "O jogo sobrescreve o perfil se ficar aberto"));
             ErrorRepair.ForceCloseRocketLeague();
             if (System.Diagnostics.Process.GetProcessesByName("RocketLeague").Length > 0)
             {
@@ -104,15 +104,26 @@ internal sealed class OptimizerService
             }
         }
 
-        progress?.Report(new OperationProgress(24, GetPreparationMessage(action)));
+        progress?.Report(new OperationProgress(12, GetPreparationMessage(action), "Preparando motor Gutty"));
         cancellationToken.ThrowIfCancellationRequested();
-        progress?.Report(new OperationProgress(48, GetExecutionMessage(action)));
 
-        int exitCode = Program.DispatchForGui(ToEngineMode(action));
+        void Sink(int pct, string message, string? detail) =>
+            progress?.Report(new OperationProgress(pct, message, detail));
 
-        progress?.Report(new OperationProgress(84, "Validando resultado no perfil"));
+        Program.GuiProgress = Sink;
+        int exitCode;
+        try
+        {
+            exitCode = Program.DispatchForGui(ToEngineMode(action));
+        }
+        finally
+        {
+            Program.GuiProgress = null;
+        }
+
+        progress?.Report(new OperationProgress(98, "Validando resultado", "Lendo perfil aplicado"));
         OptimizerStatus after = Program.GetStatusForGui();
-        progress?.Report(new OperationProgress(100, exitCode == 0 ? "Operação concluída" : "Ação requer atenção"));
+        progress?.Report(new OperationProgress(100, exitCode == 0 ? "Operação concluída" : "Ação requer atenção", null));
 
         if (exitCode != 0)
             return BuildFailure(action, after);

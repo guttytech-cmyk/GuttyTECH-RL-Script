@@ -17,6 +17,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private int _progressValue;
     private string _operationTitle = "PREPARANDO OPERAÇÃO";
     private string _progressMessage = "Aguarde um instante";
+    private string _progressDetail = string.Empty;
     private string _appliedMode = "CARREGANDO";
     private string _stateLabel = "Lendo perfil do Rocket League";
     private string _writableLabel = "…";
@@ -148,7 +149,8 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     public int ProgressValue
     {
         get => _progressValue;
-        private set => SetProperty(ref _progressValue, value);
+        // ProgressBar WPF usa BindsTwoWayByDefault — setter publico evita crash no Show().
+        set => SetProperty(ref _progressValue, Math.Clamp(value, 0, 100));
     }
 
     public string OperationTitle
@@ -162,6 +164,21 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         get => _progressMessage;
         private set => SetProperty(ref _progressMessage, value);
     }
+
+    public string ProgressDetail
+    {
+        get => _progressDetail;
+        private set => SetProperty(ref _progressDetail, value);
+    }
+
+    public bool IsProgressDetailVisible => !string.IsNullOrWhiteSpace(ProgressDetail);
+
+    public bool IsStepBackupDone => ProgressValue >= 24;
+    public bool IsStepCleanDone => ProgressValue >= 35;
+    public bool IsStepWriteDone => ProgressValue >= 50;
+    public bool IsStepSyncDone => ProgressValue >= 88;
+    public bool IsStepSyncActive => ProgressValue >= 50 && ProgressValue < 88;
+    public bool IsStepFinishDone => ProgressValue >= 100;
 
     public string AppliedMode
     {
@@ -387,11 +404,15 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         ProgressValue = 0;
         OperationTitle = GetOperationTitle(action);
         ProgressMessage = "Preparando ambiente";
+        ProgressDetail = string.Empty;
+        NotifyProgressSteps();
 
         var progress = new Progress<OperationProgress>(value =>
         {
             ProgressValue = Math.Clamp(value.Percentage, 0, 100);
             ProgressMessage = value.Message;
+            ProgressDetail = value.Detail ?? string.Empty;
+            NotifyProgressSteps();
         });
 
         try
@@ -404,6 +425,17 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         {
             IsBusy = false;
         }
+    }
+
+    private void NotifyProgressSteps()
+    {
+        OnPropertyChanged(nameof(IsProgressDetailVisible));
+        OnPropertyChanged(nameof(IsStepBackupDone));
+        OnPropertyChanged(nameof(IsStepCleanDone));
+        OnPropertyChanged(nameof(IsStepWriteDone));
+        OnPropertyChanged(nameof(IsStepSyncDone));
+        OnPropertyChanged(nameof(IsStepSyncActive));
+        OnPropertyChanged(nameof(IsStepFinishDone));
     }
 
     private async Task RefreshStatusAsync(bool showFeedback, bool checkUpdates)
