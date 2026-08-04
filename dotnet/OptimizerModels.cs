@@ -13,6 +13,7 @@ internal enum OptimizerAction
     CorrigirTudo,
     RestaurarPresets,
     CorrigirSave,
+    RepararEac,
 }
 
 internal enum OptimizerSection

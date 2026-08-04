@@ -123,7 +123,33 @@ internal sealed class OptimizerService
 
         progress?.Report(new OperationProgress(98, "Validando resultado", "Lendo perfil aplicado"));
         OptimizerStatus after = Program.GetStatusForGui();
+
+        if (exitCode == 0)
+        {
+            string? watcherMode = action switch
+            {
+                OptimizerAction.Completo => "COMPLETO",
+                OptimizerAction.Criador => "CRIADOR",
+                OptimizerAction.RepararPerfil when after.AppliedMode is "COMPLETO" or "CRIADOR"
+                    => after.AppliedMode,
+                _ => null,
+            };
+            if (watcherMode is not null)
+                VideoSettingsSync.StartExitWatcher(watcherMode);
+        }
+
         progress?.Report(new OperationProgress(100, exitCode == 0 ? "Operação concluída" : "Ação requer atenção", null));
+
+        // CORRIGIR-EAC: exit 2 = precisa reiniciar PC (serviço 1072) — nao e falha do otimizador.
+        if (action == OptimizerAction.RepararEac && exitCode == 2)
+        {
+            return new OperationResult(
+                true,
+                false,
+                FeedbackTone.Warning,
+                "REINICIE O PC",
+                "O Windows marcou o Easy Anti-Cheat para apagar (1072). Reinicie e abra o RL. Se continuar: Verificar ficheiros na Epic.");
+        }
 
         if (exitCode != 0)
             return BuildFailure(action, after);
@@ -183,7 +209,10 @@ internal sealed class OptimizerService
                 "INI, menu de vídeo e cache foram sincronizados sem remover o modo aplicado."),
             OptimizerAction.RecuperarBoot => Success(
                 "JOGO DESBLOQUEADO",
-                "INI stock + boot-safe + saves em quarentena. Abra o RL 1×; só depois reaplique COMPLETO/CRIADOR. Presets: RESTAURAR PRESETS."),
+                "INI stock + boot-safe + saves em quarentena + EAC verificado. Abra o RL 1×; se erro 30005 continuar, reinicie o PC e use REPARAR EAC."),
+            OptimizerAction.RepararEac => Success(
+                "EAC REPARADO",
+                "Serviço EasyAntiCheat_EOS reinstalado. Abra o Rocket League pela Epic/Steam."),
             OptimizerAction.CorrigirTudo => Success(
                 "CORREÇÃO NUCLEAR CONCLUÍDA",
                 "Caminho de boot aplicado (não reaplica o otimizador). Confirme que o jogo abre e só então volte a aplicar o modo."),
@@ -219,7 +248,10 @@ internal sealed class OptimizerService
                 "O modo foi detectado, mas INI, save ou cache não sincronizou por completo."),
             OptimizerAction.RecuperarBoot => Failure(
                 "RECUPERAÇÃO INCOMPLETA",
-                "Não foi possível restaurar todos os arquivos stock e saves locais."),
+                "Não foi possível restaurar todos os arquivos stock/saves/EAC. Se viu erro 30005, reinicie o PC e use REPARAR EAC."),
+            OptimizerAction.RepararEac => Failure(
+                "EAC AINDA FALHOU",
+                "Reinicie o PC (serviço marcado para apagar — 1072). Depois Epic → Verificar ficheiros e abra o jogo."),
             OptimizerAction.RestaurarPresets => Failure(
                 "SEM BACKUP RECUPERÁVEL",
                 "Não há save grande em Backups/Presets/Best. Sem esse arquivo local não dá para recuperar a garagem."),
@@ -256,6 +288,7 @@ internal sealed class OptimizerService
             OptimizerAction.CorrigirPermissoes => "CORRIGIR",
             OptimizerAction.RepararPerfil => "CORRIGIR-PERFIL",
             OptimizerAction.RecuperarBoot => "CORRIGIR-BOOT",
+            OptimizerAction.RepararEac => "CORRIGIR-EAC",
             OptimizerAction.CorrigirTudo => "CORRIGIR-TUDO",
             OptimizerAction.RestaurarPresets => "RESTAURAR-PRESETS",
             OptimizerAction.CorrigirSave => "CORRIGIR-SAVE",
@@ -280,7 +313,8 @@ internal sealed class OptimizerService
             OptimizerAction.Remover => "Parando watcher e restaurando INI stock",
             OptimizerAction.CorrigirPermissoes => "Reparando acesso à pasta do jogo",
             OptimizerAction.RepararPerfil => "Sincronizando INI, menu e cache",
-            OptimizerAction.RecuperarBoot => "Desbloqueando boot (stock + quarentena)",
+            OptimizerAction.RecuperarBoot => "Desbloqueando boot (stock + EAC)",
+            OptimizerAction.RepararEac => "Reinstalando serviço EasyAntiCheat_EOS",
             OptimizerAction.CorrigirTudo => "Executando desbloqueio nuclear do boot",
             OptimizerAction.RestaurarPresets => "Restaurando garagem Epic e Steam",
             OptimizerAction.CorrigirSave => "Quarentena Steam Cloud + saves partidos",

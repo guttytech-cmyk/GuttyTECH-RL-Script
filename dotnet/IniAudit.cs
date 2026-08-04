@@ -16,6 +16,12 @@ internal static class IniAudit
         string forcedC = CompletoForce.Apply(Templates.Completo);
         string forcedR = CriadorForce.Apply(Templates.Criador);
         fails += CheckFile("COMPLETO+Force", forcedC, CompletoPostForceRules);
+        if (CompletoForce.HasDrift(forcedC))
+        {
+            Console.WriteLine("[X] COMPLETO+Force ainda com drift apos Apply: "
+                              + string.Join("; ", CompletoForce.DescribeDrift(forcedC).Take(5)));
+            fails++;
+        }
         fails += CheckFile("CRIADOR+Force", forcedR, CriadorPostForceRules);
         fails += CheckDuplicateKeys("CRIADOR", Templates.Criador, "SystemSettings", "MobileMinimizeFogShaders");
         fails += CheckExclusiveDisplay("COMPLETO", Templates.Completo);
@@ -66,6 +72,13 @@ internal static class IniAudit
         new("SystemSettings*", "bUseTranslucentArenaShaders", "^(?i)true$", "pos-force shaders HQ"),
         new("SystemSettings*", "MobileFog", "^(?i)true$", "pos-force MobileFog"),
         new("SystemSettings", "ScreenPercentage", "^(?!100(\\.0+)?$).*$", "pos-force ScreenPercentage"),
+        new("SystemSettings*", "TEXTUREGROUP_*", "MaxLODSize=(?!2(?:,|\\)))", "textura acima de 2x2"),
+        new("SystemSettings*", "MaxShadowResolution", "^(?!1$).*$", "shadow map acima de 1x1"),
+        new("SystemSettings*", "MaxFilterBlurSampleCount", "^(?!2$).*$", "BlurSamples deve ficar em 2 (0 crasha)"),
+        new("SystemSettings*", "DynamicLights", "^(?i)true$", "luzes dinamicas ligadas"),
+        new("SystemSettings*", "DynamicShadows", "^(?i)true$", "sombras dinamicas ligadas"),
+        new("SystemSettings*", "ApexLODResourceBudget", "^(?!0(?:\\.0+)?$).*$", "APEX budget diferente de zero"),
+        new("SystemSettings*", "MobileNormalMapping", "^(?i)true$", "normal mapping mobile ligado"),
     };
 
     private static readonly Rule[] CriadorPostForceRules =

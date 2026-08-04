@@ -206,21 +206,23 @@ internal static class Program
             Ui.PanelBlank();
             Ui.MenuCard("1", "PERMISSOES", "Destrava INI e libera gravacao na pasta", Ui.Amber);
             Ui.MenuCard("2", "REPARAR PERFIL", "Mantem COMPLETO/CRIADOR — reclampa INI+menu", Ui.Green);
-            Ui.MenuCard("3", "RECUPERAR BOOT", "Nuclear: stock INI + quarentena saves", Ui.Amber);
-            Ui.MenuCard("4", "DIAGNOSTICO", "Mostra o que esta errado no INI/pasta", Ui.Cyan);
-            Ui.MenuCard("5", "TUDO", "Desbloqueio nuclear — prioridade abrir o jogo", Ui.Amber);
-            Ui.MenuCard("6", "VOLTAR", "Menu principal", Ui.DimC);
+            Ui.MenuCard("3", "RECUPERAR BOOT", "Nuclear: stock INI + quarentena + EAC 30005", Ui.Amber);
+            Ui.MenuCard("4", "REPARAR EAC", "Erro 30005 CreateService 1072 (Easy Anti-Cheat)", Ui.Amber);
+            Ui.MenuCard("5", "DIAGNOSTICO", "Mostra o que esta errado no INI/pasta/EAC", Ui.Cyan);
+            Ui.MenuCard("6", "TUDO", "Desbloqueio nuclear — prioridade abrir o jogo", Ui.Amber);
+            Ui.MenuCard("7", "VOLTAR", "Menu principal", Ui.DimC);
             Ui.PanelBlank();
             Ui.PanelBottom();
-            Ui.Prompt("Selecione uma operação  [1–6]");
+            Ui.Prompt("Selecione uma operação  [1–7]");
             switch (Console.ReadLine()?.Trim())
             {
                 case "1": CorrigirPermissoes(true); Ui.EnterButton(); break;
                 case "2": CorrigirPerfil(true); Ui.EnterButton(); break;
                 case "3": CorrigirBoot(true); Ui.EnterButton(); break;
-                case "4": CorrigirDiagnostico(true); Ui.EnterButton(); break;
-                case "5": CorrigirTudo(true); Ui.EnterButton(); break;
-                case "6": return;
+                case "4": ErrorRepair.RepararEac(true); Ui.EnterButton(); break;
+                case "5": CorrigirDiagnostico(true); Ui.EnterButton(); break;
+                case "6": CorrigirTudo(true); Ui.EnterButton(); break;
+                case "7": return;
             }
         }
     }
@@ -418,6 +420,7 @@ internal static class Program
     {
         if (mode == "REMOVER") return Remover(interactive);
         if (mode is "CORRIGIR-BOOT" or "RECUPERAR") return CorrigirBoot(interactive);
+        if (mode is "CORRIGIR-EAC" or "REPARAR-EAC" or "EAC") return ErrorRepair.RepararEac(interactive);
         if (mode == "CORRIGIR-TUDO") return CorrigirTudo(interactive);
         if (mode is "CORRIGIR-PERFIL" or "REPARAR" or "REPARAR-PERFIL") return CorrigirPerfil(interactive);
         if (mode is "DIAGNOSTICO" or "DIAG") return CorrigirDiagnostico(interactive);
@@ -444,6 +447,22 @@ internal static class Program
             AppMeta.Log($"GUI INI: {_cfg}");
             // Snapshot preventivo: se a garagem ainda esta grande, guarda no Best agora
             try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
+
+            // A GUI usa Dispatch(interactive:false), portanto o watcher antigo nunca
+            // arrancava. O RL regravava o SystemSettings principal (LOD 128, shaders
+            // e decals ON) e o COMPLETO ficava extremo apenas nas secoes derivadas.
+            string? activeMode = DetectAppliedMode();
+            if (activeMode is "COMPLETO" or "CRIADOR")
+            {
+                if (GetRl().Length == 0)
+                {
+                    bool healed = VideoSettingsSync.HealIfNeeded(_cfg, activeMode);
+                    AppMeta.Log(healed
+                        ? $"GUI startup heal completo ({activeMode}) OK."
+                        : $"GUI startup heal completo ({activeMode}) parcial.");
+                }
+                VideoSettingsSync.StartExitWatcher(activeMode);
+            }
         }
         RefreshWritableCache();
     }
@@ -720,8 +739,8 @@ internal static class Program
                 : $"Trocou {previous} → {mode} (limpo + sync contas).";
         Log(msg);
         RefreshWritableCache();
-        // Watcher so no menu interativo — no CLI o -Wait do PowerShell/UAC
-        // agarrava o processo-filho e parecia travado (auto-heal no proximo arranque cobre).
+        // Console interativo inicia aqui; a GUI inicia no OptimizerService depois
+        // da validacao. CLI nao-interativo continua sem filho para nao prender -Wait.
         if (interactive)
         {
             VideoSettingsSync.StartExitWatcher(mode);

@@ -66,6 +66,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         CorrigirPermissoesCommand = CreateOperationCommand(OptimizerAction.CorrigirPermissoes);
         RepararPerfilCommand = CreateOperationCommand(OptimizerAction.RepararPerfil);
         RecuperarBootCommand = CreateOperationCommand(OptimizerAction.RecuperarBoot);
+        RepararEacCommand = CreateOperationCommand(OptimizerAction.RepararEac);
         DiagnosticoCommand = CreateOperationCommand(OptimizerAction.Diagnostico);
         CorrigirTudoCommand = CreateOperationCommand(OptimizerAction.CorrigirTudo);
         RestaurarPresetsCommand = CreateOperationCommand(OptimizerAction.RestaurarPresets);
@@ -105,6 +106,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     public ICommand CorrigirPermissoesCommand { get; }
     public ICommand RepararPerfilCommand { get; }
     public ICommand RecuperarBootCommand { get; }
+    public ICommand RepararEacCommand { get; }
     public ICommand DiagnosticoCommand { get; }
     public ICommand CorrigirTudoCommand { get; }
     public ICommand RestaurarPresetsCommand { get; }
@@ -637,6 +639,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             OptimizerAction.CorrigirPermissoes => "CORRIGINDO PERMISSÕES",
             OptimizerAction.RepararPerfil => "REPARANDO PERFIL",
             OptimizerAction.RecuperarBoot => "RECUPERANDO BOOT",
+            OptimizerAction.RepararEac => "REPARANDO EASY ANTI-CHEAT",
             OptimizerAction.Diagnostico => "GERANDO PACOTE DE LOGS",
             OptimizerAction.CorrigirTudo => "CORRIGINDO TUDO",
             OptimizerAction.RestaurarPresets => "RESTAURANDO PRESETS",
@@ -658,8 +661,12 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                 "REMOVER DO SISTEMA"),
             OptimizerAction.RecuperarBoot => (
                 "JOGO NÃO ABRE — RECUPERAR BOOT?",
-                "Fecha o RL, remove o otimizador (INI stock), limpa boot-killers e põe saves suspeitos em quarentena. A garagem fica no cofre Best — restaure depois com RESTAURAR PRESETS. Só reaplique COMPLETO/CRIADOR depois do jogo abrir.",
+                "Fecha o RL, remove o otimizador (INI stock), limpa boot-killers, põe saves suspeitos em quarentena e repara Easy Anti-Cheat (erro 30005). A garagem fica no Best. Só reaplique COMPLETO/CRIADOR depois do jogo abrir.",
                 "DESBLOQUEAR JOGO"),
+            OptimizerAction.RepararEac => (
+                "ERRO EAC 30005 — REPARAR ANTI-CHEAT?",
+                "Reinstala o serviço EasyAntiCheat_EOS (CreateService 1072). Não mexe no INI. Se o Windows marcou o serviço para apagar, pode ser preciso reiniciar o PC.",
+                "REPARAR EAC"),
             OptimizerAction.CorrigirTudo => (
                 "JOGO NÃO ABRE — CORRIGIR TUDO?",
                 "Mesmo caminho nuclear do Recuperar Boot: prioridade é o Rocket League voltar a abrir. NÃO reaplica COMPLETO/CRIADOR em cima do perfil partido.",

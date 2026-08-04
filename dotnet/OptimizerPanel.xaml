@@ -781,13 +781,13 @@
                                 <StackPanel Grid.Row="2" Margin="0,10,0,14">
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ Corta efeitos — raios, clima, flares" />
+                                               Text="▸ Texturas esmagadas até 2×2" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ Texturas no modo batata competitivo" />
+                                               Text="▸ Sem sombras, decals, efeitos e tessellation" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
-                                               Text="▸ FPS ilimitado · VSync morto" />
+                                               Text="▸ LOD 2x2 · sombra 1 · watcher anti-rewrite" />
                                 </StackPanel>
 
                                 <Border Grid.Row="3"
@@ -839,7 +839,7 @@
                                                Text="▸ Visual pra câmera não ficar feia" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ Ainda empurra FPS — sem batata total" />
+                                               Text="▸ FPS + Apex/foliage/MSAA off — visual intacto" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
                                                Text="▸ Estável pra clips e stream" />
@@ -910,20 +910,20 @@
                                                Text="COMPLETO" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Ranked. Latência mínima. PC fraco ou sede de FPS."
+                                               Text="Ranked. Throughput máximo. PC fraco ou sede de FPS."
                                                TextWrapping="Wrap" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Margin="0,16,0,18">
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Corta efeitos pesados — raios, clima, flares, shaders" />
+                                               Text="▸ Bola, pitch, carros, banners e mapas: clamp até 2×2" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Texturas e partículas no modo batata competitivo" />
+                                               Text="▸ Sombras, decals, folhagem, APEX e pós: OFF; partículas no mínimo" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ FPS ilimitado + VSync morto + frame pacing agressivo" />
+                                               Text="▸ Tessellation mínima + draw distance e LOD no limite" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
-                                               Text="▸ Menu de vídeo alinhado com o INI — sem mentira visual" />
+                                               Text="▸ FPS ilimitado + VSync off + menu sincronizado" />
                                 </StackPanel>
 
                                 <Border Grid.Row="3"
@@ -1235,12 +1235,52 @@
                                                Text="RECUPERAR BOOT" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Use se o jogo não abre. Depois aplique o modo de novo."
+                                               Text="Jogo não abre / EAC 30005. Depois aplique o modo de novo."
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
                         </Button>
                     </UniformGrid>
+
+                    <!-- EAC 30005 -->
+                    <Button Margin="0,0,0,8"
+                            MinHeight="88"
+                            Padding="20,16"
+                            HorizontalContentAlignment="Left"
+                            Focusable="False"
+                            Style="{DynamicResource CardButtonStyle}"
+                            Command="{Binding RepararEacCommand}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="40" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    VerticalAlignment="Top"
+                                    Background="{DynamicResource WarningMutedBrush}"
+                                    BorderBrush="{DynamicResource WarningBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource WarningBrush}"
+                                           Text="EAC" />
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="18"
+                                           TextWrapping="Wrap"
+                                           Text="REPARAR EASY ANTI-CHEAT" />
+                                <TextBlock Margin="0,6,0,0"
+                                           Style="{DynamicResource BodyTextStyle}"
+                                           Text="Erro 30005 CreateService 1072 — serviço EAC preso. Não mexe no INI. Se pedir, reinicie o PC."
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Button>
 
                     <!-- LOAD FAILURE — card largo -->
                     <Button Margin="0,0,0,8"

@@ -76,6 +76,13 @@ internal static class ErrorRepair
                 Check("bAllowLightShafts", "False");
                 Check("bUseTranslucentArenaShaders", "False");
                 Check("ParticleLODBias", "100");
+                Check("DynamicLights", "False");
+                Check("DynamicShadows", "False");
+                Check("MaxShadowResolution", "1");
+                Check("MaxFilterBlurSampleCount", "2");
+                Check("ApexLODResourceBudget", "0.000000");
+                Check("TessellationAdaptivePixelsPerTriangle", "4096.000000");
+                Check("MobileNormalMapping", "False");
                 Check("OnlyStreamInTextures", "False");
                 Check("WaitForGPU", "False");
             }
@@ -108,6 +115,10 @@ internal static class ErrorRepair
         }
         else
             lines.Add("Watcher: inativo");
+
+        var (eacOk, eacDetail) = EacRepairService.Assess();
+        lines.Add(eacOk ? "EAC: OK — " + eacDetail : "EAC: PROBLEMA — " + eacDetail);
+        if (!eacOk) issues = true;
 
         string? epic = SaveRecovery.SaveDirFromIni(cfg ?? "", epic: true);
         string? steam = SaveRecovery.SaveDirFromIni(cfg ?? "", epic: false);
@@ -271,6 +282,14 @@ internal static class ErrorRepair
             saveOk = SaveRecovery.UnbreakSaves(cfg);
         report.Add(saveOk ? "saves/cache limpos" : "saves/cache parcial");
 
+        // 5b) Easy Anti-Cheat 30005 / CreateService 1072
+        var eac = EacRepairService.Repair();
+        if (interactive)
+            Ui.StepAnimated("Reparando Easy Anti-Cheat (30005/1072)", () => eac.Ok || !eac.NeedsReboot);
+        report.Add(eac.Ok ? "EAC OK" : (eac.NeedsReboot ? "EAC precisa REBOOT" : "EAC parcial"));
+        if (!string.IsNullOrWhiteSpace(eac.Detail))
+            AppMeta.Log("UNBREAK-BOOT EAC: " + eac.Detail);
+
         // 6) Verificacao final
         bool bootSafe = true;
         try
@@ -295,13 +314,61 @@ internal static class ErrorRepair
             {
                 string.Join(" · ", report),
                 "1) Epic/Steam → Verificar ficheiros do Rocket League",
-                "2) Abra o jogo 1x e confirme que entra no menu",
-                "3) So depois aplique COMPLETO ou CRIADOR de novo",
-                "4) Presets: use RESTAURAR PRESETS se a garagem sumir",
+                "2) Se erro EAC 30005 / CreateService 1072: reinicie o PC e abra de novo",
+                "3) Abra o jogo 1x e confirme que entra no menu",
+                "4) So depois aplique COMPLETO ou CRIADOR de novo",
+                "5) Presets: use RESTAURAR PRESETS se a garagem sumir",
             });
         }
 
         return ok ? 0 : 1;
+    }
+
+    /// <summary>Repara so o Easy Anti-Cheat (erro 30005 CreateService 1072).</summary>
+    public static int RepararEac(bool interactive)
+    {
+        ForceCloseRocketLeague();
+        if (interactive)
+            Ui.StepAnimated("A preparar reparo EAC", () => true);
+
+        var result = EacRepairService.Repair();
+        AppMeta.Log($"CORRIGIR-EAC ok={result.Ok} reboot={result.NeedsReboot} {result.Detail}");
+
+        string detail = string.IsNullOrWhiteSpace(result.Detail)
+            ? "Sem detalhe extra."
+            : (result.Detail.Length > 180 ? result.Detail[..180] + "…" : result.Detail);
+
+        if (interactive)
+        {
+            if (result.Ok)
+            {
+                Ui.CompletionMessage(Ui.OkGreen, "EAC REPARADO", new[]
+                {
+                    detail,
+                    "Abra o Rocket League pela Epic/Steam.",
+                });
+            }
+            else if (result.NeedsReboot)
+            {
+                Ui.CompletionMessage(Ui.MAmber, "REINICIE O PC", new[]
+                {
+                    "O Windows marcou o servico EAC para apagar (erro 1072).",
+                    "Reinicie o PC e abra o jogo — na maioria dos casos resolve.",
+                    "Se continuar: Epic → Verificar ficheiros → abra de novo.",
+                    detail,
+                });
+            }
+            else
+            {
+                Ui.CompletionMessage(Ui.MAmber, "EAC PARCIAL", new[]
+                {
+                    detail,
+                    "Reinicie o PC. Se falhar: Verificar ficheiros na Epic/Steam.",
+                });
+            }
+        }
+
+        return result.Ok ? 0 : (result.NeedsReboot ? 2 : 1);
     }
 
     /// <summary>Mantém COMPLETO/CRIADOR: unlock + reclamp INI + sync menu + purge cache.</summary>

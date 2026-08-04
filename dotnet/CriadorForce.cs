@@ -4,10 +4,11 @@ namespace GuttyRL;
 
 /// <summary>Forca otimizacoes de FPS nas secoes [SystemSettings*] do CRIADOR.
 /// FPS ilimitado e boot-safe em TODAS as secoes (incluindo a principal).
-/// Efeitos pesados so nas secoes derivadas — a principal fica para o visual do criador.</summary>
+/// Extra FPS "invisivel" (Apex/foliage/tessellation/MSAA) tambem no main —
+/// sem potato de textura/sombra (isso fica no COMPLETO).</summary>
 internal static class CriadorForce
 {
-    // Boot + FPS: forcar em TODAS as secoes SystemSettings* (menu/engine leem isto).
+    // Boot + FPS + cortes sem impacto visual relevante — TODAS as secoes.
     private static readonly Dictionary<string, string> EverywhereKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         ["OnlyStreamInTextures"] = "False",
@@ -19,10 +20,46 @@ internal static class CriadorForce
         ["OneFrameThreadLag"] = "True",
         ["AllowPerFrameSleep"] = "True",
         ["AllowPerFrameYield"] = "True",
+        ["AllowDynamicResolution"] = "False",
+        ["ScreenPercentage"] = "100.000000",
+        ["UpscaleScreenPercentage"] = "True",
+        ["MinimumScreenScale"] = "100.000000",
+
+        // Ganho FPS validado no COMPLETO, sem batata visual:
+        ["MaxMultiSamples"] = "0",
+        ["bAllowD3D9MSAA"] = "False",
+        ["bAllowTemporalAA"] = "False",
+        ["bAllowPostprocessMLAA"] = "False",
+        ["MobileFXAAQuality"] = "0",
+        ["MobileEnableMSAA"] = "False",
+        // BlurSamples=0 crasha boot — manter 2.
+        ["MaxFilterBlurSampleCount"] = "2",
+        ["AllowApexCloth"] = "False",
+        ["ApexLODResourceBudget"] = "0.000000",
+        ["ApexGRBEnable"] = "False",
+        ["ApexDestructionMaxChunkIslandCount"] = "0",
+        ["ApexDestructionMaxShapeCount"] = "0",
+        ["bAllowFracturedDamage"] = "False",
+        ["NumFracturedPartsScale"] = "0.000000",
+        ["FractureDirectSpawnChanceScale"] = "0.000000",
+        ["FractureRadialSpawnChanceScale"] = "0.000000",
+        ["FractureCullDistanceScale"] = "0.000000",
+        ["SpeedTreeLeaves"] = "False",
+        ["SpeedTreeFronds"] = "False",
+        ["FoliageDrawRadiusMultiplier"] = "0.000000",
+        ["TessellationAdaptivePixelsPerTriangle"] = "4096.000000",
+        ["SceneCaptureStreamingMultiplier"] = "0.000000",
+        ["AllowSubsurfaceScattering"] = "False",
+        ["bAllowSeparateTranslucency"] = "False",
+        ["HighPrecisionGBuffers"] = "False",
+        ["TemporalAA_MinDepth"] = "0.000000",
+        ["TemporalAA_StartDepthVelocityScale"] = "0.000000",
+        ["AllowRadialBlur"] = "False",
+        ["UnbatchedDecals"] = "False",
     };
 
-    // Sombras dinamicas (DynamicLights/Shadows/Composite) ficam no template principal —
-    // nao forcar OFF nos perfis derivados (senao o menu liga e o engine nao desenha sombra).
+    // Efeitos pesados so nas secoes derivadas — a principal fica para o visual do criador
+    // (sombras dinamicas / materiais HQ / texturas ficam no template).
     private static readonly Dictionary<string, string> ChildPerfKeys = new(StringComparer.OrdinalIgnoreCase)
     {
         ["SHSecondaryLighting"] = "False",
@@ -37,7 +74,7 @@ internal static class CriadorForce
         ["FogVolumes"] = "False",
         ["Distortion"] = "False",
         ["FilteredDistortion"] = "False",
-        ["DropParticleDistortion"] = "False",
+        ["DropParticleDistortion"] = "True",
         ["AllowRadialBlur"] = "False",
         ["bAllowD3D9MSAA"] = "False",
         ["bAllowTemporalAA"] = "False",
@@ -49,9 +86,20 @@ internal static class CriadorForce
         ["MobileHeightFog"] = "False",
         ["MobileMinimizeFogShaders"] = "TRUE",
         ["MobileSpecular"] = "False",
+        ["MobileBumpOffset"] = "False",
+        ["MobileNormalMapping"] = "False",
+        ["MobileEnvMapping"] = "False",
+        ["MobileRimLighting"] = "False",
+        ["MobileColorBlending"] = "False",
+        ["MobileVertexMovement"] = "False",
+        ["MobilePostProcessBlurAmount"] = "0.000000",
         ["MobileLightShaftScale"] = "0",
         ["MobileLightShaftFirstPass"] = "0",
         ["MobileLightShaftSecondPass"] = "0",
+        ["FullEffectIntensity"] = "False",
+        ["UseHighQualityBloom"] = "False",
+        ["bUseTranslucentArenaShaders"] = "False",
+        ["AllowImageReflectionShadowing"] = "False",
     };
 
     public static string Apply(string iniText)
@@ -60,22 +108,36 @@ internal static class CriadorForce
         bool inSs = false;
         bool inChild = false;
         var pendingEverywhere = new HashSet<string>(EverywhereKeys.Keys, StringComparer.OrdinalIgnoreCase);
+        var pendingChild = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var managedSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        void FlushPending()
+        {
+            foreach (string pendingKey in pendingEverywhere)
+                sb.Append(pendingKey).Append('=').Append(EverywhereKeys[pendingKey]).Append("\r\n");
+            pendingEverywhere.Clear();
+
+            foreach (string pendingKey in pendingChild)
+                sb.Append(pendingKey).Append('=').Append(ChildPerfKeys[pendingKey]).Append("\r\n");
+            pendingChild.Clear();
+        }
 
         foreach (var raw in iniText.Replace("\r\n", "\n").Split('\n'))
         {
             string line = raw;
             if (line.StartsWith('['))
             {
-                if (inSs && pendingEverywhere.Count > 0)
-                {
-                    foreach (string pendingKey in pendingEverywhere)
-                        sb.Append(pendingKey).Append('=').Append(EverywhereKeys[pendingKey]).Append("\r\n");
-                }
+                if (inSs)
+                    FlushPending();
 
                 inSs = line.StartsWith("[SystemSettings", StringComparison.OrdinalIgnoreCase);
                 inChild = IsChildSystemSettings(line);
+                managedSeen.Clear();
                 pendingEverywhere = inSs
                     ? new HashSet<string>(EverywhereKeys.Keys, StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                pendingChild = inChild
+                    ? new HashSet<string>(ChildPerfKeys.Keys, StringComparer.OrdinalIgnoreCase)
                     : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 sb.Append(line).Append("\r\n");
                 continue;
@@ -97,6 +159,8 @@ internal static class CriadorForce
             string key = line[..eq];
             if (EverywhereKeys.TryGetValue(key, out string? everywhereVal))
             {
+                if (!managedSeen.Add(key))
+                    continue;
                 sb.Append(key).Append('=').Append(everywhereVal).Append("\r\n");
                 pendingEverywhere.Remove(key);
                 continue;
@@ -104,20 +168,20 @@ internal static class CriadorForce
 
             if (inChild && ChildPerfKeys.TryGetValue(key, out string? val))
             {
+                if (!managedSeen.Add(key))
+                    continue;
                 sb.Append(key).Append('=').Append(val).Append("\r\n");
+                pendingChild.Remove(key);
                 continue;
             }
 
             sb.Append(line).Append("\r\n");
         }
 
-        if (inSs && pendingEverywhere.Count > 0)
-        {
-            foreach (string pendingKey in pendingEverywhere)
-                sb.Append(pendingKey).Append('=').Append(EverywhereKeys[pendingKey]).Append("\r\n");
-        }
+        if (inSs)
+            FlushPending();
 
-        return sb.ToString();
+        return sb.ToString().TrimEnd('\r', '\n') + "\r\n";
     }
 
     private static bool IsChildSystemSettings(string header)

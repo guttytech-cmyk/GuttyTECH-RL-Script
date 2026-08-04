@@ -39,6 +39,14 @@ internal static class VideoSettingsSync
             string? exe = Environment.ProcessPath;
             if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) return;
 
+            // Se ja ha watcher vivo do mesmo modo, nao matar/reiniciar (evita buraco
+            // de protecao enquanto o RL esta aberto).
+            if (IsHealthyWatcherRunning(mode))
+            {
+                AppMeta.Log($"Watcher {mode} ja ativo — reuse.");
+                return;
+            }
+
             StopExistingWatchers();
 
             // Pasta de extract SEPARADA — o single-file .NET partilha mutex de extracao
@@ -64,6 +72,28 @@ internal static class VideoSettingsSync
         catch (Exception ex)
         {
             AppMeta.Log("Watcher falhou a arrancar: " + ex.Message);
+        }
+    }
+
+    /// <summary>True se o lock aponta para um GuttyTECH_RL vivo no mesmo modo.</summary>
+    public static bool IsHealthyWatcherRunning(string mode)
+    {
+        try
+        {
+            if (!File.Exists(WatcherLockPath)) return false;
+            string[] lines = File.ReadAllLines(WatcherLockPath);
+            if (lines.Length == 0 || !int.TryParse(lines[0].Trim(), out int pid) || pid <= 0)
+                return false;
+            if (lines.Length > 1
+                && !lines[1].Trim().Equals(mode, StringComparison.OrdinalIgnoreCase))
+                return false;
+            using var p = Process.GetProcessById(pid);
+            return !p.HasExited
+                   && p.ProcessName.Contains("GuttyTECH_RL", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -200,66 +230,137 @@ internal static class VideoSettingsSync
         catch { }
     }
 
-    /// <summary>Espera o RL abrir (opcional) e fechar; depois reclampa INI+save.</summary>
+    /// <summary>
+    /// Vigia todas as sessoes do RL enquanto o modo estiver ativo. O watcher antigo
+    /// morria apos 10 minutos/um unico fecho e o jogo afrouxava o INI na sessao seguinte.
+    /// </summary>
     public static int RunWatch(string iniPath, string mode)
     {
         WriteWatcherLock(Environment.ProcessId, mode);
         AppMeta.Log($"WATCH {mode} iniciado (pid={Environment.ProcessId}).");
         try
         {
-            var waitStart = DateTime.UtcNow;
-            bool sawRl = GetRl().Length > 0;
-            while (!sawRl && (DateTime.UtcNow - waitStart).TotalMinutes < 10)
+            int session = 0;
+            int idleTicks = 0;
+            while (StillCurrentWatcher())
             {
-                if (!StillCurrentWatcher())
+                if (!IsModeStillActive(iniPath, mode))
                 {
-                    AppMeta.Log("WATCH: substituido por outro watcher — a sair.");
+                    AppMeta.Log("WATCH: modo removido/trocado — a sair.");
                     return 0;
                 }
-                Thread.Sleep(2000);
-                sawRl = GetRl().Length > 0;
-            }
-            if (!sawRl)
-            {
-                AppMeta.Log("WATCH: RL nao abriu — heal preventivo.");
-                HealIfNeeded(iniPath, mode);
-                return 0;
-            }
 
-            AppMeta.Log("WATCH: RL detetado — a aguardar fecho...");
-            while (GetRl().Length > 0)
-            {
-                if (!StillCurrentWatcher())
+                // Espera pela proxima sessao; se o INI afrouxou sem RL aberto
+                // (fecho anterior sem watcher / cloud), reclampa preventivamente.
+                while (GetRl().Length == 0)
                 {
-                    AppMeta.Log("WATCH: substituido por outro watcher — a sair.");
-                    return 0;
+                    if (!StillCurrentWatcher()) return 0;
+                    if (!IsModeStillActive(iniPath, mode))
+                    {
+                        AppMeta.Log("WATCH: modo removido enquanto aguardava — a sair.");
+                        return 0;
+                    }
+
+                    idleTicks++;
+                    if (idleTicks == 1 || idleTicks % 15 == 0) // ~0s e a cada ~30s
+                        TryPreventiveReclamp(iniPath, mode);
+
+                    Thread.Sleep(2000);
                 }
-                Thread.Sleep(2000);
+
+                idleTicks = 0;
+                session++;
+                AppMeta.Log($"WATCH: RL detetado (sessao {session}) — a aguardar fecho...");
+                // Nao escrever no INI com o jogo aberto: o RL regrava no exit e
+                // mid-session write so gera corrida (historico: attrib +r = boot hang).
+                while (GetRl().Length > 0)
+                {
+                    if (!StillCurrentWatcher()) return 0;
+                    Thread.Sleep(2000);
+                }
+
+                Thread.Sleep(3000); // cloud/EOS a gravar
+                if (!StillCurrentWatcher()) return 0;
+
+                AppMeta.Log($"WATCH: sessao {session} fechou — a reparar INI+save...");
+                bool ok = HealUntilStable(iniPath, mode, passes: 2);
+
+                // 3o passe atrasado: Epic cloud por vezes regrava depois.
+                Thread.Sleep(10000);
+                if (StillCurrentWatcher() && GetRl().Length == 0)
+                {
+                    bool ok3 = HealUntilStable(iniPath, mode, passes: 1);
+                    ok = ok && ok3;
+                    AppMeta.Log(ok3 ? "WATCH: passe cloud OK." : "WATCH: passe cloud falhou.");
+                }
+                AppMeta.Log(ok
+                    ? $"WATCH: sessao {session} protegida."
+                    : $"WATCH: sessao {session} com reparo parcial; continuando monitor.");
             }
 
-            Thread.Sleep(2500); // cloud/EOS a gravar
-            if (!StillCurrentWatcher())
-            {
-                AppMeta.Log("WATCH: substituido antes do heal — a sair.");
-                return 0;
-            }
-
-            AppMeta.Log("WATCH: RL fechou — a reparar INI+save...");
-            bool ok = HealIfNeeded(iniPath, mode);
-            // 2o pass: cloud Epic por vezes regrava apos o 1o heal
-            Thread.Sleep(8000);
-            if (StillCurrentWatcher())
-            {
-                bool ok2 = HealIfNeeded(iniPath, mode);
-                ok = ok && ok2;
-                AppMeta.Log(ok2 ? "WATCH: 2o pass OK." : "WATCH: 2o pass falhou.");
-            }
-            AppMeta.Log(ok ? "WATCH: heal OK." : "WATCH: heal falhou.");
-            return ok ? 0 : 1;
+            return 0;
         }
         finally
         {
             ClearWatcherLockIfOurs();
+        }
+    }
+
+    private static void TryPreventiveReclamp(string iniPath, string mode)
+    {
+        try
+        {
+            if (GetRl().Length > 0) return;
+            if (!mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)) return;
+            if (!File.Exists(iniPath)) return;
+            string text = File.ReadAllText(iniPath);
+            if (!CompletoForce.HasDrift(text)) return;
+            var sample = CompletoForce.DescribeDrift(text);
+            AppMeta.Log("WATCH: drift preventivo — " + string.Join("; ", sample.Take(4)));
+            HealUntilStable(iniPath, mode, passes: 1);
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("WATCH preventivo: " + ex.Message);
+        }
+    }
+
+    /// <summary>Heal + verifica contrato Completo; repete se ainda houver drift.</summary>
+    private static bool HealUntilStable(string iniPath, string mode, int passes)
+    {
+        bool ok = true;
+        for (int i = 0; i < passes; i++)
+        {
+            ok = HealIfNeeded(iniPath, mode) && ok;
+            if (!mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
+                continue;
+            try
+            {
+                string after = File.ReadAllText(iniPath);
+                if (!CompletoForce.HasDrift(after))
+                    return ok;
+                AppMeta.Log("WATCH: drift pos-heal, a repetir — "
+                            + string.Join("; ", CompletoForce.DescribeDrift(after).Take(3)));
+                Thread.Sleep(1500);
+            }
+            catch { }
+        }
+        return ok;
+    }
+
+    private static bool IsModeStillActive(string iniPath, string mode)
+    {
+        try
+        {
+            if (!File.Exists(iniPath)) return false;
+            string text = File.ReadAllText(iniPath);
+            return text.Contains("GuttyTechMode=" + mode, StringComparison.OrdinalIgnoreCase)
+                   || text.Contains("GUTTYTECH-RL-OPTIMIZER=" + mode, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            // Erro transitorio de leitura nao deve matar a protecao.
+            return true;
         }
     }
 
@@ -277,7 +378,8 @@ internal static class VideoSettingsSync
         catch { return false; }
     }
 
-    /// <summary>Reaplica CompletoForce/CriadorForce no INI sem REMOVER (pos-boot).</summary>
+    /// <summary>Reaplica CompletoForce/CriadorForce no INI sem REMOVER (pos-boot).
+    /// Nunca usa attrib +r — isso ja travou boot no passado.</summary>
     public static bool ReclampIni(string iniPath, string mode)
     {
         try
@@ -286,14 +388,47 @@ internal static class VideoSettingsSync
             try { File.SetAttributes(iniPath, FileAttributes.Normal); } catch { }
 
             string text = File.ReadAllText(iniPath);
+            if (mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
+                && CompletoForce.HasDrift(text))
+            {
+                AppMeta.Log("INI drift detetado: "
+                            + string.Join("; ", CompletoForce.DescribeDrift(text).Take(5)));
+            }
+
             string forced = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
                 ? CompletoForce.Apply(text)
                 : CriadorForce.Apply(text);
 
             forced = EnsureModeLine(forced, mode);
+
+            // Skip write se ja esta no contrato (menos thrash / menos antivirus).
+            if (string.Equals(NormalizeIni(text), NormalizeIni(forced), StringComparison.Ordinal))
+            {
+                ErrorRepair.ForceBootSafeIni(iniPath);
+                AppMeta.Log($"INI reclamp {mode} idempotente (sem mudanca).");
+                return true;
+            }
+
             File.WriteAllText(iniPath, forced);
             // Nunca deixar boot-killers apos reclamp (HealIfNeeded / RepararPerfil).
             ErrorRepair.ForceBootSafeIni(iniPath);
+
+            if (mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
+            {
+                string verify = File.ReadAllText(iniPath);
+                if (CompletoForce.HasDrift(verify))
+                {
+                    AppMeta.Log("INI reclamp verify FALHOU: "
+                                + string.Join("; ", CompletoForce.DescribeDrift(verify).Take(4)));
+                    // Uma segunda aplicacao cobre corrida rara de escrita.
+                    File.WriteAllText(iniPath, CompletoForce.Apply(verify));
+                    ErrorRepair.ForceBootSafeIni(iniPath);
+                    verify = File.ReadAllText(iniPath);
+                    if (CompletoForce.HasDrift(verify))
+                        return false;
+                }
+            }
+
             AppMeta.Log($"INI reclamp {mode} OK.");
             return true;
         }
@@ -303,6 +438,9 @@ internal static class VideoSettingsSync
             return false;
         }
     }
+
+    private static string NormalizeIni(string text) =>
+        text.Replace("\r\n", "\n").TrimEnd('\n') + "\n";
 
     private static string EnsureModeLine(string content, string mode)
     {
