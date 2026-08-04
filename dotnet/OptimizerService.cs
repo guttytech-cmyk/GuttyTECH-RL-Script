@@ -66,12 +66,35 @@ internal sealed class OptimizerService
 
         if (action == OptimizerAction.CopiarComando)
         {
-            progress?.Report(new OperationProgress(55, "Copiando comando unificado"));
-            bool copied = ClipboardUtil.TryCopy(LaunchCommand);
-            progress?.Report(new OperationProgress(100, copied ? "Comando pronto" : "Clipboard indisponível"));
-            return copied
-                ? Success("COMANDO COPIADO", "Compatível com Steam e Epic Games. Basta colar nas opções de inicialização.")
-                : Failure("NÃO FOI POSSÍVEL COPIAR", "Selecione o comando exibido e copie manualmente com Ctrl+C.");
+            progress?.Report(new OperationProgress(40, "Preparando comando unificado"));
+            string cmd = LaunchCommand.Trim();
+            progress?.Report(new OperationProgress(65, "A gravar no Desktop e copiar"));
+            string? desktopFile = TryWriteLaunchCommandFile(cmd);
+            bool copied = ClipboardUtil.TryCopy(cmd);
+            // App elevado → clipboard do admin != clipboard do user (Steam). De-eleva via explorer.
+            if (!copied || ElevationService.IsAdministrator())
+                copied = ClipboardUtil.TryCopyUnelevated(cmd) || copied;
+
+            progress?.Report(new OperationProgress(100, copied ? "Comando pronto" : "Salvo no Desktop"));
+            string where = desktopFile is not null
+                ? "\nTambém salvo em: " + desktopFile
+                : "";
+            if (copied)
+            {
+                return Success(
+                    "COMANDO COPIADO",
+                    "Colado na área de transferência (sessão do utilizador):\n" + cmd + where
+                    + "\n\nSteam e Epic usam o mesmo comando.");
+            }
+
+            return desktopFile is not null
+                ? Success(
+                    "COMANDO NO DESKTOP",
+                    "O Windows bloqueou o clipboard (app em admin). Abre o ficheiro e copia (Ctrl+C):\n"
+                    + desktopFile + "\n\n" + cmd)
+                : Failure(
+                    "NÃO FOI POSSÍVEL COPIAR",
+                    "Copia manualmente:\n" + cmd);
         }
 
         if (action == OptimizerAction.Diagnostico)
@@ -122,7 +145,6 @@ internal sealed class OptimizerService
         }
 
         progress?.Report(new OperationProgress(98, "Validando resultado", "Lendo perfil aplicado"));
-        OptimizerStatus after = Program.GetStatusForGui();
 
         if (exitCode == 0)
         {
@@ -130,12 +152,29 @@ internal sealed class OptimizerService
             {
                 OptimizerAction.Completo => "COMPLETO",
                 OptimizerAction.Criador => "CRIADOR",
-                OptimizerAction.RepararPerfil when after.AppliedMode is "COMPLETO" or "CRIADOR"
-                    => after.AppliedMode,
+                OptimizerAction.RepararPerfil => null, // resolve apos status
                 _ => null,
             };
+            // Arranca watcher ANTES do status final — senao o card PROTEÇÃO fica OFF.
             if (watcherMode is not null)
                 VideoSettingsSync.StartExitWatcher(watcherMode);
+        }
+
+        OptimizerStatus after = Program.GetStatusForGui();
+
+        if (exitCode == 0
+            && action == OptimizerAction.RepararPerfil
+            && after.AppliedMode is "COMPLETO" or "CRIADOR")
+        {
+            VideoSettingsSync.StartExitWatcher(after.AppliedMode);
+            after = Program.GetStatusForGui();
+        }
+
+        // Re-lê apos watcher COMPLETO/CRIADOR para o card refletir ATIVA.
+        if (exitCode == 0
+            && action is OptimizerAction.Completo or OptimizerAction.Criador)
+        {
+            after = Program.GetStatusForGui();
         }
 
         progress?.Report(new OperationProgress(100, exitCode == 0 ? "Operação concluída" : "Ação requer atenção", null));
@@ -155,6 +194,29 @@ internal sealed class OptimizerService
             return BuildFailure(action, after);
 
         return BuildSuccess(action, before, after);
+    }
+
+    private static string? TryWriteLaunchCommandFile(string cmd)
+    {
+        try
+        {
+            string desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            if (string.IsNullOrWhiteSpace(desktop) || !Directory.Exists(desktop))
+                desktop = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string path = Path.Combine(desktop, "GuttyTECH-RL-LaunchCommand.txt");
+            File.WriteAllText(
+                path,
+                cmd + Environment.NewLine + Environment.NewLine
+                + "Steam: Biblioteca → Rocket League → Engrenagem → Propriedades → Opções de inicialização" + Environment.NewLine
+                + "Epic: Library → Rocket League → … → Manage → Launch Options" + Environment.NewLine,
+                new System.Text.UTF8Encoding(false));
+            return path;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("LaunchCommand file: " + ex.Message);
+            return null;
+        }
     }
 
     private static OperationResult? ValidatePreconditions(OptimizerAction action, OptimizerStatus status)
@@ -255,6 +317,9 @@ internal sealed class OptimizerService
             OptimizerAction.RestaurarPresets => Failure(
                 "SEM BACKUP RECUPERÁVEL",
                 "Não há save grande em Backups/Presets/Best. Sem esse arquivo local não dá para recuperar a garagem."),
+            OptimizerAction.CorrigirSave => Failure(
+                "SAVE AINDA EM RISCO",
+                "Não consegui limpar o SaveData/Steam Cloud. Feche Steam + RL e tente de novo; se falhar, use RECUPERAR BOOT."),
             _ => Failure(
                 "OPERAÇÃO NÃO CONCLUÍDA",
                 "O motor preservou o backup, mas uma etapa falhou. Gere o pacote de logs e manda pro Gutty."),

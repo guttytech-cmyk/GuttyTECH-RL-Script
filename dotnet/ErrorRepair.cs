@@ -89,12 +89,14 @@ internal static class ErrorRepair
             else if (mode == "CRIADOR")
             {
                 Check("UncappedFramerate", "True");
-                Check("bAllowLightShafts", "False");
+                Check("UseVsync", "False");
+                Check("bSmoothFrameRate", "False");
+                Check("CustomFPS", "0", critical: false);
+                Check("MaxFilterBlurSampleCount", "2");
                 Check("OnlyStreamInTextures", "False");
                 Check("WaitForGPU", "False");
-                Check("bSmoothFrameRate", "False");
-                Check("UseVsync", "False");
-                Check("CustomFPS", "0", critical: false);
+                Check("DynamicShadows", "True"); // visual keep
+                Check("AllowApexCloth", "False", critical: false);
             }
         }
 
@@ -103,16 +105,34 @@ internal static class ErrorRepair
         if (rlOpen) issues = true;
 
         string lockPath = Path.Combine(AppMeta.GuttyDir, "watcher.lock");
+        string? modeNow = detectMode();
         if (File.Exists(lockPath))
         {
             try
             {
-                string pidLine = File.ReadAllLines(lockPath).FirstOrDefault() ?? "";
-                lines.Add("Watcher: lock ativo (pid " + pidLine + ")");
+                string[] lockLines = File.ReadAllLines(lockPath);
+                string pidLine = lockLines.FirstOrDefault() ?? "";
+                string watchMode = lockLines.Length > 1 ? lockLines[1].Trim() : "";
+                bool healthy = modeNow is "COMPLETO" or "CRIADOR"
+                               && (string.IsNullOrEmpty(watchMode)
+                                   || watchMode.Equals(modeNow, StringComparison.OrdinalIgnoreCase))
+                               && VideoSettingsSync.IsHealthyWatcherRunning(modeNow);
+                if (healthy)
+                    lines.Add($"Watcher: ATIVO OK (pid {pidLine}, {modeNow})");
+                else
+                {
+                    lines.Add($"Watcher: lock residual (pid {pidLine}) — use REMOVER ou reaplique o modo");
+                    issues = true;
+                }
+            }
+            catch
+            {
+                lines.Add("Watcher: lock presente (ilegivel)");
                 issues = true;
             }
-            catch { lines.Add("Watcher: lock presente"); issues = true; }
         }
+        else if (modeNow is "COMPLETO" or "CRIADOR")
+            lines.Add("Watcher: inativo (modo ativo sem protecao — reaplique o modo)");
         else
             lines.Add("Watcher: inativo");
 
@@ -289,6 +309,16 @@ internal static class ErrorRepair
         report.Add(eac.Ok ? "EAC OK" : (eac.NeedsReboot ? "EAC precisa REBOOT" : "EAC parcial"));
         if (!string.IsNullOrWhiteSpace(eac.Detail))
             AppMeta.Log("UNBREAK-BOOT EAC: " + eac.Detail);
+
+        // 5c) Limpar marcas / tag de modo — senao a UI ainda diz COMPLETO com INI stock.
+        try
+        {
+            if (File.Exists(cfg))
+                Program.StripGuttyMarkersForRepair(cfg);
+        }
+        catch { }
+        ModeDetect.Clear();
+        report.Add("modo Gutty limpo");
 
         // 6) Verificacao final
         bool bootSafe = true;
@@ -469,8 +499,8 @@ internal static class ErrorRepair
             bootSafe = ForceBootSafeIni(cfg);
         }
 
-        // Nao arrancar watcher se o perfil ficou com boot risk
-        if (interactive && bootSafe)
+        // Watcher em GUI e CLI — senao PROTEÇÃO fica OFF apos reparar pela UI.
+        if (bootSafe)
             VideoSettingsSync.StartExitWatcher(mode!);
 
         bool ok = unlockOk && reclampOk && syncOk && purgeOk && bootSafe;

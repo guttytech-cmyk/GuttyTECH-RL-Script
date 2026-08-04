@@ -146,11 +146,32 @@ internal static class EacRepairService
     {
         try
         {
-            string ini = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                "My Games", "Rocket League", "TAGame", "Config", "TASystemSettings.ini");
-            // Heuristica: nao ha path do jogo no INI; usa InstallLocation se existir via Epic manifest — skip.
-            _ = ini;
+            // Procura InstallLocation via manifests Epic (*.item) que mencionam rocketleague.
+            string[] manifestRoots =
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "Epic", "EpicGamesLauncher", "Data", "Manifests"),
+                Path.Combine(Environment.GetEnvironmentVariable("ProgramData") ?? @"C:\ProgramData",
+                    "Epic", "EpicGamesLauncher", "Data", "Manifests"),
+            };
+            foreach (string root in manifestRoots)
+            {
+                if (!Directory.Exists(root)) continue;
+                foreach (string file in Directory.EnumerateFiles(root, "*.item"))
+                {
+                    try
+                    {
+                        string json = File.ReadAllText(file);
+                        if (json.IndexOf("rocketleague", StringComparison.OrdinalIgnoreCase) < 0)
+                            continue;
+                        var m = Regex.Match(json, "\"InstallLocation\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.IgnoreCase);
+                        if (!m.Success) continue;
+                        string loc = m.Groups[1].Value.Replace(@"\\", @"\");
+                        if (Directory.Exists(loc)) return loc;
+                    }
+                    catch { }
+                }
+            }
         }
         catch { }
         return null;

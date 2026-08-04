@@ -43,8 +43,56 @@ internal static class StartupGuard
         }
         catch { }
 
+        RequireAdministratorOrExit();
+
         WarnIfRunningFromTemp();
         AppMeta.Log($"Startup {AppMeta.Version} | {Environment.ProcessPath ?? "(exe)"}");
+    }
+
+    /// <summary>
+    /// O app.manifest pede requireAdministrator (UAC). Se mesmo assim nao estiver elevado
+    /// (manifesto perdido, bypass, etc.), bloqueia com erro visivel e sai.
+    /// </summary>
+    private static void RequireAdministratorOrExit()
+    {
+        if (ElevationService.IsAdministrator())
+            return;
+
+        const string title = "ADMINISTRADOR OBRIGATÓRIO";
+        const string body =
+            "O GuttyTECH RL Optimizer precisa de permissões de administrador.\n\n" +
+            "1) Feche esta janela\n" +
+            "2) Clique com o direito no GuttyTECH_RL.exe\n" +
+            "3) Escolha Executar como administrador\n" +
+            "4) No UAC, clique Sim\n\n" +
+            "Sem admin o otimizador nao pode corrigir EAC, permissoes nem o INI com seguranca.";
+
+        AppMeta.Log("ABORT: processo sem elevacao de administrador.");
+        try
+        {
+            System.Windows.MessageBox.Show(
+                body,
+                "GUTTYTECH · " + title,
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error);
+        }
+        catch { }
+
+        try { FatalDialogService.TryShow(title, body, AppMeta.CrashLog); } catch { }
+
+        if (!ConsoleWindowService.IsHidden)
+        {
+            try
+            {
+                Console.Error.WriteLine();
+                Console.Error.WriteLine("[X] " + title);
+                Console.Error.WriteLine(body);
+                Console.Error.WriteLine();
+            }
+            catch { }
+        }
+
+        Environment.Exit(5);
     }
 
     public static int Run(Func<int> main)

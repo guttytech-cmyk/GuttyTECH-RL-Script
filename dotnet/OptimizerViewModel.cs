@@ -550,17 +550,31 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             ? "Feche o jogo pra aplicar"
             : "Pode aplicar um modo";
 
-        // Travar INI = arquivo só leitura. Nos modos atuais fica DESLIGADO
-        // de propósito pra o menu de vídeo do jogo funcionar.
-        ProtectedLabel = status.IsProtected ? "LIGADO" : "DESLIGADO";
-        ProtectedHint = status.IsProtected
-            ? "Só leitura — modo travado"
-            : "Normal — vídeo livre no jogo";
+        // Proteção = modo Gutty ativo (+ watcher). INI read-only fica off de proposito.
+        IsProtected = status.IsProtected;
+        if (status.IsProtected)
+        {
+            if (status.IsWatcherActive)
+            {
+                ProtectedLabel = "ATIVA";
+                ProtectedHint = "Watcher anti-rewrite · vídeo livre";
+            }
+            else
+            {
+                ProtectedLabel = "MODO";
+                ProtectedHint = "Modo ativo — watcher a arrancar";
+            }
+        }
+        else
+        {
+            ProtectedLabel = "OFF";
+            ProtectedHint = "Sem modo Gutty aplicado";
+        }
 
         AdministratorLabel = status.IsAdministrator ? "SIM" : "NÃO";
         AdministratorHint = status.IsAdministrator
             ? "Rodando como admin"
-            : "Abra como admin se falhar";
+            : "ERRO: abra como administrador";
 
         ConfigPath = string.IsNullOrWhiteSpace(status.ConfigPath)
             ? "Perfil ainda não encontrado — abra o Rocket League uma vez."

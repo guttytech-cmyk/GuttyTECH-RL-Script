@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Security.Principal;
 using System.Text;
 
 namespace GuttyRL;
@@ -230,8 +229,34 @@ internal static class Program
     private static int CorrigirPerfil(bool interactive) =>
         ErrorRepair.RepararPerfil(_cfg, DetectAppliedMode, interactive);
 
-    private static int CorrigirDiagnostico(bool interactive) =>
-        ErrorRepair.Diagnostico(_cfg, DetectAppliedMode, interactive);
+    private static int CorrigirDiagnostico(bool interactive)
+    {
+        // CLI e GUI: sempre gera o ZIP completo (o botão GERAR PACOTE usa o mesmo motor).
+        EnsureEngineInitializedForGui();
+        OptimizerStatus status = GetStatusForGui();
+        SupportLogService.PackResult pack = SupportLogService.CreateSupportPack(_cfg, DetectAppliedMode, status);
+        AppMeta.Log("DIAG-PACK: " + pack.Summary);
+
+        if (interactive)
+        {
+            ErrorRepair.Diagnostico(_cfg, DetectAppliedMode, interactive: true);
+            Ui.Gap();
+            if (pack.Success)
+            {
+                Ui.CompletionMessage(Ui.OkGreen, "PACOTE GERADO", new[]
+                {
+                    pack.Summary,
+                    pack.ZipPath,
+                });
+            }
+            else
+            {
+                Ui.CompletionMessage(Ui.MAmber, "DIAG OK — ZIP FALHOU", new[] { pack.Summary });
+            }
+        }
+
+        return pack.Success ? 0 : 1;
+    }
 
     private static int CorrigirPermissoes(bool interactive)
     {
@@ -361,6 +386,7 @@ internal static class Program
             () => { if (_cfg is not null && File.Exists(_cfg)) Unlock(_cfg); },
             interactive);
         RefreshWritableCache();
+        ModeDetect.Clear();
         Log("CORRIGIR-BOOT concluido code=" + code);
         return code;
     }
@@ -377,7 +403,7 @@ internal static class Program
                 "1) Fecha RL + watcher",
                 "2) Liberta pasta / permissoes",
                 "3) INI stock + remocao de boot-killers",
-                "4) Quarentena de saves + purge cache Epic",
+                "4) Quarentena de saves + purge cache Epic + EAC",
                 "5) Depois de abrir o menu: reaplique COMPLETO/CRIADOR",
             }, Ui.MAmber);
             Ui.Gap();
@@ -393,13 +419,20 @@ internal static class Program
             return 1;
         }
 
-        // Sempre caminho nuclear — RepararPerfil em cima de perfil quebrado mantinha o jogo morto.
+        // Passo extra vs RECUPERAR BOOT: forca heal de permissoes antes do nuclear.
+        if (_cfg is not null)
+        {
+            try { Unlock(_cfg); } catch { }
+            FolderAccess.EnsureWriteAccess(_cfg, interactive: false);
+        }
+
         int code = ErrorRepair.UnbreakBoot(
             _cfg,
             TryRestoreIni,
             () => { if (_cfg is not null && File.Exists(_cfg)) Unlock(_cfg); },
             interactive);
         RefreshWritableCache();
+        ModeDetect.Clear();
         Log("CORRIGIR-TUDO concluido code=" + code);
         return code;
     }
@@ -416,6 +449,9 @@ internal static class Program
         catch { }
     }
 
+    /// <summary>Remove marcas Gutty apos boot nuclear (API para ErrorRepair).</summary>
+    internal static void StripGuttyMarkersForRepair(string iniPath) => StripGuttyMarkers(iniPath);
+
     private static int Dispatch(string mode, bool interactive)
     {
         if (mode == "REMOVER") return Remover(interactive);
@@ -431,7 +467,7 @@ internal static class Program
         Ui.SectionTitle("ARGUMENTO INVALIDO", Ui.Amber);
         Ui.PanelTop("SINTAXE");
         Ui.PanelLine(Ui.C("GuttyTECH_RL.exe [COMPLETO | CRIADOR | REMOVER | CORRIGIR]", Ui.Gray));
-        Ui.PanelLine(Ui.C("[CORRIGIR-PERFIL | CORRIGIR-BOOT | DIAG | RESTAURAR-PRESETS | CORRIGIR-SAVE]", Ui.DimC));
+        Ui.PanelLine(Ui.C("[CORRIGIR-PERFIL | CORRIGIR-BOOT | CORRIGIR-EAC | DIAG | RESTAURAR-PRESETS | CORRIGIR-SAVE]", Ui.DimC));
         Ui.PanelBottom();
         return 2;
     }
@@ -500,32 +536,37 @@ internal static class Program
 
         string path = _cfg ?? string.Empty;
         bool exists = !string.IsNullOrWhiteSpace(path) && SafeExists(path);
-        string mode = DetectAppliedMode() ?? "ORIGINAL";
+        string? detected = DetectAppliedMode();
+        string mode = detected ?? "ORIGINAL";
         string label;
-        bool locked;
 
         if (exists)
         {
-            (label, locked, _) = ReadState();
+            (label, _, _) = ReadState();
         }
         else
         {
             label = string.IsNullOrWhiteSpace(path)
                 ? "Perfil do Rocket League ainda não localizado"
                 : "INI ausente — abra o Rocket League uma vez";
-            locked = false;
         }
 
         RefreshWritableCache();
+        bool watcher = detected is "COMPLETO" or "CRIADOR"
+                       && VideoSettingsSync.IsHealthyWatcherRunning(detected);
+        // UI "proteção": modo Gutty ativo (watcher anti-rewrite). Read-only fica
+        // off de proposito p/ o menu de video — nao e falha de deteccao.
+        bool protectionOn = detected is "COMPLETO" or "CRIADOR";
         return new OptimizerStatus(
             mode,
             label,
             IsCfgWritable(),
             GetRl().Length > 0,
             path,
-            locked,
-            IsAdmin(),
-            exists);
+            protectionOn,
+            ElevationService.IsAdministrator(),
+            exists,
+            watcher);
     }
 
     // -------------------------------------------------------------- Menu
@@ -737,36 +778,20 @@ internal static class Program
             : previous.Equals(mode, StringComparison.OrdinalIgnoreCase)
                 ? $"Reaplicado {mode} (limpo + sync contas)."
                 : $"Trocou {previous} → {mode} (limpo + sync contas).";
+        ModeDetect.Persist(mode);
         Log(msg);
         RefreshWritableCache();
-        // Console interativo inicia aqui; a GUI inicia no OptimizerService depois
-        // da validacao. CLI nao-interativo continua sem filho para nao prender -Wait.
+        // Watcher sempre — GUI e CLI. Sem isto PROTEÇÃO fica OFF apos Apply nao-interativo.
+        VideoSettingsSync.StartExitWatcher(mode);
         if (interactive)
         {
-            VideoSettingsSync.StartExitWatcher(mode);
             Ui.CompletionSuccess(mode, acc, AppMeta.BackupDir);
             Ui.FooterHint("MONITOR ATIVO  ·  reparo automático ao fechar o Rocket League");
         }
         return 0;
     }
 
-    private static string? DetectAppliedMode()
-    {
-        if (_cfg is null || !File.Exists(_cfg)) return null;
-        try
-        {
-            string text = File.ReadAllText(_cfg);
-            // Chave real (sobrevive ao APLICAR do jogo) + comentario antigo.
-            if (text.Contains("GuttyTechMode=COMPLETO", StringComparison.OrdinalIgnoreCase)
-                || text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
-                return "COMPLETO";
-            if (text.Contains("GuttyTechMode=CRIADOR", StringComparison.OrdinalIgnoreCase)
-                || text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
-                return "CRIADOR";
-        }
-        catch { }
-        return null;
-    }
+    private static string? DetectAppliedMode() => ModeDetect.Detect(_cfg);
 
     private static void RefreshWritableCache()
     {
@@ -904,15 +929,9 @@ internal static class Program
         }
         report.Add(killed ? "RL fechado" : "RL ja fechado");
 
-        // 3) Permissoes
-        if (File.Exists(_cfg!))
-        {
-            if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive)) return 1;
-        }
-        else if (!FolderAccess.EnsureWriteAccess(Path.GetDirectoryName(_cfg!)!, interactive))
-        {
+        // 3) Permissoes — passar sempre o caminho do INI (mesmo se ainda nao existir).
+        if (!FolderAccess.EnsureWriteAccess(_cfg!, interactive))
             return 1;
-        }
 
         // 4) Snapshot garagem
         int snapped = 0;
@@ -942,12 +961,14 @@ internal static class Program
             });
             iniOk = Ui.StepAnimated("Restaurando INI stock (sem otimizador)", TryRestoreIni);
             Ui.StepAnimated("Removendo marcas Gutty do INI", () => StripGuttyMarkers(_cfg!));
+            Ui.StepAnimated("Boot-safe final", () => ErrorRepair.ForceBootSafeIni(_cfg!));
         }
         else
         {
             if (File.Exists(_cfg!)) { Unlock(_cfg!); Backup(); }
             iniOk = TryRestoreIni();
             StripGuttyMarkers(_cfg!);
+            ErrorRepair.ForceBootSafeIni(_cfg!);
         }
         report.Add(iniOk ? "INI stock OK" : "INI FALHOU");
 
@@ -960,12 +981,26 @@ internal static class Program
         report.Add(purgeOk ? "cache limpo" : "cache parcial");
 
         // 7) Garantir que o watcher nao voltou e modo detetado sumiu
-        VideoSettingsSync.StopExistingWatchers();
+        VideoSettingsSync.CleanWatcherRuntime();
+        ModeDetect.Clear();
         string? left = DetectAppliedMode();
         if (left is not null)
         {
-            StripGuttyMarkers(_cfg!);
-            TryRestoreIni();
+            // OrigBackup poluido / fingerprint residual → forcar Templates.Stock limpo.
+            try
+            {
+                Unlock(_cfg!);
+                var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
+                string stock = ApplyDisplay(Templates.Stock, disp);
+                File.WriteAllText(_cfg!, stock, new UTF8Encoding(false));
+                StripGuttyMarkers(_cfg!);
+                ErrorRepair.ForceBootSafeIni(_cfg!);
+            }
+            catch (Exception ex)
+            {
+                Log("REMOVER force-stock: " + ex.Message);
+            }
+            ModeDetect.Clear();
             left = DetectAppliedMode();
         }
         bool clean = left is null && iniOk;
@@ -1057,7 +1092,7 @@ internal static class Program
         catch { return false; }
     }
 
-    /// <summary>OrigBackup so conta se nao tiver modo Gutty nem boot-killers.</summary>
+    /// <summary>OrigBackup so conta se nao tiver modo Gutty, boot-killers nem fingerprint Completo.</summary>
     private static bool IsSafeOriginalBackup(string path)
     {
         try
@@ -1066,6 +1101,11 @@ internal static class Program
             if (text.Contains("GuttyTechMode=", StringComparison.OrdinalIgnoreCase)) return false;
             if (text.Contains("GUTTYTECH-RL-OPTIMIZER=", StringComparison.OrdinalIgnoreCase)) return false;
             if (ErrorRepair.HasBootKillers(text)) return false;
+            // Backup feito apos Completo sem marcador — nao reintroduzir potato.
+            if (text.Contains("MaxShadowResolution=1", StringComparison.OrdinalIgnoreCase)
+                && text.Contains("DynamicShadows=False", StringComparison.OrdinalIgnoreCase)
+                && text.Contains("MaxLODSize=2", StringComparison.OrdinalIgnoreCase))
+                return false;
             return true;
         }
         catch { return false; }
@@ -1223,7 +1263,7 @@ internal static class Program
         }
 
         Log(ok ? $"CORRIGIR-SAVE OK: {summary}" : "CORRIGIR-SAVE: sem mudancas relevantes");
-        return 0;
+        return ok ? 0 : 1;
     }
 
     private static Dictionary<string, string> DefaultDisplay() => new(StringComparer.OrdinalIgnoreCase)
@@ -1386,32 +1426,26 @@ internal static class Program
     {
         string label = "Original (não otimizado)";
         int cat = 0;
-        try
+        string? mode = DetectAppliedMode();
+        if (mode == "COMPLETO")
+        { label = "FPS máximo ativo"; cat = 2; }
+        else if (mode == "CRIADOR")
+        { label = "Visual + perf ativo"; cat = 2; }
+        else
         {
-            string text = File.ReadAllText(_cfg!);
-            if (text.Contains("GuttyTechMode=COMPLETO", StringComparison.OrdinalIgnoreCase)
-                || text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
-            { label = "FPS máximo ativo"; cat = 2; }
-            else if (text.Contains("GuttyTechMode=CRIADOR", StringComparison.OrdinalIgnoreCase)
-                || text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
-            { label = "Visual + perf ativo"; cat = 2; }
-            else if (text.Contains("MaxLODSize=16")) { label = "Otimizado (versão antiga)"; cat = 1; }
+            try
+            {
+                string text = File.ReadAllText(_cfg!);
+                if (text.Contains("MaxLODSize=16")) { label = "Otimizado (versão antiga)"; cat = 1; }
+            }
+            catch { }
         }
-        catch { }
         bool locked = false;
         try { locked = (File.GetAttributes(_cfg!) & FileAttributes.ReadOnly) != 0; } catch { }
         return (label, locked, cat);
     }
 
-    private static bool IsAdmin()
-    {
-        try
-        {
-            using var id = WindowsIdentity.GetCurrent();
-            return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch { return false; }
-    }
+    private static bool IsAdmin() => ElevationService.IsAdministrator();
 
     // -------------------------------------------------------------- Helpers
     private static bool CheckGame(bool interactive)

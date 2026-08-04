@@ -649,7 +649,7 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="TRAVAR INI" />
+                                               Text="PROTEÇÃO" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"

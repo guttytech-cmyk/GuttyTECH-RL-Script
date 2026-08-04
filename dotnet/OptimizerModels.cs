@@ -39,7 +39,8 @@ internal sealed record OptimizerStatus(
     string ConfigPath,
     bool IsProtected,
     bool IsAdministrator,
-    bool ConfigExists);
+    bool ConfigExists,
+    bool IsWatcherActive = false);
 
 internal sealed record OperationProgress(
     int Percentage,

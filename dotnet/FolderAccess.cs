@@ -292,15 +292,7 @@ internal static class FolderAccess
         return false;
     }
 
-    private static bool IsAdmin()
-    {
-        try
-        {
-            using var id = WindowsIdentity.GetCurrent();
-            return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
-        }
-        catch { return false; }
-    }
+    private static bool IsAdmin() => ElevationService.IsAdministrator();
 
     private static void Run(string exe, string args)
     {

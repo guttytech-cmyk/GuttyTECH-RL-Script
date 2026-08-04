@@ -352,10 +352,9 @@ internal static class VideoSettingsSync
     {
         try
         {
-            if (!File.Exists(iniPath)) return false;
-            string text = File.ReadAllText(iniPath);
-            return text.Contains("GuttyTechMode=" + mode, StringComparison.OrdinalIgnoreCase)
-                   || text.Contains("GUTTYTECH-RL-OPTIMIZER=" + mode, StringComparison.OrdinalIgnoreCase);
+            string? detected = ModeDetect.Detect(iniPath);
+            if (detected is null) return false;
+            return detected.Equals(mode, StringComparison.OrdinalIgnoreCase);
         }
         catch
         {
