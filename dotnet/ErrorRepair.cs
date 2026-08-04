@@ -85,6 +85,9 @@ internal static class ErrorRepair
                 Check("bAllowLightShafts", "False");
                 Check("OnlyStreamInTextures", "False");
                 Check("WaitForGPU", "False");
+                Check("bSmoothFrameRate", "False");
+                Check("UseVsync", "False");
+                Check("CustomFPS", "0", critical: false);
             }
         }
 

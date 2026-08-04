@@ -13,6 +13,8 @@ internal static class VideoSettingsSync
         try
         {
             if (GetRl().Length > 0) return false;
+            // Snapshot antes do patch — se o assemble encolher, o reforco recupera.
+            try { SaveRecovery.BackupGaragePresets(iniPath); } catch { }
             bool ok = SyncVideoSave(iniPath, mode, interactive: false);
             ok = ReclampIni(iniPath, mode) && ok;
             return ok;
@@ -330,6 +332,9 @@ internal static class VideoSettingsSync
     {
         if (!EnsureGameClosed(interactive)) return false;
 
+        // Preserva presets ANTES do patch UE3 (pode encolher save de garagem).
+        try { SaveRecovery.BackupGaragePresets(iniPath); } catch { }
+
         string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
         if (tagame is null) return false;
 
@@ -355,6 +360,9 @@ internal static class VideoSettingsSync
             else
                 AppMeta.Log("Patch parcial/falhou em: " + saveDir);
         }
+
+        // Sempre reforca garagem apos patch — Apply nao deve obrigar CORRIGIR ERROS.
+        try { SaveRecovery.ReinforceGarageAfterVideoSync(iniPath); } catch { }
 
         if (!anyDir)
         {

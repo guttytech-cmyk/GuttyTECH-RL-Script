@@ -13,7 +13,7 @@ internal static class Program
     private static readonly string[] FramePacingKeys =
     {
         "WaitForGPU", "OneFrameThreadLag", "AllowPerFrameSleep", "AllowPerFrameYield",
-        "UncappedFramerate", "bSmoothFrameRate", "CustomFPS",
+        "UncappedFramerate", "bSmoothFrameRate", "CustomFPS", "UseVsync",
     };
 
     private static readonly string[] VideoLockedKeys =
@@ -493,16 +493,18 @@ internal static class Program
             Ui.Chip(string.IsNullOrEmpty(applied) ? "ORIGINAL" : applied,
                 string.IsNullOrEmpty(applied) ? Ui.BorderHi : (applied == "COMPLETO" ? Ui.Red : Ui.Cyan))
             + "  "
-            + Ui.Chip(writable ? "GRAVÁVEL" : "BLOQUEADO", writable ? Ui.GreenBg : Ui.Red)
+            + Ui.Chip(writable ? "PASTA OK" : "PASTA BLOQUEADA", writable ? Ui.GreenBg : Ui.Red)
             + "  "
-            + Ui.Chip(rlOpen ? "RL ABERTO" : "RL FECHADO", rlOpen ? Ui.AmberBg : Ui.GreenBg);
+            + Ui.Chip(rlOpen ? "JOGO ABERTO" : "JOGO FECHADO", rlOpen ? Ui.AmberBg : Ui.GreenBg);
         Ui.PanelLine("  " + chips);
         Ui.PanelBlank();
         Ui.PanelLine(Ui.Field("Arquivo", Ui.C(FitPath(_cfg!, 58), Ui.Gray)));
         Ui.PanelLine(Ui.Field("Estado", Ui.Dot(modeAccent, label)));
-        string trava = locked ? Ui.Dot(Ui.Green, "ATIVO") : Ui.Dot(Ui.DimC, "INATIVO");
-        string adm = IsAdmin() ? Ui.Dot(Ui.Green, "ATIVO") : Ui.Dot(Ui.Gray, "não necessário");
-        Ui.PanelLine(Ui.Field("Protegido", trava + "    " + Ui.C("Admin ", Ui.DimC) + adm));
+        string trava = locked
+            ? Ui.Dot(Ui.Green, "LIGADO (só leitura)")
+            : Ui.Dot(Ui.DimC, "DESLIGADO (vídeo livre no jogo)");
+        string adm = IsAdmin() ? Ui.Dot(Ui.Green, "SIM") : Ui.Dot(Ui.Gray, "NÃO");
+        Ui.PanelLine(Ui.Field("Travar INI", trava + "    " + Ui.C("Admin ", Ui.DimC) + adm));
         Ui.PanelBottom();
         Ui.Gap();
 
@@ -1107,11 +1109,11 @@ internal static class Program
             Ui.TitleBar("CORRIGIR SAVE — LOAD FAILURE", Ui.MAmber);
             Ui.StepsPanel("STEAM / SAVE LOCAL", new[]
             {
-                "Fecha o Rocket League",
-                "Quarentena saves Steam suspeitos + remote Steam Cloud (252950)",
-                "Limpa cache RLSettingsData",
-                "Repoe garagem do cofre Best se existir",
-                "Escreve guia no Desktop — abre OFFLINE 1x",
+                "Fecha Rocket League + Steam (precisa editar Cloud)",
+                "Limpa SaveData\\DBE_Production (NAO reinsere Best — era o bug)",
+                "Quarentena Steam Cloud remote + CloudEnabled=0 no localconfig",
+                "Depois: NEW SAVE no aviso (recomendado) — tutorial as vezes e normal",
+                "So depois: RESTAURAR PRESETS no Gutty",
             }, Ui.MAmber);
             Ui.Gap();
             foreach (string line in SaveRecovery.AssessSaveHealth(cfg))
@@ -1134,13 +1136,14 @@ internal static class Program
 
         if (interactive)
         {
-            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MAmber, ok ? "SAVE PREPARADO" : "POUCO A FAZER", new[]
+            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MAmber, ok ? "SAVE LIMPO — PROXIMO PASSO" : "POUCO A FAZER", new[]
             {
                 summary,
-                "1) Steam Cloud OFF no Rocket League (temporario)",
-                "2) Abre OFFLINE — se LOAD FAILURE: DISABLE AUTOSAVE",
-                "3) Fecha > RESTAURAR PRESETS no Gutty > abre OFFLINE outra vez",
-                "4) Guia: Desktop\\GuttyTECH-RL-LOAD-FAILURE.txt",
+                "1) Abre a Steam (Cloud do RL ja deve estar OFF)",
+                "2) Abre o RL — se LOAD FAILURE: NEW SAVE (nao fiques no RETRY)",
+                "3) Tutorial as vezes aparece — normal; rank/itens sao online",
+                "4) Fecha > RESTAURAR PRESETS > abre OFFLINE > so depois Cloud ON",
+                "5) Guia: Desktop\\GuttyTECH-RL-LOAD-FAILURE.txt",
             });
         }
 
@@ -1306,18 +1309,18 @@ internal static class Program
     // -------------------------------------------------------------- State
     private static (string label, bool locked, int cat) ReadState()
     {
-        string label = "Original / padrao (nao otimizado)";
+        string label = "Original (não otimizado)";
         int cat = 0;
         try
         {
             string text = File.ReadAllText(_cfg!);
             if (text.Contains("GuttyTechMode=COMPLETO", StringComparison.OrdinalIgnoreCase)
                 || text.Contains("GUTTYTECH-RL-OPTIMIZER=COMPLETO", StringComparison.Ordinal))
-            { label = "COMPLETO aplicado (FPS maximo)"; cat = 2; }
+            { label = "FPS máximo ativo"; cat = 2; }
             else if (text.Contains("GuttyTechMode=CRIADOR", StringComparison.OrdinalIgnoreCase)
                 || text.Contains("GUTTYTECH-RL-OPTIMIZER=CRIADOR", StringComparison.Ordinal))
-            { label = "CRIADOR aplicado (visual + perf)"; cat = 2; }
-            else if (text.Contains("MaxLODSize=16")) { label = "Otimizado por versao antiga v21"; cat = 1; }
+            { label = "Visual + perf ativo"; cat = 2; }
+            else if (text.Contains("MaxLODSize=16")) { label = "Otimizado (versão antiga)"; cat = 1; }
         }
         catch { }
         bool locked = false;

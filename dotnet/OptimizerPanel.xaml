@@ -321,16 +321,17 @@
                                    Text="Estado do perfil e atalhos para as operações principais." />
                     </StackPanel>
 
-                    <!-- Mode + status cards -->
+                    <!-- Mode + status cards (legendas para cliente novo) -->
                     <UniformGrid Margin="0,26,0,0" Columns="5">
-                        <Border MinHeight="96"
+                        <Border MinHeight="108"
                                 Margin="0,0,8,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}">
+                                Style="{DynamicResource SurfaceBorderStyle}"
+                                ToolTip="{Binding StateLabel}">
                             <StackPanel>
                                 <TextBlock Style="{DynamicResource MutedTextStyle}"
                                            FontSize="10"
-                                           Text="MODO" />
+                                           Text="MODO ATIVO" />
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="22"
@@ -339,15 +340,16 @@
                                 <TextBlock Margin="0,4,0,0"
                                            Style="{DynamicResource MutedTextStyle}"
                                            Text="{Binding StateLabel}"
-                                           TextTrimming="CharacterEllipsis"
+                                           TextWrapping="Wrap"
                                            ToolTip="{Binding StateLabel}" />
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="96"
+                        <Border MinHeight="108"
                                 Margin="4,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}">
+                                Style="{DynamicResource SurfaceBorderStyle}"
+                                ToolTip="{Binding WritableHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
@@ -365,20 +367,26 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="ACESSO" />
+                                               Text="PASTA" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="22"
                                            Text="{Binding WritableLabel}"
                                            TextTrimming="CharacterEllipsis" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{DynamicResource MutedTextStyle}"
+                                           Text="{Binding WritableHint}"
+                                           TextWrapping="Wrap"
+                                           ToolTip="{Binding WritableHint}" />
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="96"
+                        <Border MinHeight="108"
                                 Margin="4,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}">
+                                Style="{DynamicResource SurfaceBorderStyle}"
+                                ToolTip="{Binding RocketLeagueHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center">
@@ -396,51 +404,83 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="ROCKET LEAGUE" />
+                                               Text="JOGO" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="22"
                                            Text="{Binding RocketLeagueLabel}"
                                            TextTrimming="CharacterEllipsis" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{DynamicResource MutedTextStyle}"
+                                           Text="{Binding RocketLeagueHint}"
+                                           TextWrapping="Wrap"
+                                           ToolTip="{Binding RocketLeagueHint}" />
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="96"
+                        <Border MinHeight="108"
                                 Margin="4,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}">
+                                Style="{DynamicResource SurfaceBorderStyle}"
+                                ToolTip="{Binding ProtectedHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="8"
                                              Height="8"
                                              Margin="0,0,8,0"
-                                             VerticalAlignment="Center"
-                                             Fill="{DynamicResource CyanBrush}" />
+                                             VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource TextSecondaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsProtected}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="PROTEÇÃO" />
+                                               Text="TRAVAR INI" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="22"
                                            Text="{Binding ProtectedLabel}"
                                            TextTrimming="CharacterEllipsis" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{DynamicResource MutedTextStyle}"
+                                           Text="{Binding ProtectedHint}"
+                                           TextWrapping="Wrap"
+                                           ToolTip="{Binding ProtectedHint}" />
                             </StackPanel>
                         </Border>
 
-                        <Border MinHeight="96"
+                        <Border MinHeight="108"
                                 Margin="8,0,0,0"
                                 Padding="16"
-                                Style="{DynamicResource SurfaceBorderStyle}">
+                                Style="{DynamicResource SurfaceBorderStyle}"
+                                ToolTip="{Binding AdministratorHint}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="8"
                                              Height="8"
                                              Margin="0,0,8,0"
-                                             VerticalAlignment="Center"
-                                             Fill="{DynamicResource TextSecondaryBrush}" />
+                                             VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource TextSecondaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsAdministrator}" Value="True">
+                                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
@@ -451,6 +491,11 @@
                                            FontSize="22"
                                            Text="{Binding AdministratorLabel}"
                                            TextTrimming="CharacterEllipsis" />
+                                <TextBlock Margin="0,4,0,0"
+                                           Style="{DynamicResource MutedTextStyle}"
+                                           Text="{Binding AdministratorHint}"
+                                           TextWrapping="Wrap"
+                                           ToolTip="{Binding AdministratorHint}" />
                             </StackPanel>
                         </Border>
                     </UniformGrid>
@@ -963,7 +1008,7 @@
                                        Text="CORRIGIR SAVE — LOAD FAILURE" />
                             <TextBlock Margin="0,2,0,0"
                                        Style="{DynamicResource BodyTextStyle}"
-                                       Text="Steam: Save Data failed to load — quarentena saves + Cloud remote, guia no Desktop"
+                                       Text="Steam: limpa SaveData + Cloud OFF. Depois NEW SAVE no aviso (não RETRY)."
                                        TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>

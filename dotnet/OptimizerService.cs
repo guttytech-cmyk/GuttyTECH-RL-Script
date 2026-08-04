@@ -180,8 +180,8 @@ internal sealed class OptimizerService
                 "PRESETS RESTAURADOS",
                 "Garagem reposta + Steam Cloud remote em quarentena. Abra OFFLINE na 1ª sessão; Steam: cloud OFF temporário."),
             OptimizerAction.CorrigirSave => Success(
-                "LOAD FAILURE TRATADO",
-                "Saves Steam suspeitos + remote Cloud em quarentena. Guia no Desktop. Abra OFFLINE; se o aviso aparecer use DISABLE AUTOSAVE, depois RESTAURAR PRESETS."),
+                "SAVE STEAM LIMPO",
+                "Steam fechada, Cloud OFF, pasta SaveData limpa (sem repor Best). Abre o RL → se LOAD FAILURE usa NEW SAVE (tutorial pode aparecer; itens online ficam). Depois RESTAURAR PRESETS. Guia no Desktop."),
             _ => Success("OPERAÇÃO CONCLUÍDA", "O estado do otimizador foi atualizado."),
         };
 

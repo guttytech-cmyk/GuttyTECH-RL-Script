@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace GuttyRL;
@@ -80,6 +81,28 @@ internal static class SaveRecovery
         summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups de garagem";
         AppMeta.Log("RESTAURAR-PRESETS: " + summary + (ok ? " OK" : " FALHOU"));
         return ok;
+    }
+
+    /// <summary>
+    /// Apos patch de video: se a conta live ficou stub (&lt; SoftGarageMin),
+    /// restaura o Best/backup de garagem — Apply nao deve apagar presets.
+    /// </summary>
+    public static int ReinforceGarageAfterVideoSync(string? iniPath)
+    {
+        if (iniPath is null) return 0;
+        try
+        {
+            int n = ReinforceLiveAccounts(iniPath);
+            n += RestoreBestVaultInto(iniPath);
+            if (n > 0)
+                AppMeta.Log($"Pos-sync video: reforco garagem/presets={n}");
+            return n;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("ReinforceGarageAfterVideoSync: " + ex.Message);
+            return 0;
+        }
     }
 
     /// <summary>Copia saves de garagem (grandes) — so file copy, sem decrypt.</summary>
@@ -276,6 +299,11 @@ internal static class SaveRecovery
                 // Em modo presets, nao vale a pena repor stubs pequeninos por cima do live
                 if (preferGarage && pick.Length < SoftGarageMinBytes)
                     continue;
+                if (LooksCorruptHeader(pick))
+                {
+                    AppMeta.Log($"Save ignorado (header mau): {pick.Name}");
+                    continue;
+                }
 
                 string dest = Path.Combine(saveDir, g.Key);
                 if (!SafeCopy(pick.FullName, dest, overwrite: true))
@@ -397,8 +425,8 @@ internal static class SaveRecovery
 
     private static FileInfo PickGaragePreferred(IGrouping<string, (string Orig, FileInfo File)> g)
     {
-        // 1) Maior save de garagem, preferindo o Best vault e depois o mais recente
-        var big = g.Where(x => x.File.Length >= SoftGarageMinBytes)
+        // 1) Maior save de garagem valido, preferindo o Best vault e depois o mais recente
+        var big = g.Where(x => x.File.Length >= SoftGarageMinBytes && !LooksCorruptHeader(x.File))
             .OrderByDescending(x => IsBestVaultPath(x.File.FullName) ? 1 : 0)
             .ThenByDescending(x => x.File.Length)
             .ThenByDescending(x => x.File.LastWriteTimeUtc)
@@ -406,10 +434,13 @@ internal static class SaveRecovery
             .FirstOrDefault();
         if (big is not null) return big;
 
-        // 2) Sem garagem: o MAIOR disponivel (melhor que o mais novo pequenino)
-        return g.OrderByDescending(x => x.File.Length)
+        // 2) Sem garagem: o MAIOR disponivel nao-corrompido
+        var any = g.Where(x => !LooksCorruptHeader(x.File))
+            .OrderByDescending(x => x.File.Length)
             .ThenByDescending(x => x.File.LastWriteTimeUtc)
-            .First().File;
+            .Select(x => x.File)
+            .FirstOrDefault();
+        return any ?? g.OrderByDescending(x => x.File.Length).First().File;
     }
 
     private static bool IsBestVaultPath(string path) =>
@@ -503,7 +534,7 @@ internal static class SaveRecovery
         }
     }
 
-    public static bool QuarantineSaves(string saveDir)
+    public static bool QuarantineSaves(string saveDir, bool promoteToBest = true)
     {
         try
         {
@@ -512,15 +543,19 @@ internal static class SaveRecovery
             var saves = Directory.EnumerateFiles(saveDir, "*.save").ToList();
             if (saves.Count == 0) return true;
 
-            // Preserva grandes na Best antes de quarentenar
-            foreach (string f in saves)
+            // Preserva grandes na Best antes de quarentenar (exceto heal LOAD FAILURE)
+            if (promoteToBest)
             {
-                try
+                foreach (string f in saves)
                 {
-                    var fi = new FileInfo(f);
-                    UpdateBestVault(fi.Name, fi.FullName, fi.Length);
+                    try
+                    {
+                        var fi = new FileInfo(f);
+                        if (fi.Length >= SoftGarageMinBytes && !LooksCorruptHeader(fi))
+                            UpdateBestVault(fi.Name, fi.FullName, fi.Length);
+                    }
+                    catch { }
                 }
-                catch { }
             }
 
             string q = Path.Combine(AppMeta.BackupDir, "Quarantine",
@@ -597,49 +632,257 @@ internal static class SaveRecovery
     public static bool FullRecovery(string iniPath) => UnbreakSaves(iniPath);
 
     /// <summary>
-    /// LOAD FAILURE (Save Data failed to load) — tipico Steam Cloud / save local partido.
-    /// Quarentena saves live + remote Steam Cloud, limpa cache, repoe Best se houver.
+    /// LOAD FAILURE (Save Data failed to load) — tipico Steam.
+    /// LIMPEZA PURA: nao reinsere Best (era a causa de o aviso voltar).
+    /// Fecha Steam, desliga Cloud no localconfig, quarentena SaveData + remote.
+    /// Cliente: NEW SAVE (recomendado) ou DISABLE AUTOSAVE; tutorial e normal; inventario e online.
     /// </summary>
     public static bool HealLoadFailure(string iniPath, out string summary)
     {
         var parts = new List<string>();
-        try { BackupGaragePresets(iniPath); } catch { }
+
+        // Snapshot SEGURO: so copia para archive, sem promover suspeitos ao Best
+        int archived = SnapshotLiveToQuarantineArchive(iniPath);
+        if (archived > 0) parts.Add($"arquivo={archived}");
+
+        ErrorRepair.ForceCloseRocketLeague();
+        bool steamClosed = ForceCloseSteam();
+        if (steamClosed) parts.Add("Steam fechado");
+        Thread.Sleep(1500);
 
         string? steam = SaveDirFromIni(iniPath, epic: false);
         string? epic = SaveDirFromIni(iniPath, epic: true);
 
-        int badSteam = QuarantineSuspectSaves(steam, "Steam");
+        // Wipe completo Steam DBE_Production (todos os ficheiros, nao so .save)
+        int wipedSteam = WipeProductionDir(steam, "Steam");
+        if (wipedSteam > 0) parts.Add($"Steam limpo={wipedSteam}");
+
+        // Epic: so suspeitos — nao destruir conta Epic boa
         int badEpic = QuarantineSuspectSaves(epic, "Epic");
-        if (badSteam > 0) parts.Add($"Steam suspeitos={badSteam}");
         if (badEpic > 0) parts.Add($"Epic suspeitos={badEpic}");
 
-        // Se ainda ha saves Steam live (mesmo "ok" no tamanho), MOVE todos —
-        // LOAD FAILURE muitas vezes vem de ficheiro grande mas corrompido.
-        if (steam is not null && Directory.Exists(steam)
-            && Directory.EnumerateFiles(steam, "*.save").Any())
-        {
-            if (QuarantineSaves(steam))
-                parts.Add("Steam live -> quarentena");
-        }
-
         int cloud = QuarantineSteamCloudRemote();
-        if (cloud > 0) parts.Add($"Steam Cloud remote={cloud}");
+        if (cloud > 0) parts.Add($"Cloud remote={cloud}");
+
+        int cloudOff = SoftDisableSteamCloudForRl();
+        if (cloudOff > 0) parts.Add($"CloudEnabled=0 ({cloudOff})");
 
         bool purge = PurgeRlSettingsData();
         if (purge) parts.Add("cache limpo");
 
-        // Repoe garagem Best (Steam + Epic) se existir — evita tutorial eterno
-        bool restored = RestoreInto(steam, preferNewest: true, preferGarage: true, parts)
-                        | RestoreInto(epic, preferNewest: true, preferGarage: true, parts);
-        int reinforced = ReinforceLiveAccounts(iniPath);
-        if (reinforced > 0) parts.Add($"reforco={reinforced}");
+        // Limpa Cache local do TAGame (lixo de sync)
+        int cacheN = PurgeTagameSaveCache(iniPath);
+        if (cacheN > 0) parts.Add($"TAGame Cache={cacheN}");
+
+        // NAO RestoreInto / Reinforce — Best podia ter o save corrompido.
+        // Presets so depois: NEW SAVE / DISABLE → menu → RESTAURAR PRESETS.
 
         WriteSteamLoadFailureGuide();
 
-        bool ok = badSteam > 0 || badEpic > 0 || cloud > 0 || restored || reinforced > 0 || purge;
+        // Sucesso = pasta Steam vazia de .save
+        bool steamClean = steam is null
+            || !Directory.Exists(steam)
+            || !Directory.EnumerateFiles(steam, "*.save").Any();
+        if (steamClean) parts.Add("Steam DBE_Production limpo");
+        else parts.Add("!! Steam ainda tem .save — fecha Steam e corre outra vez");
+
+        bool ok = steamClean || wipedSteam > 0 || cloud > 0 || cloudOff > 0;
         summary = parts.Count > 0 ? string.Join("; ", parts) : "nada a reparar";
-        AppMeta.Log("HEAL-LOAD-FAILURE: " + summary + (ok ? " OK" : " SEM MUDANCAS"));
+        AppMeta.Log("HEAL-LOAD-FAILURE: " + summary + (ok ? " OK" : " FALHOU"));
         return ok;
+    }
+
+    /// <summary>Copia live para Quarantine\Archive sem UpdateBestVault.</summary>
+    private static int SnapshotLiveToQuarantineArchive(string iniPath)
+    {
+        int n = 0;
+        string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        foreach (bool epic in new[] { true, false })
+        {
+            string? dir = SaveDirFromIni(iniPath, epic);
+            if (dir is null || !Directory.Exists(dir)) continue;
+            string destRoot = Path.Combine(AppMeta.BackupDir, "Quarantine", "Archive_" + stamp + (epic ? "_Epic" : "_Steam"));
+            try
+            {
+                Directory.CreateDirectory(destRoot);
+                foreach (string f in Directory.EnumerateFiles(dir, "*.save"))
+                {
+                    try
+                    {
+                        File.Copy(f, Path.Combine(destRoot, Path.GetFileName(f)), overwrite: true);
+                        n++;
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+        return n;
+    }
+
+    private static int WipeProductionDir(string? saveDir, string tag)
+    {
+        if (saveDir is null || !Directory.Exists(saveDir)) return 0;
+        try
+        {
+            var files = Directory.EnumerateFiles(saveDir, "*", SearchOption.TopDirectoryOnly).ToList();
+            if (files.Count == 0) return 0;
+
+            string q = Path.Combine(AppMeta.BackupDir, "Quarantine",
+                DateTime.Now.ToString("yyyyMMdd_HHmmss") + "_" + tag + "_wipe");
+            Directory.CreateDirectory(q);
+            int n = 0;
+            foreach (string f in files)
+            {
+                try
+                {
+                    string dest = Path.Combine(q, Path.GetFileName(f));
+                    if (File.Exists(dest)) File.Delete(dest);
+                    File.SetAttributes(f, FileAttributes.Normal);
+                    File.Move(f, dest);
+                    n++;
+                }
+                catch
+                {
+                    try { File.Delete(f); n++; } catch { }
+                }
+            }
+
+            AppMeta.Log($"Wipe {tag} DBE_Production: {n} -> {q}");
+            return n;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("WipeProductionDir: " + ex.Message);
+            return 0;
+        }
+    }
+
+    private static int PurgeTagameSaveCache(string iniPath)
+    {
+        try
+        {
+            string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
+            if (tagame is null) return 0;
+            string cache = Path.Combine(tagame, "Cache");
+            if (!Directory.Exists(cache)) return 0;
+            int n = 0;
+            foreach (string f in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories))
+            {
+                try { File.SetAttributes(f, FileAttributes.Normal); File.Delete(f); n++; } catch { }
+            }
+            return n;
+        }
+        catch { return 0; }
+    }
+
+    public static bool ForceCloseSteam()
+    {
+        bool any = false;
+        string[] names = { "steam", "steamwebhelper", "steamservice" };
+        try
+        {
+            foreach (string name in names)
+            {
+                foreach (var p in Process.GetProcessesByName(name))
+                {
+                    any = true;
+                    try { p.Kill(entireProcessTree: true); } catch { try { p.Kill(); } catch { } }
+                }
+            }
+        }
+        catch { }
+
+        for (int i = 0; i < 10 && any; i++)
+        {
+            Thread.Sleep(400);
+            if (Process.GetProcessesByName("steam").Length == 0)
+                break;
+            foreach (var p in Process.GetProcessesByName("steam"))
+            {
+                try { p.Kill(entireProcessTree: true); } catch { }
+            }
+        }
+
+        if (any) AppMeta.Log("Steam fechado para editar Cloud / userdata.");
+        return any;
+    }
+
+    /// <summary>
+    /// Força CloudEnabled=0 no localconfig.vdf de cada conta Steam (app 252950).
+    /// Steam tem de estar fechado — senao regrava o ficheiro.
+    /// </summary>
+    public static int SoftDisableSteamCloudForRl()
+    {
+        int touched = 0;
+        try
+        {
+            foreach (string steamRoot in EnumerateSteamRoots())
+            {
+                string userdata = Path.Combine(steamRoot, "userdata");
+                if (!Directory.Exists(userdata)) continue;
+                foreach (string userDir in Directory.EnumerateDirectories(userdata))
+                {
+                    string cfg = Path.Combine(userDir, "config", "localconfig.vdf");
+                    if (!File.Exists(cfg)) continue;
+                    if (PatchLocalConfigCloudEnabled(cfg))
+                        touched++;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("SoftDisableSteamCloudForRl: " + ex.Message);
+        }
+
+        return touched;
+    }
+
+    private static bool PatchLocalConfigCloudEnabled(string localConfigPath)
+    {
+        try
+        {
+            string original = File.ReadAllText(localConfigPath);
+            if (string.IsNullOrWhiteSpace(original)) return false;
+
+            string bak = localConfigPath + ".guttybak";
+            if (!File.Exists(bak))
+                File.Copy(localConfigPath, bak, overwrite: false);
+
+            // Ja desligado
+            if (Regex.IsMatch(original, @"""252950""\s*\{[^\}]{0,800}?""CloudEnabled""\s*""0""", RegexOptions.Singleline | RegexOptions.IgnoreCase))
+                return false;
+
+            string text = original;
+            // CloudEnabled=1 → 0 dentro do bloco 252950 (aproximacao)
+            text = Regex.Replace(
+                text,
+                @"(""252950""\s*\{)(.*?)(""CloudEnabled""\s*"")(\d+)("")",
+                m => m.Groups[1].Value + m.Groups[2].Value + m.Groups[3].Value + "0" + m.Groups[5].Value,
+                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+            if (string.Equals(text, original, StringComparison.Ordinal))
+            {
+                // Bloco 252950 sem CloudEnabled — injeta apos a abertura
+                text = Regex.Replace(
+                    text,
+                    @"""252950""\s*\{",
+                    "\"252950\"\n\t\t\t\t{\n\t\t\t\t\t\"CloudEnabled\"\t\t\"0\"",
+                    RegexOptions.IgnoreCase);
+            }
+
+            if (string.Equals(text, original, StringComparison.Ordinal))
+                return false;
+
+            File.WriteAllText(localConfigPath, text);
+            AppMeta.Log("Steam Cloud OFF (252950): " + localConfigPath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("PatchLocalConfigCloudEnabled: " + ex.Message);
+            return false;
+        }
     }
 
     public static IReadOnlyList<string> AssessSaveHealth(string? iniPath)
@@ -662,7 +905,7 @@ internal static class SaveRecovery
                 .ToList();
             if (files.Count == 0)
             {
-                lines.Add($"{tag}: 0 saves (RL cria novo — ok apos DISABLE AUTOSAVE)");
+                lines.Add($"{tag}: 0 saves (limpo — no LOAD FAILURE usa NEW SAVE)");
                 return;
             }
 
@@ -865,15 +1108,21 @@ internal static class SaveRecovery
             string text =
                 "GUTTYTECH — LOAD FAILURE (Steam)" + Environment.NewLine +
                 "=================================" + Environment.NewLine +
-                "O Gutty ja quarentenou saves suspeitos e o remote da Steam Cloud (App 252950)." + Environment.NewLine +
+                "O Gutty FECHOU a Steam, desligou CloudEnabled no localconfig," + Environment.NewLine +
+                "limpou SaveData\\DBE_Production e o remote Cloud (252950)." + Environment.NewLine +
+                "NAO reinstalou presets nesta passagem (isso fazia o aviso voltar)." + Environment.NewLine +
                 Environment.NewLine +
-                "AGORA FAZ ISTO:" + Environment.NewLine +
-                "1) Steam > Rocket League > Propriedades > Geral" + Environment.NewLine +
-                "   > DESATIVA \"Manter os meus jogos guardados na Steam Cloud\" (temporario)" + Environment.NewLine +
-                "2) Abre o Rocket League OFFLINE (modo offline Steam) 1x" + Environment.NewLine +
-                "3) Se aparecer LOAD FAILURE: clica DISABLE AUTOSAVE (entra no menu; NAO e tutorial na maioria das contas online)" + Environment.NewLine +
-                "4) Fecha o jogo > no Gutty: RESTAURAR PRESETS" + Environment.NewLine +
-                "5) Abre OFFLINE outra vez, confirma garagem, so depois reativa a Steam Cloud" + Environment.NewLine +
+                "AGORA FAZ ISTO (ordem importa):" + Environment.NewLine +
+                "1) Abre a Steam (Cloud do RL ja deve estar OFF — confirma em Propriedades)" + Environment.NewLine +
+                "2) Abre o Rocket League" + Environment.NewLine +
+                "3) Se aparecer LOAD FAILURE:" + Environment.NewLine +
+                "   → clica NEW SAVE (recomendado pela Epic) " + Environment.NewLine +
+                "     Rank/itens ONLINE nao se perdem. Tutorial as vezes aparece — normal." + Environment.NewLine +
+                "   → DISABLE AUTOSAVE tambem entra, mas pode ir a tutorial OU ao menu" + Environment.NewLine +
+                "     (depende se a conta ja tinha tutorial feito no servidor)." + Environment.NewLine +
+                "   → RETRY nao resolve se o ficheiro esta partido — ignora." + Environment.NewLine +
+                "4) Fecha o RL > no Gutty: RESTAURAR PRESETS" + Environment.NewLine +
+                "5) Abre OFFLINE 1x, confirma garagem, so depois reativa Steam Cloud" + Environment.NewLine +
                 Environment.NewLine +
                 "Backups: " + AppMeta.BackupDir + Environment.NewLine;
 

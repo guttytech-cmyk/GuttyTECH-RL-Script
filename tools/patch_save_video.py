@@ -19,6 +19,10 @@ from nixwrap.save_file import load_raw  # noqa: E402
 from nixwrap.save_file._file_io import assemble_savedata  # noqa: E402
 
 UNCAPPED_MAX_FPS = 10000
+# Alinhado com SaveRecovery.SoftGarageMinBytes — abaixo disso e stub de video;
+# acima e garagem/presets (nao pode encolher no assemble).
+SOFT_GARAGE_MIN = 250_000
+MAX_PATCH_BYTES = 1_200_000
 
 # Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
 # HighPerformance em Particle/Render quebra o menu (branco / Alta qualidade).
@@ -34,9 +38,10 @@ COMPLETO_OPTIONS = [
 ]
 
 # CRIADOR: limpa potato do COMPLETO. Sem RenderQuality → UI cai em Alta qualidade.
-# TexturesHigher = visual bom; RenderDetail=Custom = toggles avancados ajustaveis.
+# TexturesHigher = visual bom.
+# RenderDetail=Custom FAZ o menu cair em Alta qualidade / 60 FPS — usar Quality.
 CRIADOR_OPTIONS = [
-    {"Id": "RenderDetail", "Value": "Custom"},
+    {"Id": "RenderDetail", "Value": "Quality"},
     {"Id": "TextureDetail", "Value": "TexturesHigher"},
     {"Id": "ParticleDetail", "Value": "Performance"},
     {"Id": "WorldDetail", "Value": "Quality"},
@@ -97,7 +102,13 @@ def _flags_ok(obj: dict, *, completo: bool) -> bool:
     for key, val in VIDEO_FLAGS_COMMON:
         got = obj.get(key)
         if key == "MaxFPS":
-            if got != val:
+            # Unlimited no menu: 10000 (nosso) ou qualquer >= 250
+            if got is None:
+                return False
+            try:
+                if int(got) < 250:
+                    return False
+            except (TypeError, ValueError):
                 return False
             continue
         if val is True:
@@ -160,6 +171,22 @@ def _is_sparse_or_broken(obj: dict, *, completo: bool) -> bool:
     return not _flags_ok(obj, completo=completo)
 
 
+def _stamp_runtime_flags(obj: dict, *, completo: bool) -> None:
+    """Reestampa flags do menu que o engine so aplica apos toggle in-game.
+
+    Unlimited / shafts / weather / vsync / shaders podem aparecer certos no menu
+    e nao no runtime ate o jogador ligar/desligar. Sempre regrava no disco.
+    """
+    for key, val in VIDEO_FLAGS_COMMON:
+        obj[key] = val
+    obj["MaxFPS"] = int(UNCAPPED_MAX_FPS)
+    obj["bUncappedFramerate"] = True
+    obj["bVsync"] = False
+    if completo:
+        for key, val in VIDEO_FLAGS_COMPLETO:
+            obj[key] = val
+
+
 def _force_video_profile(obj: dict, *, completo: bool) -> None:
     # Preserva janela/resolucao — o botao APLICAR do modo de exibicao no RL
     # reescreve VideoOptions para Alta qualidade; nao queremos resetar WindowMode.
@@ -168,15 +195,10 @@ def _force_video_profile(obj: dict, *, completo: bool) -> None:
 
     if completo:
         obj["VideoOptions"] = [dict(x) for x in COMPLETO_OPTIONS]
-        for key, val in VIDEO_FLAGS_COMMON:
-            obj[key] = val
-        for key, val in VIDEO_FLAGS_COMPLETO:
-            if key in obj:
-                obj[key] = val
     else:
         obj["VideoOptions"] = [dict(x) for x in CRIADOR_OPTIONS]
-        for key, val in VIDEO_FLAGS_COMMON:
-            obj[key] = val
+
+    _stamp_runtime_flags(obj, completo=completo)
 
     if window is not None:
         obj["WindowMode"] = window
@@ -186,21 +208,25 @@ def _force_video_profile(obj: dict, *, completo: bool) -> None:
 
 def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
     # Regrava se errado/esparso/vazio OU se RenderDetail=Custom (APLICAR em
-    # Sem bordas deixa Custom e o menu explode em Alta qualidade / efeitos ON).
+    # Sem bordas deixa Custom e o menu explode em Alta qualidade / 60 FPS).
+    # Mesmo com perfil OK: SEMPRE reestampa FPS/efeitos (visual stale).
     ids = {o.get("Id"): o.get("Value") for o in _sanitize_options(obj.get("VideoOptions"))}
-    if ids.get("RenderDetail") == "Custom" and completo:
-        _force_video_profile(obj, completo=True)
+    if ids.get("RenderDetail") == "Custom":
+        _force_video_profile(obj, completo=completo)
         return True
 
+    need_profile = False
     if completo:
-        if _completo_options_ok(obj):
-            return False
-        _force_video_profile(obj, completo=True)
-        return True
+        need_profile = not _completo_options_ok(obj)
+    else:
+        need_profile = not (
+            _criador_options_ok(obj) and not _looks_like_completo_options(obj)
+        )
 
-    if _criador_options_ok(obj) and not _looks_like_completo_options(obj):
-        return False
-    _force_video_profile(obj, completo=False)
+    if need_profile:
+        _force_video_profile(obj, completo=completo)
+    else:
+        _stamp_runtime_flags(obj, completo=completo)
     return True
 
 
@@ -235,6 +261,11 @@ def _patch_raw(raw: dict, *, completo: bool) -> bool:
 
 
 def patch_file(path: Path, *, completo: bool) -> bool:
+    try:
+        original_size = path.stat().st_size
+    except OSError:
+        original_size = 0
+
     raw = load_raw(path)
     if not _patch_raw(raw, completo=completo):
         return False
@@ -254,6 +285,18 @@ def patch_file(path: Path, *, completo: bool) -> bool:
                 if obj.get("__type") == "TAGame.VideoSettingsSavePC_TA":
                     if not _completo_options_ok(obj):
                         raise RuntimeError(f"patch nao persistiu VideoOptions completos em {path.name}")
+        try:
+            new_size = tmp.stat().st_size
+        except OSError:
+            new_size = 0
+        # Nunca deixar garagem/presets virarem stub de video.
+        if original_size >= SOFT_GARAGE_MIN:
+            if new_size < SOFT_GARAGE_MIN or (
+                original_size > 0 and new_size < int(original_size * 0.90)
+            ):
+                raise RuntimeError(
+                    f"garage preservada: {path.name} {original_size // 1024}KB -> {new_size // 1024}KB"
+                )
         os.replace(tmp, path)
     except Exception:
         # Rollback atomico — nunca deixar save a meio.
@@ -278,8 +321,7 @@ def patch_file(path: Path, *, completo: bool) -> bool:
 
 
 def _select_files(files: list[Path]) -> list[Path]:
-    """So perfis recentes e leves — saves de 2MB+ demoram minutos no decrypt UE3."""
-    max_bytes = 1_200_000
+    """Perfis recentes <1.2MB. Garagem >= SoftGarageMin entra com rollback de tamanho."""
     max_files = 6
     ranked = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
     chosen: list[Path] = []
@@ -288,7 +330,7 @@ def _select_files(files: list[Path]) -> list[Path]:
             sz = f.stat().st_size
         except OSError:
             continue
-        if sz > max_bytes:
+        if sz > MAX_PATCH_BYTES:
             print(f"SKIP {f.name} (grande demais: {sz // 1024}KB)", flush=True)
             continue
         chosen.append(f)

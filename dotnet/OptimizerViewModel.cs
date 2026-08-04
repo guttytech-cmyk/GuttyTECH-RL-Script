@@ -19,10 +19,14 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private string _progressMessage = "Aguarde um instante";
     private string _appliedMode = "CARREGANDO";
     private string _stateLabel = "Lendo perfil do Rocket League";
-    private string _writableLabel = "VERIFICANDO";
-    private string _rocketLeagueLabel = "VERIFICANDO";
-    private string _protectedLabel = "VERIFICANDO";
-    private string _administratorLabel = "VERIFICANDO";
+    private string _writableLabel = "…";
+    private string _writableHint = "A verificar permissão da pasta";
+    private string _rocketLeagueLabel = "…";
+    private string _rocketLeagueHint = "A verificar se o jogo está aberto";
+    private string _protectedLabel = "…";
+    private string _protectedHint = "A verificar bloqueio do perfil";
+    private string _administratorLabel = "…";
+    private string _administratorHint = "A verificar direitos de administrador";
     private string _configPath = "Localizando TASystemSettings.ini...";
     private string _lastUpdated = "AGORA";
     private bool _isWritable;
@@ -177,10 +181,22 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _writableLabel, value);
     }
 
+    public string WritableHint
+    {
+        get => _writableHint;
+        private set => SetProperty(ref _writableHint, value);
+    }
+
     public string RocketLeagueLabel
     {
         get => _rocketLeagueLabel;
         private set => SetProperty(ref _rocketLeagueLabel, value);
+    }
+
+    public string RocketLeagueHint
+    {
+        get => _rocketLeagueHint;
+        private set => SetProperty(ref _rocketLeagueHint, value);
     }
 
     public string ProtectedLabel
@@ -189,10 +205,22 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         private set => SetProperty(ref _protectedLabel, value);
     }
 
+    public string ProtectedHint
+    {
+        get => _protectedHint;
+        private set => SetProperty(ref _protectedHint, value);
+    }
+
     public string AdministratorLabel
     {
         get => _administratorLabel;
         private set => SetProperty(ref _administratorLabel, value);
+    }
+
+    public string AdministratorHint
+    {
+        get => _administratorHint;
+        private set => SetProperty(ref _administratorHint, value);
     }
 
     public string ConfigPath
@@ -441,7 +469,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                     false,
                     FeedbackTone.Warning,
                     "VERSÃO NOVA NO GITHUB",
-                    update.Message + " Usa BAIXAR no popup ou abre Releases."));
+                    update.Message + " Use BAIXAR no popup ou abra Releases."));
             }
 
             return;
@@ -470,12 +498,31 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         IsAdministrator = status.IsAdministrator;
         ConfigExists = status.ConfigExists;
 
-        WritableLabel = status.IsWritable ? "GRAVÁVEL" : "BLOQUEADO";
+        // Textos curtos em PT-BR — cabem nos cards sem cortar.
+        WritableLabel = status.IsWritable ? "OK" : "BLOQUEADA";
+        WritableHint = status.IsWritable
+            ? "Podemos salvar o perfil"
+            : "Sem permissão — Corrigir";
+
         RocketLeagueLabel = status.IsRocketLeagueOpen ? "ABERTO" : "FECHADO";
-        ProtectedLabel = status.IsProtected ? "ATIVO" : "INATIVO";
-        AdministratorLabel = status.IsAdministrator ? "ELEVADO" : "PADRÃO";
+        RocketLeagueHint = status.IsRocketLeagueOpen
+            ? "Feche o jogo pra aplicar"
+            : "Pode aplicar um modo";
+
+        // Travar INI = arquivo só leitura. Nos modos atuais fica DESLIGADO
+        // de propósito pra o menu de vídeo do jogo funcionar.
+        ProtectedLabel = status.IsProtected ? "LIGADO" : "DESLIGADO";
+        ProtectedHint = status.IsProtected
+            ? "Só leitura — modo travado"
+            : "Normal — vídeo livre no jogo";
+
+        AdministratorLabel = status.IsAdministrator ? "SIM" : "NÃO";
+        AdministratorHint = status.IsAdministrator
+            ? "Rodando como admin"
+            : "Abra como admin se falhar";
+
         ConfigPath = string.IsNullOrWhiteSpace(status.ConfigPath)
-            ? "Perfil ainda não localizado — abra o Rocket League uma vez."
+            ? "Perfil ainda não encontrado — abra o Rocket League uma vez."
             : status.ConfigPath;
         LastUpdated = DateTime.Now.ToString("'ATUALIZADO' HH:mm:ss");
     }
@@ -583,9 +630,9 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                 "Vamos repor a maior garagem guardada (cofre Best) nas contas Epic/Steam e quarentenar o remote Steam Cloud. Depois abra o jogo OFFLINE na 1ª sessão.",
                 "RESTAURAR BACKUP"),
             OptimizerAction.CorrigirSave => (
-                "LOAD FAILURE — CORRIGIR SAVE?",
-                "Para o aviso Save Data failed to load (Steam): quarentena saves locais suspeitos + remote Steam Cloud (252950), limpa cache e tenta repor o Best. Guia no Desktop. Depois abre OFFLINE.",
-                "CORRIGIR SAVE"),
+                "LOAD FAILURE — LIMPAR SAVE STEAM?",
+                "Fecha Steam+RL, desliga Cloud no localconfig, limpa SaveData (sem repor Best — isso fazia o aviso voltar). Depois abre o RL e se o aviso aparecer clica NEW SAVE (tutorial às vezes é normal; rank/itens online ficam). Só depois RESTAURAR PRESETS.",
+                "LIMPAR SAVE"),
             _ => (string.Empty, string.Empty, string.Empty),
         };
 
