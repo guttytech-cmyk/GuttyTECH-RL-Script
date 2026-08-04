@@ -94,6 +94,20 @@ internal static class StartupGuard
             + Environment.NewLine + Environment.NewLine
             + "Log: " + AppMeta.CrashLog;
 
+        if (ex is DllNotFoundException or BadImageFormatException)
+        {
+            body =
+                "Falta uma biblioteca nativa do Windows/WPF (" + (ex.Message) + ")."
+                + Environment.NewLine + Environment.NewLine
+                + "1) Baixe de novo o GuttyTECH_RL.exe do GitHub (~142+ MB)."
+                + Environment.NewLine
+                + "2) Guarde em Downloads ou Desktop (nao rode do Edge/temp)."
+                + Environment.NewLine
+                + "3) Instale o Visual C++ 2015-2022 x64 (vc_redist)."
+                + Environment.NewLine + Environment.NewLine
+                + "Log: " + AppMeta.CrashLog;
+        }
+
         // Sempre tenta MessageBox nativo — em WinExe o console nao aparece.
         try
         {

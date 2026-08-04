@@ -31,6 +31,17 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // Extracao estavel do single-file (evita TEMP limpo pelo AV / Edge cache).
+        try
+        {
+            string extract = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "GuttyTECH", "RL-Optimizer-v22", "bundle-extract");
+            Directory.CreateDirectory(extract);
+            Environment.SetEnvironmentVariable("DOTNET_BUNDLE_EXTRACT_BASE_DIR", extract);
+        }
+        catch { }
+
         if (args.Length == 0)
             ConsoleWindowService.Hide();
         else
