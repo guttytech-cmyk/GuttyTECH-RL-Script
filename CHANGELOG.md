@@ -1,7 +1,26 @@
 # Changelog
 
-Todas as versões do **GUTTYTECH — Rocket League INI Optimizer** (TESSERACT).
+Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
+
+## [v25.0.5] — 2026-08-04
+### Corrigido / Melhorado
+- Detecção COMPLETO/CRIADOR por marcador + fingerprint + tag local.
+- Admin obrigatório via TokenElevation no arranque.
+- Card **PROTEÇÃO** (watcher) — INI permanece gravável para o menu de vídeo.
+- Recuperação: boot/Corrigir Tudo limpam modo; Reparar Perfil arranca watcher; CORRIGIR SAVE e diagnóstico honestos; EAC via manifests Epic.
+- Remover força stock limpo se backup estiver poluído.
+- Copiar comando funciona com app elevado (clipboard de-elevado + ficheiro no Desktop).
+- ZIP de suporte completo para enviar no chat.
+
+## [v25.0.1] — 2026-08-04
+### Corrigido
+- Reparar EAC 30005.
+- Completo/Criador FPS + watcher drift.
+
+## [v25.0.0] — 2026-08-04
+### Alterado
+- UI WPF com motion + startup robusto (substitui o menu console antigo).
 
 ## [v24.0.0] — 2026-07-25
 ### Corrigido / Melhorado — PRESETS / GARAGEM

@@ -1,217 +1,134 @@
-# GUTTYTECH — Rocket League INI Optimizer v22.3
+# GUTTYTECH — Rocket League Optimizer v25.0.5
 
-> **O que é:** um `.exe` único (~10,5 MB) que otimiza o `TASystemSettings.ini` do Rocket League (Unreal Engine 3).  
+> **O que é:** app WPF (`.exe` único) que otimiza o `TASystemSettings.ini` do Rocket League (UE3), sincroniza o menu de vídeo nos `.save` e mantém um watcher anti-rewrite.  
 > **O que NÃO é:** não mexe no Windows, registro, rede, HPET nem TCP. Isso ficou no script antigo em [`legacy/RL_GUTTYTECH_v21.5.bat`](legacy/RL_GUTTYTECH_v21.5.bat).
 
-**Menu do app**
+**Download:** [`GuttyTECH_RL.exe`](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script/releases/latest) — **Executar como administrador**.
 
-| Tecla | Função |
-|:---:|--------|
-| `[1]` | **COMPLETO** — FPS máximo, visual mínimo (competitivo / PC fraco) |
-| `[2]` | **CRIADOR** — otimizado sem destruir o visual (streamers / YouTubers) |
-| `[3]` | **REMOVER** — restaura o original / padrão e destrava o arquivo |
-| `[4]` | **LAUNCH OPTIONS** — copia o comando de inicialização (Steam/Epic) pro clipboard |
-| `[5]` | Sair |
-
----
-
-## 1. O APP EM SI (o que o código faz de verdade)
-
-- **Acha o arquivo sozinho** — procura `TASystemSettings.ini` em `Documents`, `OneDrive`, `OneDrive - Personal`, `OneDrive - Pessoal` e varre perfis de usuário no PC (pastas com acento, ex.: `Usuário`, `João`).
-- **Impede aplicar com o jogo aberto** — se o Rocket League estiver rodando, avisa (o jogo sobrescreve o `.ini` ao fechar).
-- **Backup antes de tudo** — salva cópias em `%USERPROFILE%\GuttyTECH\RL-Optimizer-v22\Backups\` (com data/hora). Na 1ª vez, guarda também o seu original em `TASystemSettings.original.ini`.
-- **Destrava arquivo travado** — remove read-only, roda `takeown` + `icacls /reset` + concede permissão ao seu usuário. Resolve scripts antigos que bloquearam o acesso. **Não exige admin** na maioria dos casos (só eleva se ainda falhar).
-- **Apaga e recria o `.ini`** — em vez de editar linha a linha (que quebrava no v21), substitui o arquivo inteiro pelo template do modo escolhido.
-- **Preserva sua resolução e modo de tela** — `ResX`, `ResY`, `Fullscreen`, `Borderless` e `AutoDetectDesktopResolution` do seu arquivo atual são mantidos. Nada de forçar 1920×1080 nem tela preta.
-- **Trava no final (somente-leitura)** — impede Steam/Epic de apagarem o tweak na próxima abertura. O modo **REMOVER** destrava de volta.
-- **Detecta INI legado v21** — se encontrar fingerprint antigo (`MaxLODSize=16` sem sentinel v22), avisa para reaplicar.
-- **UI animada** — banner gradiente, spinner Braille nos passos, painel CONCLUÍDO com checklist do que ajustar 1× em Opções > Vídeo.
+| Página | Função |
+|--------|--------|
+| Visão Geral | Estado do modo, PROTEÇÃO (watcher), caminho do INI |
+| Otimização | **COMPLETO** ou **CRIADOR** |
+| Recuperação | Permissões, reparar perfil, boot, save, EAC 30005, Corrigir Tudo |
+| Sistema | Remover, launch options, ZIP de suporte |
 
 ---
 
-## 2. SINCRONIA E FLUIDEZ (nos dois modos COMPLETO e CRIADOR)
+## 1. O que o app faz de verdade
 
-| Config | Valor | O que significa na prática |
-|--------|:-----:|----------------------------|
-| `UncappedFramerate` | **True** | Tira o teto de FPS do engine — sua GPU pode correr solta |
-| `bSmoothFrameRate` | **False** | Para de “suavizar” o FPS em média — menos cap artificial |
-| `UseVsync` | **False** | V-Sync desligado no `.ini` (menos input lag vs sync vertical) |
-| `WaitForGPU` | **True** | CPU espera a GPU terminar o frame — mais estável, menos tearing interno |
-| `OneFrameThreadLag` | **True** | Engine fica 1 frame atrás na thread de render — trade-off estabilidade vs latência mínima |
-| `AllowPerFrameSleep` | **True** | Permite micro-pausas entre frames (engine UE3 padrão) |
-| `AllowPerFrameYield` | **True** | Engine cede tempo pra outras threads — evita travamento geral |
-| `CustomFPS` | **0** (COMPLETO) | Sem FPS custom fixo no `.ini` |
-
-> **Importante:** o ganho de FPS vem sobretudo das texturas/efeitos/sombras abaixo + **Opções > Vídeo** in-game. Launch options quase não mudam FPS (veja seção 9).
-
----
-
-## 3. MODO COMPLETO — texturas e qualidade visual
-
-Visual “batata” de propósito — tudo no menor custo possível:
-
-- **Texturas 16×16 em todos os grupos** (`MaxLODSize=16`, `MinLODSize=1`) — carro, chão, estádio, UI, tudo no mínimo
-- **LOD bias máximo** (`LODBias=15`) — sempre o modelo mais simples/longe
-- **Filtro Point** (`MinMagFilter=Point`, `MipFilter=Point`) — sem suavização, pixelado, GPU trabalha menos
-- **Anisotrópico zerado** (`MaxAnisotropy=0`) — chão e paredes de longe perdem nitidez
-- **DetailMode=0** — versões de baixo detalhe dos objetos
-- **Materiais HQ desligados** (`bAllowHighQualityMaterials=False`) — metal/cromo viram plástico simples
-- **v22.1 extras:**
-  - `MaxDrawDistanceScale=0` — quase nada é desenhado longe
-  - `OnlyStreamInTextures=True` — só carrega textura quando precisa (menos VRAM)
-  - `SkeletalMeshLODBias=100` / `ParticleLODBias=100` — carros e partículas no LOD mais feio
-  - `MotionBlurSkinning=0` — sem blur em animação de mesh
-  - `DecalCullDistanceScale=0` — decals de distância zerados (marcas de chão somem mais cedo)
+- **Acha o INI sozinho** — `Documents`, OneDrive e varredura de perfis.
+- **Bloqueia apply com o jogo aberto** — o RL reescreve o `.ini` ao fechar.
+- **Backup** — `%USERPROFILE%\GuttyTECH\RL-Optimizer-v22\Backups\` (+ original na 1ª vez).
+- **Destrava permissões** — read-only / ACL / takeown quando necessário.
+- **Aplica template + CompletoForce / CriadorForce** — reclampa chaves críticas depois do jogo reescrever.
+- **Preserva resolução e borda** — `ResX`, `ResY`, `Fullscreen`, `Borderless`, `AutoDetectDesktopResolution`.
+- **INI gravável** — **não** trava somente-leitura (o menu de vídeo precisa escrever). Proteção = **watcher**.
+- **Sync de vídeo no `.save`** — Epic (`SaveDataEpic`) e Steam (`SaveData`).
+- **Marcador de modo** — `GuttyTechMode` + fingerprint + tag local.
+- **Admin obrigatório** — manifest + TokenElevation no arranque.
+- **Clipboard elevado** — comando de launch também grava `Desktop\GuttyTECH-RL-LaunchCommand.txt`.
+- **ZIP de suporte** — diagnóstico, INI, logs, EAC, saves, launch command, watcher/tag.
 
 ---
 
-## 4. MODO COMPLETO — física, decals e destruição
+## 2. Frame pacing (COMPLETO e CRIADOR)
 
-- **Tesselação zerada** (`TessellationAdaptivePixelsPerTriangle=0`) — superfícies em blocos, sem subdividir triângulos
-- **Reflexos de imagem OFF** (`AllowImageReflections=False`, `AllowImageReflectionShadowing=False`) — carro não espelha o estádio
-- **HDR OFF** (`FloatingPointRenderTargets=False`) — luz 8-bit simples, sem cálculo HDR
-- **Apex Cloth OFF** (`AllowApexCloth=False`) — bandeiras, antenas e tecidos param de balançar
-- **Destruição/fratura OFF** — `bAllowFracturedDamage=False`, escalas de spawn/fratura zeradas — sem cacos na demo
-- **Subsurface scattering OFF** — sem luz “passando por dentro” de materiais
-- **Translucência separada OFF** — vidro/gel não em camada extra
-- **MLAA OFF** — sem anti-serrilhado por software
-- **SpeedTree OFF** — sem folhas/galhos com física
-- **Decals:**
-  - `StaticDecals=False` — linhas/logos estáticos do chão OFF
-  - `DynamicDecals=True` — **mantém** marcas dinâmicas (rastro de pneu ao jogar)
-  - `UnbatchedDecals=False`
+| Config | Valor | Prática |
+|--------|:-----:|---------|
+| `UncappedFramerate` | **True** | Sem teto artificial do engine |
+| `bSmoothFrameRate` | **False** | Sem “suavizar” FPS |
+| `UseVsync` | **False** | Menos input lag |
+| `WaitForGPU` | **False** | Boot-safe / sem hang |
+| `OnlyStreamInTextures` | **False** | Boot-safe (True travava boot) |
+| `OneFrameThreadLag` | **True** | Estabilidade UE3 |
+| `AllowPerFrameSleep` / `Yield` | **True** | Pacing estável |
+| `CustomFPS` | **0** | Sem cap custom no INI |
+| `MaxFilterBlurSampleCount` | **2** | **0 crasha** (KERNELBASE) — nunca use 0 |
+| `ScreenPercentage` | **100** | Sem borda preta por scale errado |
 
----
-
-## 5. MODO COMPLETO — pós-processamento
-
-Tudo desligado para economizar GPU:
-
-| Efeito | Status |
-|--------|:------:|
-| Motion Blur / Motion Blur Pause | OFF |
-| Depth of Field (desfoque de profundidade) | OFF |
-| Ambient Occlusion (oclusão de ambiente) | OFF |
-| Bloom | OFF |
-| Light Shafts (raios de luz) | OFF |
-| Lens Flares | OFF |
-| Fog Volumes (névoa) | OFF |
-| Distortion / Filtered Distortion / Particle Distortion | OFF |
-| Radial Blur | OFF |
+> FPS real = INI + menu Vídeo (sync automático) + GPU. Launch options quase não mudam FPS.
 
 ---
 
-## 6. MODO COMPLETO — sombras
+## 3. COMPLETO — batata competitiva
 
-- **Sombras dinâmicas OFF** em todos os perfis (`DynamicShadows=False`)
-- **Sombras de ambiente / compostas / foreground / dominantes** — OFF
-- **Resolução de sombra destruída** — `MinShadowResolution=16`, `MaxShadowResolution=16`, `MaxWholeSceneDominantShadowResolution=16`
-- **Penumbra cascata zerada** (`CSMSplitPenumbraScale=0`)
-- **Texels por pixel de sombra = 0** (`ShadowTexelsPerPixel=0`)
+Validado estável (LOD 2×2):
 
----
-
-## 7. MODO COMPLETO — renderização
-
-- **Tela em 100%** (`ScreenPercentage=100`) — renderiza no tamanho real do monitor (sua resolução é preservada pelo app)
-- **Upscale ativo** (`UpscaleScreenPercentage=True`) — estica se resolução interna for menor
-- **Escala mínima travada** (`MinimumScreenScale=1.0`) — não cria janela minúscula
-- **MSAA / Temporal AA OFF**
-- **Multisamples = 0**
+- Texturas **MaxLODSize=2**, `LODBias=100`, filtro **Point**, aniso **0**
+- `DetailMode=0`, materiais HQ OFF, reflexos/HDR OFF
+- Sombras dinâmicas OFF; `MaxShadowResolution=1`
+- Partículas / skeletal / draw distance no mínimo
+- Pós OFF (motion blur, DoF, AO, bloom, shafts, flares, fog, distortion…)
+- Apex / SpeedTree / folhagem / tessellation mínimos
+- Menu sync: High Performance / efeitos OFF / Uncapped / escala 100%
 
 ---
 
-## 8. MODO CRIADOR — o que é diferente (visual preservado)
+## 4. CRIADOR — visual pra câmera + FPS
 
-Para streamers/criadores — bonito na câmera, mas mais leve que o stock:
-
-| Item | CRIADOR | COMPLETO |
-|------|:-------:|:--------:|
-| Texturas mundo/carro | até **1024px**, filtro **Anisotrópico** | **16px**, filtro **Point** |
-| `MaxAnisotropy` | **16** | **0** |
-| `DetailMode` | **2** (alto) | **0** (mínimo) |
-| Materiais HQ | **ON** | OFF |
-| Reflexos no carro | **ON** | OFF |
-| HDR (`FloatingPointRenderTargets`) | **ON** | OFF |
-| Apex Cloth (bandeiras/capas) | **ON** | OFF |
-| SpeedTree (folhas) | **ON** | OFF |
-| Fog volumes | **ON** | OFF |
-| Decals estáticos | **ON** | OFF |
-| Decals dinâmicos (pneu) | **ON** | ON |
-| Indicador da bola (laterais/cantos) | **ON** (v22.3) | OFF |
-| `UnbatchedDecals` | **ON** | OFF |
-| `bEnableForegroundShadowsOnWorld` | **ON** | OFF |
-| `MaxDrawDistanceScale` | **1** (normal) | **0** |
-| `OnlyStreamInTextures` | **False** | **True** |
-| Sombras dinâmicas | **OFF** (ganho de FPS) | OFF |
-| Motion blur / DoF / Bloom / AO / distorção | **OFF** | OFF |
-| `UncappedFramerate` + `bSmoothFrameRate=False` + `UseVsync=False` | **igual** | **igual** |
-
-**Ajuste in-game 1× (CRIADOR):** Render = Alta Qualidade, Textura = Alta Qualidade, Sombras Dinâmicas = OFF, Motion Blur/DoF/Bloom = OFF, V-Sync = OFF.
-
-**Ajuste in-game 1× (COMPLETO):** menu sincronizado automaticamente — Render/Texture/World/Particle = High Performance, Anti-Alias = OFF, V-Sync = OFF, Efeitos = OFF, escala 3D = 100% (sem borda preta).
+- Mantém texturas / materiais / reflexos mais altos no template principal
+- Corta o que pouco aparece: MSAA/TAA/MLAA, Apex cloth/destruição, SpeedTree, foliage radius, tessellation pesada, blur samples=2
+- FPS uncapped + VSync off (igual ao COMPLETO no pacing)
+- Efeitos pesados reforçados nas seções filhas `SystemSettings*`
 
 ---
 
-## 9. BÔNUS — LAUNCH OPTIONS (Steam / Epic)
+## 5. Launch options
 
-No menu `[4]`, o app **copia automaticamente** pro clipboard:
+Comando recomendado (botão **Copiar comando**):
 
 ```
--nomovie -NOSPLASH -high
+-nomovie -NOSPLASH -nomansky +mat_antialias 0 -high
 ```
 
-| Código | Status no RL | O que faz |
-|--------|:------------:|-----------|
-| `-nomovie` | ✅ Real | Pula vídeos de intro — boot mais rápido |
-| `-NOSPLASH` | ✅ Real | Pula splash screen — boot mais rápido |
-| `-high` | ✅ Real | Prioridade **Alta** no Windows — tire se der stutter/estalo de áudio |
-| `-NoVSync` | ❌ Placebo | O RL ignora; V-Sync já vai OFF pelo `.ini` |
-| `-nolog` | ❌ Placebo | Sem efeito útil; ganho zero |
-| `-NoForceFeedback` | ⚠️ Opcional | Só se não quiser vibração no controle (cole à mão) |
-| `-no-stereo-rendering` | ❌ Placebo | RL não renderiza estéreo |
-| `-NoSteamVR` / `-USEALLAVAILABLECORES` / `-malloc=system` | ❌ No-op | Ignorados pela engine do RL |
+| Flag | Efeito |
+|------|--------|
+| `-nomovie` | Pula intros |
+| `-NOSPLASH` | Pula splash |
+| `-nomansky` | Céu mais leve |
+| `+mat_antialias 0` | AA via console/mat |
+| `-high` | Prioridade Alta — tire se stutter/áudio |
 
-> Launch options quase **não mudam FPS**. O ganho real é o `.ini` + Opções > Vídeo. Tudo **seguro com Easy Anti-Cheat** (EAC).
+Alternativa sem prioridade: remova `-high`.
 
-### Como colocar na Steam
-
-1. Steam → botão direito em **Rocket League** → **Propriedades**
-2. **Geral** → **Opções de inicialização**
-3. Cole: `-nomovie -NOSPLASH -high`
-4. Feche e abra o jogo
-
-### Como colocar na Epic Games
-
-1. Epic Launcher → **Biblioteca** → **⋯** no Rocket League → **Gerenciar**
-2. Ative **Argumentos de linha de comando adicionais**
-3. Cole: `-nomovie -NOSPLASH -high`
-4. Salve e abra o jogo
+**Steam:** Propriedades → Opções de inicialização → colar.  
+**Epic:** Gerenciar → Argumentos de linha de comando → colar.
 
 ---
 
-## 10. O QUE O v22.3 NÃO FAZ (diferente do v21)
+## 6. Recuperação (resumo)
 
-O script antigo (`legacy/RL_GUTTYTECH_v21.5.bat`) também mexia em:
+| Ação | Quando |
+|------|--------|
+| Corrigir permissões | INI bloqueado / ACL |
+| Reparar perfil | Modo ativo mas INI/save driftou — reclampa + watcher |
+| Recuperar boot | Jogo não abre — stock + limpa modo Gutty |
+| Corrigir save | Menu vídeo errado / LOAD FAILURE |
+| EAC 30005 | Serviço Easy Anti-Cheat preso |
+| Corrigir Tudo | Pipeline completo de recuperação |
+| Remover | Stock limpo + limpa watcher/tag |
 
-- Timer HPET / Dynamic Tick do Windows  
-- Network throttling / Nagle / TCP  
-- Prioridade de fila GPU no registro  
-- Modo econômico do processador  
+---
 
-**O v22.3 não faz nada disso.** Só o `TASystemSettings.ini`. Mais seguro, roda sem admin, não quebra Secure Boot/BitLocker, e funciona em qualquer PC onde o v21 falhava.
+## 7. O que a v25 NÃO faz
+
+Diferente do `legacy/RL_GUTTYTECH_v21.5.bat`:
+
+- Sem HPET / Dynamic Tick  
+- Sem throttle de rede / Nagle / TCP  
+- Sem prioridade de fila GPU no registro  
+
+Só config do jogo + saves + watcher. Exige admin pela estabilidade do watcher/ACL, não para Ring-0.
 
 ---
 
 ## Segurança e rollback
 
-- Backup automático antes de cada alteração  
-- **REMOVER** restaura original ou stock (mantendo resolução)  
-- Não toca em arquivos do sistema  
-- Compatível com **Easy Anti-Cheat** (online obrigatório desde Season 22)  
-- Não use “Play without Easy Anti-Cheat” para ranqueada — só treino offline/LAN  
+- Backup automático; Remover / recuperação  
+- Sem patch de `RocketLeague.exe`  
+- Compatível com Easy Anti-Cheat  
+- Não use “Play without EAC” em ranqueada  
 
 ---
 
-*GUTTYTECH — TESSERACT v22.3*  
-*"Você vai otimizar o jogo ou vai continuar sofrendo por culpa da engine burra do jogo?"*
+*GUTTYTECH — RL Optimizer v25.0.5*
