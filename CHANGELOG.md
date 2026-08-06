@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.6] — 2026-08-06
+### Corrigido
+- **Sombra/indicador da bola nos cantos** voltou: `UnbatchedDecals=True` no COMPLETO e CRIADOR.
+  - Regressão do potato extremo forçava `UnbatchedDecals=False` e apagava a sombra nas walls/corners.
+  - Mantém `DynamicDecals=True`, `DecalCullDistanceScale=1.0`, `bEnableForegroundShadowsOnWorld=True`.
+  - Watcher/drift passa a reclamar se o jogo desligar essas chaves.
+
 ## [v25.0.5] — 2026-08-04
 ### Corrigido / Melhorado
 - Detecção COMPLETO/CRIADOR por marcador + fingerprint + tag local.

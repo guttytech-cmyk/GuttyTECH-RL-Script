@@ -55,7 +55,11 @@ internal static class CriadorForce
         ["TemporalAA_MinDepth"] = "0.000000",
         ["TemporalAA_StartDepthVelocityScale"] = "0.000000",
         ["AllowRadialBlur"] = "False",
-        ["UnbatchedDecals"] = "False",
+        // Cantos/laterais: sombra/indicador da bola (v22.3). Nao forcar False.
+        ["UnbatchedDecals"] = "True",
+        ["DynamicDecals"] = "True",
+        ["DecalCullDistanceScale"] = "1.000000",
+        ["bEnableForegroundShadowsOnWorld"] = "True",
     };
 
     // Efeitos pesados so nas secoes derivadas — a principal fica para o visual do criador

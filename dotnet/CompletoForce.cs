@@ -53,8 +53,10 @@ internal static class CompletoForce
         ["MaxDrawDistanceScale"] = "0",
         ["FoliageDrawRadiusMultiplier"] = "0.000000",
         ["StaticDecals"] = "False",
+        // Indicador/sombra da bola (chao + cantos): DynamicDecals + UnbatchedDecals.
+        // Unbatched=False apaga a sombra nos corners — regressao do extreme potato.
         ["DynamicDecals"] = "True",
-        ["UnbatchedDecals"] = "False",
+        ["UnbatchedDecals"] = "True",
         ["DecalCullDistanceScale"] = "1.000000",
 
         ["Trilinear"] = "False",
@@ -278,6 +280,10 @@ internal static class CompletoForce
         Expect("MaxFilterBlurSampleCount", "2");
         Expect("DynamicLights", "False");
         Expect("DynamicShadows", "False");
+        Expect("DynamicDecals", "True");
+        Expect("UnbatchedDecals", "True");
+        Expect("DecalCullDistanceScale", "1.000000");
+        Expect("bEnableForegroundShadowsOnWorld", "True");
         Expect("UncappedFramerate", "True");
         Expect("bAllowLightShafts", "False");
         Expect("MobileNormalMapping", "False");

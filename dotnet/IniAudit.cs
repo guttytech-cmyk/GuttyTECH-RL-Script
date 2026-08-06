@@ -77,6 +77,9 @@ internal static class IniAudit
         new("SystemSettings*", "MaxFilterBlurSampleCount", "^(?!2$).*$", "BlurSamples deve ficar em 2 (0 crasha)"),
         new("SystemSettings*", "DynamicLights", "^(?i)true$", "luzes dinamicas ligadas"),
         new("SystemSettings*", "DynamicShadows", "^(?i)true$", "sombras dinamicas ligadas"),
+        new("SystemSettings", "DynamicDecals", "^(?i)false$", "indicador/sombra da bola (DynamicDecals) off"),
+        new("SystemSettings", "UnbatchedDecals", "^(?i)false$", "sombra da bola nos cantos (UnbatchedDecals) off"),
+        new("SystemSettings", "bEnableForegroundShadowsOnWorld", "^(?i)false$", "foreground shadow da bola off"),
         new("SystemSettings*", "ApexLODResourceBudget", "^(?!0(?:\\.0+)?$).*$", "APEX budget diferente de zero"),
         new("SystemSettings*", "MobileNormalMapping", "^(?i)true$", "normal mapping mobile ligado"),
     };
