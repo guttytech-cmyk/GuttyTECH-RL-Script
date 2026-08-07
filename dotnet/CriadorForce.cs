@@ -32,8 +32,8 @@ internal static class CriadorForce
         ["bAllowPostprocessMLAA"] = "False",
         ["MobileFXAAQuality"] = "0",
         ["MobileEnableMSAA"] = "False",
-        // BlurSamples=0 crasha boot — manter 2.
-        ["MaxFilterBlurSampleCount"] = "2",
+        // BlurSamples=0 crasha; 1 = aprovado (mesmo do COMPLETO).
+        ["MaxFilterBlurSampleCount"] = "1",
         ["AllowApexCloth"] = "False",
         ["ApexLODResourceBudget"] = "0.000000",
         ["ApexGRBEnable"] = "False",

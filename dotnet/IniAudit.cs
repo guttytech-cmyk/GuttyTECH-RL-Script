@@ -74,7 +74,7 @@ internal static class IniAudit
         new("SystemSettings", "ScreenPercentage", "^(?!100(\\.0+)?$).*$", "pos-force ScreenPercentage"),
         new("SystemSettings*", "TEXTUREGROUP_*", "MaxLODSize=(?!2(?:,|\\)))", "textura acima de 2x2"),
         new("SystemSettings*", "MaxShadowResolution", "^(?!1$).*$", "shadow map acima de 1x1"),
-        new("SystemSettings*", "MaxFilterBlurSampleCount", "^(?!2$).*$", "BlurSamples deve ficar em 2 (0 crasha)"),
+        new("SystemSettings*", "MaxFilterBlurSampleCount", "^(?!1$).*$", "BlurSamples deve ficar em 1 (0 crasha)"),
         new("SystemSettings*", "DynamicLights", "^(?i)true$", "luzes dinamicas ligadas"),
         new("SystemSettings*", "DynamicShadows", "^(?i)true$", "sombras dinamicas ligadas"),
         new("SystemSettings", "DynamicDecals", "^(?i)false$", "indicador/sombra da bola (DynamicDecals) off"),

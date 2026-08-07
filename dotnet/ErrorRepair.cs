@@ -79,7 +79,7 @@ internal static class ErrorRepair
                 Check("DynamicLights", "False");
                 Check("DynamicShadows", "False");
                 Check("MaxShadowResolution", "1");
-                Check("MaxFilterBlurSampleCount", "2");
+                Check("MaxFilterBlurSampleCount", "1");
                 Check("ApexLODResourceBudget", "0.000000");
                 Check("TessellationAdaptivePixelsPerTriangle", "4096.000000");
                 Check("MobileNormalMapping", "False");
@@ -92,7 +92,7 @@ internal static class ErrorRepair
                 Check("UseVsync", "False");
                 Check("bSmoothFrameRate", "False");
                 Check("CustomFPS", "0", critical: false);
-                Check("MaxFilterBlurSampleCount", "2");
+                Check("MaxFilterBlurSampleCount", "1");
                 Check("OnlyStreamInTextures", "False");
                 Check("WaitForGPU", "False");
                 Check("DynamicShadows", "True"); // visual keep

@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.7] — 2026-08-07
+### Alterado
+- `MaxFilterBlurSampleCount=1` no COMPLETO/CRIADOR (era 2) — **aprovado** após teste de boot/partida.
+  - **0 continua proibido** (crash KERNELBASE).
+
 ## [v25.0.6] — 2026-08-06
 ### Corrigido
 - **Sombra/indicador da bola nos cantos** voltou: `UnbatchedDecals=True` no COMPLETO e CRIADOR.

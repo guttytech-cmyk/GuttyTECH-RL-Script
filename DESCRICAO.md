@@ -43,7 +43,7 @@
 | `OneFrameThreadLag` | **True** | Estabilidade UE3 |
 | `AllowPerFrameSleep` / `Yield` | **True** | Pacing estável |
 | `CustomFPS` | **0** | Sem cap custom no INI |
-| `MaxFilterBlurSampleCount` | **2** | **0 crasha** (KERNELBASE) — nunca use 0 |
+| `MaxFilterBlurSampleCount` | **1** | Amostras do blur de filtro UE3. **0 crasha**. Valor aprovado |
 | `ScreenPercentage` | **100** | Sem borda preta por scale errado |
 
 > FPS real = INI + menu Vídeo (sync automático) + GPU. Launch options quase não mudam FPS.

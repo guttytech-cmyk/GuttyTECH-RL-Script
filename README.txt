@@ -33,7 +33,7 @@ Launch options (copiar no app ou colar na Steam/Epic):
 
 - O INI NAO fica somente-leitura. A protecao e o watcher (PROTECAO).
 - Nao mexe no Windows/registro/rede (isso e so o legacy/ antigo).
-- MaxFilterBlurSampleCount nunca pode ser 0 (crash). O app usa 2.
+- MaxFilterBlurSampleCount nunca pode ser 0 (crash). O app usa 1 (aprovado).
 - Detalhes: DESCRICAO.md | Historico: CHANGELOG.md
 
 Feito por GuttyTECH — https://guttytech.com

@@ -91,7 +91,7 @@ internal static class ModeDetect
         if (Eq(main, "DynamicLights", "False")) score++;
         if (Eq(main, "MaxShadowResolution", "1")) score++;
         if (Eq(main, "UncappedFramerate", "True")) score++;
-        if (Eq(main, "MaxFilterBlurSampleCount", "2")) score++;
+        if (Eq(main, "MaxFilterBlurSampleCount", "1") || Eq(main, "MaxFilterBlurSampleCount", "2")) score++;
         if (Eq(main, "bAllowLightShafts", "False")) score++;
 
         // Potato textures: forte, mas o RL pode afrouxar a meio da sessao.
@@ -109,7 +109,7 @@ internal static class ModeDetect
     private static bool LooksLikeCriador(Dictionary<string, string> main, string fullText)
     {
         if (!Eq(main, "UncappedFramerate", "True")) return false;
-        if (!Eq(main, "MaxFilterBlurSampleCount", "2")) return false;
+        if (!(Eq(main, "MaxFilterBlurSampleCount", "1") || Eq(main, "MaxFilterBlurSampleCount", "2"))) return false;
         if (!Eq(main, "UseVsync", "False")) return false;
 
         // Nao e COMPLETO potato.

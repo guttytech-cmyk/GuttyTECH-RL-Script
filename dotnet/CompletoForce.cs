@@ -4,7 +4,7 @@ namespace GuttyRL;
 
 /// <summary>Forca o potato maximo VALIDADO no boot (bisect 2026-08-04).
 /// Killer confirmado: MaxFilterBlurSampleCount=0 → crash KERNELBASE.
-/// LOD 2/100 + shadow 1 + lights/mobile/apex off passam com BlurSamples=2.</summary>
+/// BlurSamples=1 aprovado em teste (2026-08-07); 0 proibido.</summary>
 internal static class CompletoForce
 {
     // Validado: MaxLODSize=2 / LODBias=100 abre e fica estavel ~45s+.
@@ -62,8 +62,8 @@ internal static class CompletoForce
         ["Trilinear"] = "False",
         ["MaxAnisotropy"] = "0",
         ["MaxMultiSamples"] = "0",
-        // NAO baixar para 0 — crash KERNELBASE validado no bisect.
-        ["MaxFilterBlurSampleCount"] = "2",
+        // NAO baixar para 0 — crash KERNELBASE. 1 = aprovado (era 2).
+        ["MaxFilterBlurSampleCount"] = "1",
         ["FullEffectIntensity"] = "False",
         ["bAllowHighQualityMaterials"] = "False",
         ["bUseTranslucentArenaShaders"] = "False",
@@ -277,7 +277,7 @@ internal static class CompletoForce
         }
 
         Expect("MaxShadowResolution", "1");
-        Expect("MaxFilterBlurSampleCount", "2");
+        Expect("MaxFilterBlurSampleCount", "1");
         Expect("DynamicLights", "False");
         Expect("DynamicShadows", "False");
         Expect("DynamicDecals", "True");
