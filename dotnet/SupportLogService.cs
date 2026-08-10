@@ -268,13 +268,16 @@ internal static class SupportLogService
     private static void WriteSystemSnapshot(string stage, OptimizerStatus status, List<string> included)
     {
         var sb = new StringBuilder();
+        sb.AppendLine("App: " + AppMeta.Version);
         sb.AppendLine("Machine: " + Environment.MachineName);
         sb.AppendLine("User: " + Environment.UserName);
+        sb.AppendLine("OS: " + Environment.OSVersion);
         sb.AppendLine("CLR: " + Environment.Version);
         sb.AppendLine("Proc count: " + Environment.ProcessorCount);
         sb.AppendLine("Working set MB: " + (Environment.WorkingSet / (1024 * 1024)));
         sb.AppendLine("Launch cmd: " + Program.LaunchCommandForGui);
         sb.AppendLine("AppliedMode: " + status.AppliedMode);
+        sb.AppendLine("Home: " + AppMeta.GuttyDir);
         try
         {
             foreach (var p in Process.GetProcessesByName("RocketLeague"))
@@ -323,6 +326,17 @@ internal static class SupportLogService
             else
             {
                 foreach (string file in Directory.EnumerateFiles(AppMeta.GuttyDir, "*", SearchOption.AllDirectories)
+                             .Where(f =>
+                             {
+                                 string rel = Path.GetRelativePath(AppMeta.GuttyDir, f);
+                                 // Ruido de single-file / runtime — nao ajuda no suporte.
+                                 if (rel.StartsWith("watch-extract", StringComparison.OrdinalIgnoreCase)) return false;
+                                 if (rel.StartsWith("bundle-extract", StringComparison.OrdinalIgnoreCase)) return false;
+                                 if (rel.StartsWith("runtime", StringComparison.OrdinalIgnoreCase)) return false;
+                                 if (rel.Contains($"{Path.DirectorySeparatorChar}zh-", StringComparison.OrdinalIgnoreCase)) return false;
+                                 if (rel.EndsWith(".resources.dll", StringComparison.OrdinalIgnoreCase)) return false;
+                                 return true;
+                             })
                              .OrderByDescending(File.GetLastWriteTimeUtc)
                              .Take(80))
                 {

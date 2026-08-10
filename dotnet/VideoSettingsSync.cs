@@ -394,9 +394,22 @@ internal static class VideoSettingsSync
                             + string.Join("; ", CompletoForce.DescribeDrift(text).Take(5)));
             }
 
-            string forced = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
-                ? CompletoForce.Apply(text)
-                : CriadorForce.Apply(text);
+            int dupKeys = IniHygiene.CountDuplicateKeyLines(text);
+            bool bloated = text.Length >= IniHygiene.SoftBloatBytes || dupKeys > 0;
+            string forced;
+            if (bloated)
+            {
+                AppMeta.Log(
+                    $"INI reclamp {mode}: inchado ({text.Length} bytes, dups={dupKeys}) — reescreve template limpo.");
+                forced = IniHygiene.RebuildModeFromTemplate(iniPath, mode);
+            }
+            else
+            {
+                forced = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
+                    ? CompletoForce.Apply(text)
+                    : CriadorForce.Apply(text);
+                forced = IniHygiene.DeduplicateSectionKeys(forced);
+            }
 
             forced = EnsureModeLine(forced, mode);
 
@@ -483,6 +496,7 @@ internal static class VideoSettingsSync
 
         bool anyDir = false;
         bool anyOk = false;
+        bool deferredOnly = false;
         foreach (string saveDir in saveDirs)
         {
             if (!Directory.Exists(saveDir)) continue;
@@ -494,7 +508,16 @@ internal static class VideoSettingsSync
                 {
                     progress?.Invoke(cur, tot, string.IsNullOrWhiteSpace(detail) ? tag : $"{tag} · {detail}");
                 }))
+            {
                 anyOk = true;
+            }
+            else if (IsGarageOnlySaveDir(saveDir))
+            {
+                // Sem perfil de video leve (<1.2MB): nao falhar Apply/REPARAR (falso negativo Ziel).
+                AppMeta.Log($"{tag}: so save de garagem — menu sync adiado (INI {mode} permanece).");
+                anyOk = true;
+                deferredOnly = true;
+            }
             else if (tag == "Steam")
                 AppMeta.Log("Steam: save invalido/corrompido ignorado (Epic e a fonte principal).");
             else
@@ -510,7 +533,35 @@ internal static class VideoSettingsSync
             return true;
         }
 
+        if (anyOk && deferredOnly)
+            AppMeta.Log("Sync OK com aviso: conta sem save leve de video (garagem preservada).");
+
         return anyOk;
+    }
+
+    /// <summary>
+    /// Pasta sem .save leve de video — so garagem/presets (>= SoftGarageMin) ou vazia.
+    /// Nessas contas o patch UE3 e adiado de proposito (evita hang em 2MB+).
+    /// </summary>
+    private static bool IsGarageOnlySaveDir(string saveDir)
+    {
+        try
+        {
+            if (!Directory.Exists(saveDir)) return true;
+            var files = Directory.EnumerateFiles(saveDir, "*.save")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.Length > 0)
+                .ToList();
+            if (files.Count == 0) return true;
+            // Qualquer stub de video leve → falha real do patch, nao defer.
+            if (files.Any(f => f.Length < SaveRecovery.SoftGarageMinBytes))
+                return false;
+            return files.All(f => f.Length >= SaveRecovery.SoftGarageMinBytes);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool EnsureGameClosed(bool interactive)

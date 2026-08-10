@@ -920,6 +920,8 @@ internal static class SaveRecovery
                 lines.Add($"  !! {tag}: LOAD FAILURE provavel (zero={zero}, header mau={corruptHeader}) — use CORRIGIR SAVE");
             else if (tiny > 0 && garage == 0)
                 lines.Add($"  !! {tag}: so stubs — Steam Cloud pode estar a esmagar a garagem");
+            else if (garage > 0 && tiny == 0)
+                lines.Add($"  !! {tag}: so garagem (>=250KB) — sync de menu adiado (INI e autoridade; abra o RL 1x p/ criar save leve)");
         }
 
         Score("Steam", steam);

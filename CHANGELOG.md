@@ -3,6 +3,14 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.8] — 2026-08-10
+### Corrigido
+- Conta **só com save de garagem** (~2 MB): sync de menu deixa de falhar a operação (INI + watcher = sucesso; menu adiado).
+- **INI inchado** no REPARAR/reclamp: reescreve do template limpo (mantém resolução/borda) + dedupe de chaves por seção.
+
+### Melhorado
+- ZIP de suporte: alerta de só-garagem, INI inchado/dups, versão do app em `system.txt`/`diagnostico`, índice sem ruído `watch-extract`/resources.
+
 ## [v25.0.7] — 2026-08-07
 ### Alterado
 - `MaxFilterBlurSampleCount=1` no COMPLETO/CRIADOR (era 2) — **aprovado** após teste de boot/partida.

@@ -356,6 +356,27 @@ def main(argv: list[str]) -> int:
         return 2
 
     if not files:
+        # Conta so com garagem (>MAX_PATCH) ou pasta vazia: NAO e falha do otimizador.
+        # INI + Force sao a fonte de verdade; menu in-game sincroniza quando houver save leve.
+        all_saves: list[Path] = []
+        if target.is_dir():
+            all_saves = list(target.glob("*.save"))
+        elif target.is_file() and target.suffix.lower() == ".save":
+            all_saves = [target]
+        oversized = 0
+        for f in all_saves:
+            try:
+                if f.stat().st_size > MAX_PATCH_BYTES:
+                    oversized += 1
+            except OSError:
+                pass
+        if oversized > 0 or len(all_saves) == 0:
+            print(
+                f"DEFER menu sync: {oversized} save(s) grande(s)/nenhum leve "
+                "(INI autoridade; abra o RL 1x se quiser sync do menu)",
+                flush=True,
+            )
+            return 0
         print("nenhum .save elegivel (recentes <1.2MB)", file=sys.stderr)
         return 1
 

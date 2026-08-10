@@ -251,13 +251,13 @@ internal sealed class OptimizerService
             OptimizerAction.Completo => Success(
                 "MODO COMPLETO APLICADO",
                 before.AppliedMode == "COMPLETO"
-                    ? "Perfil reaplicado e sincronizado com as contas encontradas."
-                    : "FPS máximo ativado, perfil de vídeo sincronizado e backup preservado."),
+                    ? "Perfil reaplicado. INI + watcher OK (menu de vídeo sincroniza quando houver save leve)."
+                    : "FPS máximo ativado, INI gravado e backup preservado."),
             OptimizerAction.Criador => Success(
                 "MODO CRIADOR APLICADO",
                 before.AppliedMode == "CRIADOR"
-                    ? "Perfil visual reaplicado e sincronizado com as contas encontradas."
-                    : "Performance forte ativada com o visual competitivo preservado."),
+                    ? "Perfil visual reaplicado. INI + watcher OK (menu de vídeo sincroniza quando houver save leve)."
+                    : "Performance forte com visual competitivo. INI gravado e backup preservado."),
             OptimizerAction.Remover => Success(
                 "OTIMIZAÇÃO REMOVIDA DO SISTEMA",
                 "Watcher parado, INI stock, cache Epic limpo. Presets/garagem intactos. Se colou flags em Steam/Epic, remova-as manualmente."),

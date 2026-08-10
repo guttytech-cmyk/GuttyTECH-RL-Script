@@ -253,7 +253,7 @@ internal static class CompletoForce
         }
 
         FlushSectionContract();
-        return sb.ToString().TrimEnd('\r', '\n') + "\r\n";
+        return IniHygiene.DeduplicateSectionKeys(sb.ToString().TrimEnd('\r', '\n') + "\r\n");
     }
 
     /// <summary>

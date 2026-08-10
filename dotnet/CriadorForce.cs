@@ -185,7 +185,7 @@ internal static class CriadorForce
         if (inSs)
             FlushPending();
 
-        return sb.ToString().TrimEnd('\r', '\n') + "\r\n";
+        return IniHygiene.DeduplicateSectionKeys(sb.ToString().TrimEnd('\r', '\n') + "\r\n");
     }
 
     private static bool IsChildSystemSettings(string header)

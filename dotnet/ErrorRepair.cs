@@ -45,6 +45,21 @@ internal static class ErrorRepair
 
             string? mode = detectMode();
             lines.Add(mode is null ? "Modo Gutty: NENHUM (stock / parcial)" : "Modo Gutty: " + mode);
+            lines.Add("App: " + AppMeta.Version);
+
+            try
+            {
+                var fi = new FileInfo(cfg);
+                int dups = string.IsNullOrEmpty(text) ? 0 : IniHygiene.CountDuplicateKeyLines(text);
+                if (fi.Length >= IniHygiene.SoftBloatBytes || dups > 0)
+                {
+                    lines.Add($"  !! INI inchado: {fi.Length / 1024}KB, chaves duplicadas na secao={dups} (reaplique o modo / REPARAR PERFIL)");
+                    issues = true;
+                }
+                else
+                    lines.Add($"  OK INI tamanho {fi.Length / 1024}KB (sem dups na secao)");
+            }
+            catch { }
 
             var map = ParseSystemSettings(text);
             void Check(string key, string want, bool critical = true)
