@@ -17,7 +17,7 @@ public partial class UpdateToastWindow : Window
 
         _autoCloseTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(45),
+            Interval = TimeSpan.FromSeconds(90),
         };
         _autoCloseTimer.Tick += (_, _) =>
         {
@@ -62,9 +62,9 @@ public partial class UpdateToastWindow : Window
     {
         Rect work = SystemParameters.WorkArea;
         double width = ActualWidth > 0 ? ActualWidth : Width;
-        double height = ActualHeight > 0 ? ActualHeight : 180;
+        double height = ActualHeight > 0 ? ActualHeight : 220;
         Left = work.Right - width - 16;
-        Top = work.Bottom - height - 16;
+        Top = Math.Max(work.Top + 16, work.Bottom - height - 16);
     }
 
     private void OnDismissClick(object sender, RoutedEventArgs e)
@@ -77,15 +77,28 @@ public partial class UpdateToastWindow : Window
     {
         try
         {
+            _autoCloseTimer.Stop();
             if (!string.IsNullOrWhiteSpace(_model.DownloadUrl) && !string.IsNullOrWhiteSpace(_model.Tag))
             {
-                _model.Detail = "A baixar para o Desktop…";
+                _model.Detail = "Baixando para o Desktop…";
                 string? path = await UpdateCheckService.DownloadLatestAsync(_model.DownloadUrl, _model.Tag);
                 if (!string.IsNullOrWhiteSpace(path))
                 {
                     UpdateCheckService.Dismiss(_model.Tag);
+                    if (!string.IsNullOrWhiteSpace(_model.Notes))
+                        WhatsNewService.SavePending(_model.Tag, _model.Notes);
+
                     UpdateCheckService.OpenUrl(path);
                     Close();
+
+                    if (!string.IsNullOrWhiteSpace(_model.Notes))
+                    {
+                        ChangelogWindow.Show(
+                            _model.Tag,
+                            _model.Notes,
+                            subtitle: "Download pronto no Desktop. Feche este app e abra o .exe novo.");
+                    }
+
                     return;
                 }
             }
@@ -112,6 +125,8 @@ public partial class UpdateToastWindow : Window
             DownloadUrl = update.DownloadUrl;
             ReleaseUrl = update.ReleaseUrl;
             Message = update.Message;
+            Notes = (update.ReleaseNotes ?? "").Trim();
+            HasNotes = Notes.Length > 0;
             _detail = string.IsNullOrWhiteSpace(update.ReleaseName)
                 ? "Baixa o .exe novo, fecha este app e abre o arquivo do Desktop."
                 : update.ReleaseName!;
@@ -123,6 +138,8 @@ public partial class UpdateToastWindow : Window
         public string? DownloadUrl { get; }
         public string? ReleaseUrl { get; }
         public string Message { get; }
+        public string Notes { get; }
+        public bool HasNotes { get; }
 
         public string Detail
         {

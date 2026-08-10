@@ -397,6 +397,8 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         {
             await RefreshStatusAsync(showFeedback: false, checkUpdates: false);
             await CheckForUpdatesAsync(forceToast: false, showFeedback: false);
+            // 1a abertura apos atualizar: changelog estilo Discord.
+            await WhatsNewService.TryShowOnStartupAsync();
         }
         catch (Exception ex)
         {
@@ -510,7 +512,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                     false,
                     FeedbackTone.Warning,
                     "VERSÃO NOVA NO GITHUB",
-                    update.Message + " Use BAIXAR no popup ou abra Releases."));
+                    update.Message + " Veja o changelog no popup e use BAIXAR."));
             }
 
             return;
@@ -519,6 +521,15 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         LastUpdated = DateTime.Now.ToString("'ATUALIZADO' HH:mm:ss") + " · " + update.CurrentVersion;
         if (showFeedback)
         {
+            // Ja atualizado: ainda assim mostra o changelog da versao atual (pedido Discord).
+            if (!string.IsNullOrWhiteSpace(update.ReleaseNotes))
+            {
+                ChangelogWindow.Show(
+                    update.LatestTag ?? update.CurrentVersion,
+                    update.ReleaseNotes!,
+                    subtitle: "Você já está na última versão. Resumo do que mudou:");
+            }
+
             ShowFeedback(new OperationResult(
                 true,
                 false,

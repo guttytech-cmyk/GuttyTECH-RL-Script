@@ -73,6 +73,7 @@ internal static class UpdateCheckService
             string current = NormalizeTag(AppMeta.Version);
             bool newer = IsNewer(latest, current);
             string? download = PickExeAsset(release);
+            string notes = ReleaseNotesFormatter.FormatForUi(release.Body, release.TagName, release.Name);
 
             string message = newer
                 ? $"Tem versão nova no GitHub: {latest} (você está em {current})."
@@ -86,7 +87,8 @@ internal static class UpdateCheckService
                 release.Name,
                 string.IsNullOrWhiteSpace(release.HtmlUrl) ? AppMeta.GitHubReleasesPage : release.HtmlUrl,
                 download,
-                message));
+                message,
+                notes));
         }
         catch (OperationCanceledException)
         {

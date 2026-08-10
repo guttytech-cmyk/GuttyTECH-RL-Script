@@ -10,7 +10,8 @@ internal sealed record UpdateCheckResult(
     string? ReleaseName,
     string? ReleaseUrl,
     string? DownloadUrl,
-    string Message);
+    string Message,
+    string? ReleaseNotes = null);
 
 internal sealed class GitHubReleaseDto
 {
@@ -19,6 +20,9 @@ internal sealed class GitHubReleaseDto
 
     [JsonPropertyName("name")]
     public string? Name { get; set; }
+
+    [JsonPropertyName("body")]
+    public string? Body { get; set; }
 
     [JsonPropertyName("html_url")]
     public string HtmlUrl { get; set; } = "";
