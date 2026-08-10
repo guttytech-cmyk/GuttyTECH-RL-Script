@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.10] — 2026-08-10
+### Alterado
+- Changelog na UI no **mesmo texto/estilo Discord** (`**O que mudou:**`, bullets em linguagem de pessoa; formatador não “tecniciza” mais as notas).
+
 ## [v25.0.9] — 2026-08-10
 ### Novo
 - **Changelog na atualização** (estilo Discord): popup ao ATUALIZAR / BAIXAR e na 1ª abertura da versão nova, com as notas da release do GitHub.
