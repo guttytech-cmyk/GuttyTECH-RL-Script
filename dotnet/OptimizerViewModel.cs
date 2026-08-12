@@ -686,7 +686,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                 "REMOVER DO SISTEMA"),
             OptimizerAction.RecuperarBoot => (
                 "JOGO NÃO ABRE — RECUPERAR BOOT?",
-                "Fecha o RL, remove o otimizador (INI stock), limpa boot-killers, põe saves suspeitos em quarentena e repara Easy Anti-Cheat (erro 30005). A garagem fica no Best. Só reaplique COMPLETO/CRIADOR depois do jogo abrir.",
+                "Fecha o RL, remove o otimizador (INI stock), limpa boot-killers, põe saves suspeitos em quarentena e repara Easy Anti-Cheat (erro 30005). A garagem fica no Best — depois use RESTAURAR PRESETS. Só reaplique COMPLETO/CRIADOR depois do jogo abrir.",
                 "DESBLOQUEAR JOGO"),
             OptimizerAction.RepararEac => (
                 "ERRO EAC 30005 — REPARAR ANTI-CHEAT?",
@@ -694,7 +694,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                 "REPARAR EAC"),
             OptimizerAction.CorrigirTudo => (
                 "JOGO NÃO ABRE — CORRIGIR TUDO?",
-                "Mesmo caminho nuclear do Recuperar Boot: prioridade é o Rocket League voltar a abrir. NÃO reaplica COMPLETO/CRIADOR em cima do perfil partido.",
+                "Caminho nuclear: prioridade é o Rocket League voltar a abrir. Tira os saves live (garagem fica no Best). Depois que o jogo abrir: use RESTAURAR PRESETS. NÃO reaplica COMPLETO/CRIADOR em cima do perfil partido.",
                 "DESBLOQUEAR AGORA"),
             OptimizerAction.RestaurarPresets => (
                 "RESTAURAR PRESETS?",

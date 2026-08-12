@@ -271,13 +271,13 @@ internal sealed class OptimizerService
                 "INI, menu de vídeo e cache foram sincronizados sem remover o modo aplicado."),
             OptimizerAction.RecuperarBoot => Success(
                 "JOGO DESBLOQUEADO",
-                "INI stock + boot-safe + saves em quarentena + EAC verificado. Abra o RL 1×; se erro 30005 continuar, reinicie o PC e use REPARAR EAC."),
+                "INI stock + boot-safe + saves em quarentena + EAC OK. Próximo passo obrigatório: RESTAURAR PRESETS (este caminho tirou os saves live de propósito). Depois abra o RL 1× e só então reaplique o modo."),
             OptimizerAction.RepararEac => Success(
                 "EAC REPARADO",
                 "Serviço EasyAntiCheat_EOS reinstalado. Abra o Rocket League pela Epic/Steam."),
             OptimizerAction.CorrigirTudo => Success(
                 "CORREÇÃO NUCLEAR CONCLUÍDA",
-                "Caminho de boot aplicado (não reaplica o otimizador). Confirme que o jogo abre e só então volte a aplicar o modo."),
+                "Boot desbloqueado (não reaplica o otimizador). AGORA use RESTAURAR PRESETS — os saves live foram pra quarentena de propósito. Só depois que a garagem voltar: abra o RL e reaplique COMPLETO/CRIADOR."),
             OptimizerAction.RestaurarPresets => Success(
                 "PRESETS RESTAURADOS",
                 "Garagem reposta + Steam Cloud remote em quarentena. Abra OFFLINE na 1ª sessão; Steam: cloud OFF temporário."),

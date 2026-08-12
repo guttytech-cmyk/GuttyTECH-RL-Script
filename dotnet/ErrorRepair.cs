@@ -160,6 +160,14 @@ internal static class ErrorRepair
         int epicN = CountSaves(epic);
         int steamN = CountSaves(steam);
         lines.Add($"Saves Epic: {epicN} | Steam: {steamN}");
+
+        if (IsOneDrivePath(cfg) || IsOneDrivePath(epic) || IsOneDrivePath(steam))
+        {
+            lines.Add("  !! OneDrive: saves/INI em pasta sincronizada — risco alto de preset com nome e Octane padrão");
+            lines.Add("  ACAO OneDrive: pause o sync ou tire My Games\\Rocket League da sincronizacao; depois RESTAURAR PRESETS");
+            issues = true;
+        }
+
         foreach (string health in SaveRecovery.AssessSaveHealth(cfg))
         {
             lines.Add(health);
@@ -169,10 +177,18 @@ internal static class ErrorRepair
 
         if (bootRisk)
             lines.Add("ACAO: use RECUPERAR BOOT / CORRIGIR TUDO (caminho nuclear).");
-        else if (issues && lines.Any(l => l.Contains("LOAD FAILURE", StringComparison.OrdinalIgnoreCase)))
+        else if (issues && lines.Any(l => l.Contains("LOAD FAILURE", StringComparison.OrdinalIgnoreCase)
+                                          && l.Contains("provavel", StringComparison.OrdinalIgnoreCase)))
             lines.Add("ACAO: use CORRIGIR SAVE (LOAD FAILURE) — Steam Cloud + saves locais.");
 
         return (lines, issues);
+    }
+
+    /// <summary>Documentos/Desktop sob OneDrive — sync costuma corromper preset (nome OK, Octane padrao).</summary>
+    internal static bool IsOneDrivePath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+        return path.IndexOf("OneDrive", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     public static int Diagnostico(string? cfg, Func<string?> detectMode, bool interactive)
@@ -237,7 +253,7 @@ internal static class ErrorRepair
                 "Volta o INI para stock/original sem otimizador",
                 "Remove chaves que travam o boot",
                 "Quarentena saves suspeitos + limpa cache Epic",
-                "Depois: abra o RL 1x e so entao reaplique o modo",
+                "Depois: abra o RL 1x → RESTAURAR PRESETS → so entao reaplique o modo",
             }, Ui.MAmber);
         }
 
@@ -358,11 +374,11 @@ internal static class ErrorRepair
             Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MAmber, ok ? "JOGO DESBLOQUEADO" : "RECUPERACAO PARCIAL", new[]
             {
                 string.Join(" · ", report),
-                "1) Epic/Steam → Verificar ficheiros do Rocket League",
+                "1) Epic/Steam → Verificar arquivos do Rocket League",
                 "2) Se erro EAC 30005 / CreateService 1072: reinicie o PC e abra de novo",
                 "3) Abra o jogo 1x e confirme que entra no menu",
-                "4) So depois aplique COMPLETO ou CRIADOR de novo",
-                "5) Presets: use RESTAURAR PRESETS se a garagem sumir",
+                "4) AGORA use RESTAURAR PRESETS (este caminho tirou os saves live de proposito)",
+                "5) So depois aplique COMPLETO ou CRIADOR de novo",
             });
         }
 

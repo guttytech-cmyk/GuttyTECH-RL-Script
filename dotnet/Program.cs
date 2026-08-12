@@ -404,7 +404,8 @@ internal static class Program
                 "2) Liberta pasta / permissoes",
                 "3) INI stock + remocao de boot-killers",
                 "4) Quarentena de saves + purge cache Epic + EAC",
-                "5) Depois de abrir o menu: reaplique COMPLETO/CRIADOR",
+                "5) Depois que abrir: RESTAURAR PRESETS (obrigatorio se quer a garagem)",
+                "6) So entao reaplique COMPLETO/CRIADOR",
             }, Ui.MAmber);
             Ui.Gap();
             Ui.Prompt("Executar correcao nuclear agora? (S/N)");

@@ -1338,7 +1338,7 @@
                                        FontSize="13"
                                        LineHeight="20"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="Último recurso pra abrir o jogo. Não reaplica COMPLETO/CRIADOR — aplique o modo depois."
+                                       Text="Último recurso pra abrir o jogo. Tira saves live (Best fica). Depois: RESTAURAR PRESETS → só então reaplica o modo."
                                        TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>
