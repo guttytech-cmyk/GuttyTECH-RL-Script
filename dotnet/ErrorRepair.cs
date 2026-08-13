@@ -163,8 +163,9 @@ internal static class ErrorRepair
 
         if (IsOneDrivePath(cfg) || IsOneDrivePath(epic) || IsOneDrivePath(steam))
         {
-            lines.Add("  !! OneDrive: saves/INI em pasta sincronizada — risco alto de preset com nome e Octane padrão");
-            lines.Add("  ACAO OneDrive: pause o sync ou tire My Games\\Rocket League da sincronizacao; depois RESTAURAR PRESETS");
+            lines.Add("  !! OneDrive: INI/saves em " + (cfg ?? epic ?? steam));
+            lines.Add("  ACAO: RESTAURAR PRESETS (v25.0.13+ copia para Documentos local e desfaz o redirecionamento)");
+            lines.Add("  Mesmo sem OneDrive instalado o Windows pode ainda apontar Documentos para la — presets OK offline e somem online");
             issues = true;
         }
 
@@ -188,7 +189,7 @@ internal static class ErrorRepair
     internal static bool IsOneDrivePath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path)) return false;
-        return path.IndexOf("OneDrive", StringComparison.OrdinalIgnoreCase) >= 0;
+        return RlPathResolver.IsOneDrivePath(path);
     }
 
     public static int Diagnostico(string? cfg, Func<string?> detectMode, bool interactive)

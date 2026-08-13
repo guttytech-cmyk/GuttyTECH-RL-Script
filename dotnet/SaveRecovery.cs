@@ -39,8 +39,13 @@ internal static class SaveRecovery
     public static bool RestoreEpicSave(string iniPath, bool preferNewest = false) =>
         RestoreInto(SaveDirFromIni(iniPath, epic: true), preferNewest, preferGarage: preferNewest);
 
-    public static bool RestoreSteamSave(string iniPath, bool preferNewest = false) =>
-        RestoreInto(SaveDirFromIni(iniPath, epic: false), preferNewest, preferGarage: preferNewest);
+    public static bool RestoreSteamSave(string iniPath, bool preferNewest = false)
+    {
+        string? dir = SaveDirFromIni(iniPath, epic: false);
+        if (dir is null || !Directory.Exists(dir))
+            return false;
+        return RestoreInto(dir, preferNewest, preferGarage: preferNewest, createIfMissing: false);
+    }
 
     /// <summary>RESTAURAR PRESETS: prioriza saves grandes (garagem) de todos os backups.</summary>
     public static bool RestoreLatestBackup(string iniPath) =>
@@ -49,6 +54,19 @@ internal static class SaveRecovery
     public static bool RestorePresets(string iniPath, out string summary)
     {
         var parts = new List<string>();
+        try
+        {
+            string relocated = RlPathResolver.RelocateOffOneDriveIfNeeded(iniPath);
+            if (!string.Equals(relocated, iniPath, StringComparison.OrdinalIgnoreCase))
+            {
+                parts.Add("migrado para fora do OneDrive");
+                iniPath = relocated;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("Relocate OneDrive: " + ex.Message);
+        }
 
         // 0) Promove backups antigos grandes para o cofre Best (pcs que ja tinham historico)
         int seeded = SeedBestVaultFromArchives();
@@ -58,9 +76,13 @@ internal static class SaveRecovery
         int snapped = SnapshotLiveGarage(iniPath);
         if (snapped > 0) parts.Add($"snapshot live={snapped}");
 
-        // 2) Restaura Epic + Steam a partir de todos os cofres
-        bool epic = RestoreInto(SaveDirFromIni(iniPath, epic: true), preferNewest: true, preferGarage: true, parts);
-        bool steam = RestoreInto(SaveDirFromIni(iniPath, epic: false), preferNewest: true, preferGarage: true, parts);
+        // 2) Restaura Epic. Steam so se a pasta JA existir — nao criar SaveData
+        //    (recriava OneDrive e misturava contas Epic em pasta Steam vazia).
+        string? epicDir = SaveDirFromIni(iniPath, epic: true);
+        string? steamDir = SaveDirFromIni(iniPath, epic: false);
+        bool epic = RestoreInto(epicDir, preferNewest: true, preferGarage: true, parts, createIfMissing: true);
+        bool steam = Directory.Exists(steamDir)
+            && RestoreInto(steamDir, preferNewest: true, preferGarage: true, parts, createIfMissing: false);
 
         // 3) Reforca contas live pequeninas com o Best sticky da mesma conta
         int reinforced = ReinforceLiveAccounts(iniPath);
@@ -272,7 +294,7 @@ internal static class SaveRecovery
             yield return q;
     }
 
-    private static bool RestoreInto(string? saveDir, bool preferNewest, bool preferGarage, List<string>? parts = null)
+    private static bool RestoreInto(string? saveDir, bool preferNewest, bool preferGarage, List<string>? parts = null, bool createIfMissing = true)
     {
         if (saveDir is null) return false;
 
@@ -282,7 +304,17 @@ internal static class SaveRecovery
 
         try
         {
-            Directory.CreateDirectory(saveDir);
+            if (!Directory.Exists(saveDir))
+            {
+                if (!createIfMissing)
+                    return false;
+                if (RlPathResolver.IsOneDrivePath(saveDir))
+                {
+                    AppMeta.Log("Recusa criar pasta de save no OneDrive: " + saveDir);
+                    return false;
+                }
+                Directory.CreateDirectory(saveDir);
+            }
             int restored = 0;
             long bytes = 0;
             int garageHits = 0;
@@ -344,7 +376,7 @@ internal static class SaveRecovery
         try
         {
             if (!Directory.Exists(saveDir))
-                Directory.CreateDirectory(saveDir);
+                return 0;
 
             var groups = CollectBackupGroups()
                 .ToDictionary(g => g.Key, g => PickGaragePreferred(g), StringComparer.OrdinalIgnoreCase);
@@ -405,9 +437,14 @@ internal static class SaveRecovery
         {
             string? dir = SaveDirFromIni(iniPath, epic);
             if (dir is null) continue;
+            if (!Directory.Exists(dir))
+            {
+                if (!epic || RlPathResolver.IsOneDrivePath(dir))
+                    continue;
+                Directory.CreateDirectory(dir);
+            }
             try
             {
-                Directory.CreateDirectory(dir);
                 foreach (string best in Directory.EnumerateFiles(BestRoot, "*.save"))
                 {
                     var fi = new FileInfo(best);

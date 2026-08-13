@@ -3,6 +3,12 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.13] — 2026-08-13
+### Corrigido
+- **OneDrive / presets online:** o Windows pode continuar a apontar Documentos para `OneDrive\Documentos` mesmo com o OneDrive desinstalado. O Gutty preferia esse caminho, recriava a pasta no restore e copiava saves Epic para Steam.
+- Agora escolhe Documentos **local**, migra a pasta do RL para fora do OneDrive, desfaz o redirecionamento, e **nao cria** pasta Steam/OneDrive se nao existia.
+- Presets OK offline e a falhar online: Epic Cloud + pasta OneDrive a lutar com o save local.
+
 ## [v25.0.12] — 2026-08-13
 ### Corrigido
 - Popup CHANGELOG na UI: remove Markdown (`**`, crases, links) — texto limpo legível no WPF.

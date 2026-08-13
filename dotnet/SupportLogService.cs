@@ -40,6 +40,8 @@ internal static class SupportLogService
 
             WriteEacStatus(stage, included);
             WriteSystemSnapshot(stage, status, included);
+            WriteText(Path.Combine(stage, "paths.txt"), RlPathResolver.DescribeKnownFolders() + "INI=" + (cfg ?? "(n/d)"));
+            included.Add("paths.txt");
             WriteModeFingerprint(stage, cfg, detectMode, included);
             WriteHowToSend(stage, included);
 

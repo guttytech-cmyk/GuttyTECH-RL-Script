@@ -481,6 +481,7 @@ internal static class Program
         _cfg = ResolveConfigPath();
         if (_cfg is not null)
         {
+            try { _cfg = RlPathResolver.RelocateOffOneDriveIfNeeded(_cfg); } catch { }
             AppMeta.Log($"GUI INI: {_cfg}");
             // Snapshot preventivo: se a garagem ainda esta grande, guarda no Best agora
             try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
@@ -1123,6 +1124,8 @@ internal static class Program
             return 1;
         }
 
+        try { cfg = RlPathResolver.RelocateOffOneDriveIfNeeded(cfg); _cfg = cfg; } catch { }
+
         string? saveDir = SaveRecovery.SaveDirFromIni(cfg);
         if (saveDir is null)
         {
@@ -1192,9 +1195,9 @@ internal static class Program
                 {
                     summary,
                     "Destino: " + FitPath(saveDir, 48),
-                    "1) Abre o RL OFFLINE (ou pausa sync Epic 1x)",
-                    "2) Confirma a garagem na conta certa",
-                    "3) Se sumir de novo online: restaura outra vez e fica offline 1 sessao",
+                    "1) Abre o RL OFFLINE e confirma a garagem",
+                    "2) No Epic: pausa Cloud Saves do Rocket League",
+                    "3) Se o Windows ainda apontava Documentos ao OneDrive, ja copiei para local",
                 }
                 : new[]
                 {
@@ -1290,32 +1293,9 @@ internal static class Program
 
     private static string? ResolveConfigPath()
     {
-        string? ov = Environment.GetEnvironmentVariable("GUTTYRL_INI");
-        if (!string.IsNullOrEmpty(ov)) return ov;
-
-        foreach (var root in DocumentRoots())
-        {
-            string configDir = Path.Combine(root, @"My Games\Rocket League\TAGame\Config");
-            if (Directory.Exists(configDir))
-                return Path.Combine(configDir, "TASystemSettings.ini");
-        }
-
-        string up = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        try
-        {
-            string usersRoot = Path.GetDirectoryName(up)!;
-            foreach (var u in Directory.GetDirectories(usersRoot))
-            {
-                foreach (var root in DocumentRootsForUser(u))
-                {
-                    string configDir = Path.Combine(root, @"My Games\Rocket League\TAGame\Config");
-                    if (Directory.Exists(configDir))
-                        return Path.Combine(configDir, "TASystemSettings.ini");
-                }
-            }
-        }
-        catch { }
-
+        string? found = RlPathResolver.ResolveIni();
+        if (!string.IsNullOrWhiteSpace(found))
+            return found;
         return FindIni();
     }
 
