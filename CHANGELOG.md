@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.12] — 2026-08-13
+### Corrigido
+- Popup CHANGELOG na UI: remove Markdown (`**`, crases, links) — texto limpo legível no WPF.
+
 ## [v25.0.11] — 2026-08-12
 ### Melhorado
 - Diagnóstico alerta **OneDrive** (risco de preset com nome + Octane).

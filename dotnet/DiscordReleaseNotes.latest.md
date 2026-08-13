@@ -1,13 +1,13 @@
-**GUTTYTECH RL Optimizer v25.0.11**
+GUTTYTECH RL Optimizer v25.0.12
 
-Dois avisos que evitam dor de cabeça com preset (caso OneDrive / CORRIGIR TUDO).
+Changelog na UI sem símbolos Markdown (texto limpo, sem **).
 
-**O que mudou:**
-- Se o save/INI estiver no **OneDrive**, o diagnóstico avisa: risco de preset com **nome ok e Octane padrão**
-- Depois de **CORRIGIR TUDO** ou **RECUPERAR BOOT**, o app deixa claro: **use RESTAURAR PRESETS** (os saves live foram pra quarentena de propósito)
+O que mudou:
+- O popup CHANGELOG deixa de mostrar **asteriscos** e outros símbolos de .md
+- Texto legível no app; o Discord pode continuar com formatação normal
 
-**Como atualizar:**
-1. Baixe o **GuttyTECH_RL.exe** novo
+Como atualizar:
+1. Baixe o GuttyTECH_RL.exe novo
 2. Feche o app antigo
 3. Abra o .exe novo
 

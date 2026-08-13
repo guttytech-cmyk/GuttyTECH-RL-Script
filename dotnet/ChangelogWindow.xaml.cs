@@ -14,7 +14,8 @@ public partial class ChangelogWindow : Window
         TitleText.Text = string.IsNullOrWhiteSpace(tag) ? "O QUE MUDOU" : tag.ToUpperInvariant();
         if (!string.IsNullOrWhiteSpace(subtitle))
             SubtitleText.Text = subtitle;
-        NotesBox.Text = notes.Trim();
+        // WPF nao renderiza Markdown — remove **, `, links, etc.
+        NotesBox.Text = ReleaseNotesFormatter.StripMarkdown(notes.Trim());
         Loaded += OnLoaded;
     }
 

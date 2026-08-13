@@ -59,7 +59,7 @@
                        Margin="0,8,0,0"
                        Style="{DynamicResource MutedTextStyle}"
                        TextWrapping="Wrap"
-                       Text="Novidades desta versão (mesmo estilo do Discord)." />
+                       Text="Atualizou? Aqui está o que mudou nesta versão." />
 
             <Border Grid.Row="2"
                     Margin="0,14,0,0"

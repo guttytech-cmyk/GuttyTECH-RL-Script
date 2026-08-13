@@ -4,34 +4,33 @@ using System.Text.RegularExpressions;
 namespace GuttyRL;
 
 /// <summary>
-/// Formata notas no estilo changelog Discord (pt-BR, linguagem de pessoa).
-/// Mantém **titulos**, bullets e avisos — igual ao que a gente colava no chat.
+/// Formata notas da release para a UI WPF (texto limpo, sem Markdown).
 /// </summary>
 internal static class ReleaseNotesFormatter
 {
     public static string FormatForUi(string? body, string? tag, string? releaseName)
     {
         string version = NormalizeVersionLabel(tag);
-        string cleaned = ToDiscordStyle(body, version);
+        string cleaned = ToUiStyle(body, version);
 
         if (!string.IsNullOrWhiteSpace(cleaned))
-            return cleaned.TrimEnd() + Environment.NewLine;
+            return StripMarkdown(cleaned).TrimEnd() + Environment.NewLine;
 
         // Fallback curto se a release nao tiver body.
         var sb = new StringBuilder();
-        sb.AppendLine("**GUTTYTECH RL Optimizer " + version + "**");
+        sb.AppendLine("GUTTYTECH RL Optimizer " + version);
         sb.AppendLine();
         if (!string.IsNullOrWhiteSpace(releaseName))
             sb.AppendLine(releaseName.Trim());
         sb.AppendLine();
-        sb.AppendLine("**O que mudou:**");
+        sb.AppendLine("O que mudou:");
         sb.AppendLine("- Correções e melhorias nesta versão.");
         sb.AppendLine("- Baixe o .exe novo, feche este app e abra o arquivo do Desktop.");
         return sb.ToString();
     }
 
-    /// <summary>Converte body GitHub → texto no tom Discord.</summary>
-    public static string ToDiscordStyle(string? body, string versionLabel)
+    /// <summary>Converte body GitHub → texto limpo para o popup.</summary>
+    public static string ToUiStyle(string? body, string versionLabel)
     {
         if (string.IsNullOrWhiteSpace(body))
             return "";
@@ -60,7 +59,6 @@ internal static class ReleaseNotesFormatter
 
             if (skipDownloadBlock)
             {
-                // Sai do bloco de download ao achar nova secao.
                 if (trimmed.StartsWith('#') || trimmed.StartsWith("**") || string.IsNullOrWhiteSpace(trimmed))
                 {
                     if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("http", StringComparison.OrdinalIgnoreCase))
@@ -72,19 +70,18 @@ internal static class ReleaseNotesFormatter
                     continue;
             }
 
-            // ## / ### Titulo → **Titulo:**
+            // ## / ### Titulo → Titulo:
             Match h = Regex.Match(trimmed, @"^#{1,3}\s+(.*)$");
             if (h.Success)
             {
-                string title = StripCode(h.Groups[1].Value).Trim().Trim('*');
+                string title = SoftInline(h.Groups[1].Value).Trim().Trim('*');
                 if (title.Length == 0) continue;
 
-                // Header de versao GitHub → cabecalho Discord
                 if (Regex.IsMatch(title, @"^(GUTTYTECH|v?\d+\.\d+)", RegexOptions.IgnoreCase))
                 {
                     if (!wroteHeader)
                     {
-                        sb.AppendLine("**GUTTYTECH RL Optimizer " + versionLabel + "**");
+                        sb.AppendLine("GUTTYTECH RL Optimizer " + versionLabel);
                         sb.AppendLine();
                         wroteHeader = true;
                     }
@@ -92,10 +89,9 @@ internal static class ReleaseNotesFormatter
                     continue;
                 }
 
-                // Traduz secoes tecnicas pro tom Discord
                 title = HumanizeSection(title);
                 if (sb.Length > 0) sb.AppendLine();
-                sb.AppendLine("**" + title + "**");
+                sb.AppendLine(title);
                 continue;
             }
 
@@ -109,7 +105,7 @@ internal static class ReleaseNotesFormatter
             if (bullet.Success)
             {
                 EnsureHeader(sb, versionLabel, ref wroteHeader);
-                sb.AppendLine("- " + SoftInline(bullet.Groups[1].Value).Trim());
+                sb.AppendLine("• " + SoftInline(bullet.Groups[1].Value).Trim());
                 continue;
             }
 
@@ -130,7 +126,7 @@ internal static class ReleaseNotesFormatter
 
             EnsureHeader(sb, versionLabel, ref wroteHeader);
 
-            // Linha ja no estilo Discord (**O que mudou:**) — preserva
+            // Titulo Discord (**O que mudou:**) → sem asteriscos
             if (trimmed.StartsWith("**", StringComparison.Ordinal))
             {
                 if (sb.Length > 0 && !sb.ToString().EndsWith("\n\n", StringComparison.Ordinal)
@@ -146,7 +142,7 @@ internal static class ReleaseNotesFormatter
         if (!wroteHeader && sb.Length > 0)
         {
             var withHeader = new StringBuilder();
-            withHeader.AppendLine("**GUTTYTECH RL Optimizer " + versionLabel + "**");
+            withHeader.AppendLine("GUTTYTECH RL Optimizer " + versionLabel);
             withHeader.AppendLine();
             withHeader.Append(sb);
             return Regex.Replace(withHeader.ToString(), @"\n{3,}", "\n\n").Trim();
@@ -155,10 +151,33 @@ internal static class ReleaseNotesFormatter
         return Regex.Replace(sb.ToString(), @"\n{3,}", "\n\n").Trim();
     }
 
+    /// <summary>Compat: nome antigo usado em testes/chamadas.</summary>
+    public static string ToDiscordStyle(string? body, string versionLabel) =>
+        ToUiStyle(body, versionLabel);
+
+    /// <summary>Remove Markdown residual (**bold**, `code`, links, etc.).</summary>
+    public static string StripMarkdown(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+
+        // **bold** / __bold__
+        text = Regex.Replace(text, @"\*\*(.+?)\*\*", "$1");
+        text = Regex.Replace(text, @"__(.+?)__", "$1");
+        // `code`
+        text = Regex.Replace(text, "`([^`]+)`", "$1");
+        // [text](url) → text
+        text = Regex.Replace(text, @"\[([^\]]+)\]\([^)]+\)", "$1");
+        // # headers sobrando
+        text = Regex.Replace(text, @"^#{1,6}\s+", "", RegexOptions.Multiline);
+        // Asteriscos/underscores soltos de bold quebrado
+        text = Regex.Replace(text, @"\*{1,2}", "");
+        return text;
+    }
+
     private static void EnsureHeader(StringBuilder sb, string versionLabel, ref bool wroteHeader)
     {
         if (wroteHeader) return;
-        sb.AppendLine("**GUTTYTECH RL Optimizer " + versionLabel + "**");
+        sb.AppendLine("GUTTYTECH RL Optimizer " + versionLabel);
         sb.AppendLine();
         wroteHeader = true;
     }
@@ -188,16 +207,12 @@ internal static class ReleaseNotesFormatter
 
     private static string SoftInline(string line)
     {
-        // `code` → code (Discord no app nao precisa de crase)
         line = Regex.Replace(line, "`([^`]+)`", "$1");
-        // [text](url) → text
         line = Regex.Replace(line, @"\[([^\]]+)\]\([^)]+\)", "$1");
-        // Mantem **bold** — e o visual Discord
+        line = Regex.Replace(line, @"\*\*(.+?)\*\*", "$1");
+        line = Regex.Replace(line, @"__(.+?)__", "$1");
         return line.Trim();
     }
-
-    private static string StripCode(string line) =>
-        Regex.Replace(line, "`([^`]+)`", "$1");
 
     private static string NormalizeVersionLabel(string? tag)
     {
