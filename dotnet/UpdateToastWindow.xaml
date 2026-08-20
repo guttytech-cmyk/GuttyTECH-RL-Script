@@ -74,7 +74,7 @@
                         CornerRadius="8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
-                        <TextBox Text="{Binding Notes}"
+                        <TextBox Text="{Binding Notes, Mode=OneWay}"
                                  IsReadOnly="True"
                                  BorderThickness="0"
                                  Background="Transparent"

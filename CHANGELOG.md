@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.17] — 2026-08-20
+### Corrigido
+- Popup de versão nova crashava com “associação TwoWay… propriedade somente leitura Notes”. O TextBox do changelog agora liga em OneWay.
+
 ## [v25.0.16] — 2026-08-20
 ### Melhorado
 - **ATUALIZAR:** o botão muda para **BUSCANDO…**, pulsa e mostra aviso enquanto consulta o GitHub — deixa de parecer travado. O clique também deixa de ser ignorado se o status de fundo ainda estiver atualizando.

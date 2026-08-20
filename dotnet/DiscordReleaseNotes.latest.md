@@ -1,11 +1,10 @@
-GUTTYTECH RL Optimizer v25.0.16
+GUTTYTECH RL Optimizer v25.0.17
 
-O botão ATUALIZAR agora mostra que está buscando versão nova. Não parece mais travado.
+O aviso de versão nova não fecha mais o app com erro de binding.
 
 O que mudou:
-- Clique em ATUALIZAR: o botão vira BUSCANDO…, pulsa e avisa enquanto consulta o GitHub
-- v25.0.15: fechar a janela não mostra mais erro falso de DLL
-- v25.0.14: detecta RL desinstalado / pasta custom no pacote de logs
+- Popup ATUALIZAR: o texto “O QUE MUDOU” deixa de crashar (Notes só-leitura + TextBox TwoWay)
+- v25.0.16: o botão ATUALIZAR mostra BUSCANDO… enquanto consulta o GitHub
 
 Como atualizar:
 1. Baixe o GuttyTECH_RL.exe novo

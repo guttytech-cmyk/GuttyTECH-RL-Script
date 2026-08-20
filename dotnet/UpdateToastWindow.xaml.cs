@@ -44,8 +44,15 @@ public partial class UpdateToastWindow : Window
             return;
         }
 
-        var toast = new UpdateToastWindow(update);
-        toast.Show();
+        try
+        {
+            var toast = new UpdateToastWindow(update);
+            toast.Show();
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("UPDATE-TOAST: " + ex.Message);
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
