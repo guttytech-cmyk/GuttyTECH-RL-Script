@@ -303,6 +303,22 @@ internal sealed class OptimizerService
                 "Execute CORRIGIR PERMISSÕES como administrador ou permita o aplicativo no Acesso Controlado a Pastas.");
         }
 
+        if (action is OptimizerAction.RecuperarBoot
+            or OptimizerAction.RepararEac
+            or OptimizerAction.CorrigirTudo)
+        {
+            GameInstallProbe.Report install = GameInstallProbe.ScanLive();
+            if (install.Verdict != GameInstallProbe.InstallVerdict.Ok)
+            {
+                return Failure(
+                    install.Verdict == GameInstallProbe.InstallVerdict.Missing
+                        ? "JOGO NAO ENCONTRADO"
+                        : "INSTALACAO INCOMPLETA",
+                    GameInstallProbe.SuggestedAction(install)
+                    + " Depois que o RL abrir sozinho pela Epic/Steam, use RESTAURAR PRESETS.");
+            }
+        }
+
         return action switch
         {
             OptimizerAction.RepararPerfil => Failure(
@@ -313,7 +329,7 @@ internal sealed class OptimizerService
                 "Não foi possível restaurar todos os arquivos stock/saves/EAC. Se viu erro 30005, reinicie o PC e use REPARAR EAC."),
             OptimizerAction.RepararEac => Failure(
                 "EAC AINDA FALHOU",
-                "Reinicie o PC (serviço marcado para apagar — 1072). Depois Epic → Verificar ficheiros e abra o jogo."),
+                "Reinicie o PC (serviço marcado para apagar — 1072). Depois Epic → Verificar arquivos e abra o jogo."),
             OptimizerAction.RestaurarPresets => Failure(
                 "SEM BACKUP RECUPERÁVEL",
                 "Não há save grande em Backups/Presets/Best. Sem esse arquivo local não dá para recuperar a garagem."),

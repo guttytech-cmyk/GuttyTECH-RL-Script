@@ -169,6 +169,13 @@ internal static class Program
             var application = new App();
             application.DispatcherUnhandledException += (_, e) =>
             {
+                if (CrashFilter.IsHarmlessShutdownNativeUnload(e.Exception))
+                {
+                    AppMeta.Log("UI shutdown nativo ignorado: " + e.Exception.Message);
+                    e.Handled = true;
+                    return;
+                }
+
                 StartupGuard.ReportFatal("Erro na interface do GuttyRL.", e.Exception);
                 e.Handled = true;
                 try { application.Shutdown(99); } catch { }

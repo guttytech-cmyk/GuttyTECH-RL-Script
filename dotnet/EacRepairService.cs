@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace GuttyRL;
@@ -48,7 +47,7 @@ internal static class EacRepairService
 
             string? setup = FindSetupExe();
             if (setup is null)
-                return (false, false, "Setup EAC nao encontrado. Verifique ficheiros na Epic/Steam.");
+                return (false, false, "Setup EAC nao encontrado. Verifique arquivos na Epic/Steam.");
 
             string productId = ReadProductId(Path.GetDirectoryName(setup)!) ?? DefaultProductId;
             log.Add("productid=" + productId[..Math.Min(8, productId.Length)] + "…");
@@ -106,76 +105,7 @@ internal static class EacRepairService
         }
     }
 
-    public static string? FindSetupExe()
-    {
-        foreach (string root in CandidateGameRoots())
-        {
-            string p = Path.Combine(root, "Binaries", "Win64", "EasyAntiCheat", "EasyAntiCheat_EOS_Setup.exe");
-            if (File.Exists(p)) return p;
-            p = Path.Combine(root, "EasyAntiCheat", "EasyAntiCheat_EOS_Setup.exe");
-            if (File.Exists(p)) return p;
-        }
-
-        try
-        {
-            foreach (string drive in Environment.GetLogicalDrives())
-            {
-                string epic = Path.Combine(drive, "Program Files", "Epic Games", "rocketleague",
-                    "Binaries", "Win64", "EasyAntiCheat", "EasyAntiCheat_EOS_Setup.exe");
-                if (File.Exists(epic)) return epic;
-            }
-        }
-        catch { }
-
-        return null;
-    }
-
-    private static IEnumerable<string> CandidateGameRoots()
-    {
-        string? fromIni = TryGameRootFromIni();
-        if (fromIni is not null) yield return fromIni;
-
-        yield return @"C:\Program Files\Epic Games\rocketleague";
-        yield return @"C:\Program Files (x86)\Steam\steamapps\common\rocketleague";
-        yield return @"D:\Program Files\Epic Games\rocketleague";
-        yield return @"D:\SteamLibrary\steamapps\common\rocketleague";
-        yield return @"E:\SteamLibrary\steamapps\common\rocketleague";
-    }
-
-    private static string? TryGameRootFromIni()
-    {
-        try
-        {
-            // Procura InstallLocation via manifests Epic (*.item) que mencionam rocketleague.
-            string[] manifestRoots =
-            {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "Epic", "EpicGamesLauncher", "Data", "Manifests"),
-                Path.Combine(Environment.GetEnvironmentVariable("ProgramData") ?? @"C:\ProgramData",
-                    "Epic", "EpicGamesLauncher", "Data", "Manifests"),
-            };
-            foreach (string root in manifestRoots)
-            {
-                if (!Directory.Exists(root)) continue;
-                foreach (string file in Directory.EnumerateFiles(root, "*.item"))
-                {
-                    try
-                    {
-                        string json = File.ReadAllText(file);
-                        if (json.IndexOf("rocketleague", StringComparison.OrdinalIgnoreCase) < 0)
-                            continue;
-                        var m = Regex.Match(json, "\"InstallLocation\"\\s*:\\s*\"([^\"]+)\"", RegexOptions.IgnoreCase);
-                        if (!m.Success) continue;
-                        string loc = m.Groups[1].Value.Replace(@"\\", @"\");
-                        if (Directory.Exists(loc)) return loc;
-                    }
-                    catch { }
-                }
-            }
-        }
-        catch { }
-        return null;
-    }
+    public static string? FindSetupExe() => GameInstallProbe.ScanLive().EacSetupPath;
 
     private static string? ReadProductId(string eacDir)
     {

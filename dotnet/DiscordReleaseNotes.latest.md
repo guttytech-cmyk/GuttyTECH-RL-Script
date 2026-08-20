@@ -1,18 +1,15 @@
-GUTTYTECH RL Optimizer v25.0.13
+GUTTYTECH RL Optimizer v25.0.16
 
-Presets que aparecem offline e somem online: o Windows ainda apontava Documentos para o OneDrive.
+O botão ATUALIZAR agora mostra que está buscando versão nova. Não parece mais travado.
 
 O que mudou:
-- O Gutty deixa de recriar a pasta do Rocket League no OneDrive
-- Copia os saves para Documentos local e desfaz o redirecionamento
-- Nao mistura saves Epic numa pasta Steam que nunca existiu
-- Deixa de escolher outro perfil Windows (ex. Gustavo) por engano
+- Clique em ATUALIZAR: o botão vira BUSCANDO…, pulsa e avisa enquanto consulta o GitHub
+- v25.0.15: fechar a janela não mostra mais erro falso de DLL
+- v25.0.14: detecta RL desinstalado / pasta custom no pacote de logs
 
 Como atualizar:
 1. Baixe o GuttyTECH_RL.exe novo
-2. Feche o app antigo e o Rocket League
+2. Feche o app antigo
 3. Abra o .exe novo
-4. Menu RESTAURAR PRESETS
-5. Abre o RL offline 1x e pausa Cloud Saves no Epic
 
 ⚠️ Roda como administrador. Só trocar o arquivo.

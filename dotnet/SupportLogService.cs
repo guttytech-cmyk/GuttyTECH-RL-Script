@@ -38,6 +38,7 @@ internal static class SupportLogService
                 + "Steam/Epic → propriedades → opções de inicialização" + Environment.NewLine);
             included.Add("launch-command.txt");
 
+            WriteGameInstall(stage, included);
             WriteEacStatus(stage, included);
             WriteSystemSnapshot(stage, status, included);
             WriteText(Path.Combine(stage, "paths.txt"), RlPathResolver.DescribeKnownFolders() + "INI=" + (cfg ?? "(n/d)"));
@@ -182,7 +183,7 @@ internal static class SupportLogService
             + "- diagnostico + estado do modo (COMPLETO/CRIADOR)" + Environment.NewLine
             + "- TASystemSettings.ini (+ backups recentes)" + Environment.NewLine
             + "- log/crash do otimizador" + Environment.NewLine
-            + "- EAC, watcher, inventario de saves (sem binarios grandes)" + Environment.NewLine
+            + "- EAC, instalacao do RL, watcher, inventario de saves (sem binarios grandes)" + Environment.NewLine
             + "- comando de inicializacao Steam/Epic" + Environment.NewLine);
         included.Add("COMO-ENVIAR.txt");
     }
@@ -248,16 +249,34 @@ internal static class SupportLogService
         catch { }
     }
 
+    private static void WriteGameInstall(string stage, List<string> included)
+    {
+        try
+        {
+            GameInstallProbe.Report report = GameInstallProbe.ScanLive();
+            WriteText(Path.Combine(stage, "game-install.txt"), GameInstallProbe.FormatText(report));
+            included.Add("game-install.txt");
+        }
+        catch (Exception ex)
+        {
+            WriteText(Path.Combine(stage, "game-install.txt"), "Falha: " + ex.Message);
+            included.Add("game-install.txt");
+        }
+    }
+
     private static void WriteEacStatus(string stage, List<string> included)
     {
         try
         {
             var (ok, detail) = EacRepairService.Assess();
-            string setup = EacRepairService.FindSetupExe() ?? "(nao encontrado)";
+            GameInstallProbe.Report install = GameInstallProbe.ScanLive();
+            string setup = install.EacSetupPath ?? "(nao encontrado)";
             WriteText(Path.Combine(stage, "eac-status.txt"),
                 "Healthy: " + ok + Environment.NewLine
                 + "Detail: " + detail + Environment.NewLine
-                + "Setup: " + setup + Environment.NewLine);
+                + "Setup: " + setup + Environment.NewLine
+                + "InstallVerdict: " + GameInstallProbe.VerdictLabel(install.Verdict) + Environment.NewLine
+                + "RocketLeague.exe: " + (install.RocketLeagueExe ?? "(nao encontrado)") + Environment.NewLine);
             included.Add("eac-status.txt");
         }
         catch (Exception ex)

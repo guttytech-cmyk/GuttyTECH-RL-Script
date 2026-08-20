@@ -3,6 +3,21 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.16] — 2026-08-20
+### Melhorado
+- **ATUALIZAR:** o botão muda para **BUSCANDO…**, pulsa e mostra aviso enquanto consulta o GitHub — deixa de parecer travado. O clique também deixa de ser ignorado se o status de fundo ainda estiver atualizando.
+
+## [v25.0.15] — 2026-08-19
+### Corrigido
+- Fechar a janela disparava um diálogo falso de “DLL nativa faltando” (`Dll was not found` no unload da CRT/WPF). O app já tinha saído; agora ignora esse ruído.
+
+## [v25.0.14] — 2026-08-17
+### Melhorado
+- **Detecção da pasta do RL:** procura Epic manifests, LauncherInstalled, Steam `libraryfolders`, registro de desinstalação e a pasta do próprio exe (instalação custom).
+- ZIP de suporte ganha `game-install.txt` (veredito OK / INCOMPLETO / NAO_INSTALADO + todos os caminhos testados).
+- Diagnóstico deixa de sugerir Corrigir Save / Recuperar Boot quando o jogo não está instalado.
+- Recuperar Boot / Corrigir Tudo / Reparar EAC deixam de reportar sucesso se o setup do EAC não existir.
+
 ## [v25.0.13] — 2026-08-13
 ### Corrigido
 - **OneDrive / presets online:** o Windows pode continuar a apontar Documentos para `OneDrive\Documentos` mesmo com o OneDrive desinstalado. O Gutty preferia esse caminho, recriava a pasta no restore e copiava saves Epic para Steam.

@@ -15,7 +15,15 @@ internal static class StartupGuard
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is Exception ex)
+            {
+                if (CrashFilter.IsHarmlessShutdownNativeUnload(ex))
+                {
+                    AppMeta.Log("Shutdown nativo ignorado: " + ex.GetType().Name + " " + ex.Message);
+                    return;
+                }
+
                 ReportFatal("Erro inesperado no GuttyRL.", ex);
+            }
             else
                 ReportFatal("Erro inesperado no GuttyRL.", new Exception(e.ExceptionObject?.ToString() ?? "desconhecido"));
         };
@@ -137,6 +145,9 @@ internal static class StartupGuard
         sb.AppendLine();
 
         try { File.AppendAllText(AppMeta.CrashLog, sb.ToString()); } catch { }
+
+        if (CrashFilter.IsHarmlessShutdownNativeUnload(ex))
+            return;
 
         string body = (ex?.Message ?? "Falha de inicialização.")
             + Environment.NewLine + Environment.NewLine

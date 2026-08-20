@@ -14,6 +14,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private bool _isBusy;
     private bool _isStarted;
     private bool _refreshInFlight;
+    private bool _isCheckingUpdates;
     private int _progressValue;
     private string _operationTitle = "PREPARANDO OPERAÇÃO";
     private string _progressMessage = "Aguarde um instante";
@@ -80,7 +81,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         RefreshStatusCommand = new AsyncRelayCommand(
             () => RefreshStatusAsync(showFeedback: true, checkUpdates: true),
             ShowUnexpectedError,
-            () => !IsBusy && !IsConfirmationVisible);
+            () => !IsBusy && !IsCheckingUpdates && !IsConfirmationVisible);
         _operationCommands.Add((AsyncRelayCommand)RefreshStatusCommand);
 
         _refreshTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -147,6 +148,21 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             RaiseCommandStates();
         }
     }
+
+    public bool IsCheckingUpdates
+    {
+        get => _isCheckingUpdates;
+        private set
+        {
+            if (!SetProperty(ref _isCheckingUpdates, value))
+                return;
+
+            OnPropertyChanged(nameof(RefreshButtonLabel));
+            RaiseCommandStates();
+        }
+    }
+
+    public string RefreshButtonLabel => UpdateCheckBusyState.ButtonLabel(IsCheckingUpdates);
 
     public int ProgressValue
     {
@@ -451,8 +467,15 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
     private async Task RefreshStatusAsync(bool showFeedback, bool checkUpdates)
     {
-        if (IsBusy || _refreshInFlight)
+        bool userCheck = checkUpdates && showFeedback;
+        if (UpdateCheckBusyState.ShouldSkip(IsBusy, IsCheckingUpdates, _refreshInFlight, userCheck))
             return;
+
+        if (userCheck)
+            BeginCheckingUpdatesUi();
+
+        while (userCheck && _refreshInFlight)
+            await Task.Delay(40);
 
         _refreshInFlight = true;
         try
@@ -461,6 +484,9 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
             if (checkUpdates)
             {
+                if (userCheck)
+                    LastUpdated = UpdateCheckBusyState.FooterChecking;
+
                 await CheckForUpdatesAsync(forceToast: true, showFeedback: showFeedback);
                 return;
             }
@@ -478,8 +504,24 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         finally
         {
             _refreshInFlight = false;
+            if (userCheck)
+                EndCheckingUpdatesUi();
         }
     }
+
+    private void BeginCheckingUpdatesUi()
+    {
+        LastUpdated = UpdateCheckBusyState.FooterChecking;
+        IsCheckingUpdates = true;
+        ShowFeedback(new OperationResult(
+            true,
+            false,
+            FeedbackTone.Warning,
+            UpdateCheckBusyState.OverlayTitle,
+            UpdateCheckBusyState.OverlayMessage));
+    }
+
+    private void EndCheckingUpdatesUi() => IsCheckingUpdates = false;
 
     private async Task CheckForUpdatesAsync(bool forceToast, bool showFeedback)
     {
@@ -614,6 +656,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         FeedbackMessage = "A ação foi interrompida com segurança. Consulte " + AppMeta.LogFile;
         IsFeedbackVisible = true;
         IsBusy = false;
+        IsCheckingUpdates = false;
         OnPropertyChanged(nameof(IsFeedbackSuccess));
         OnPropertyChanged(nameof(IsFeedbackWarning));
         OnPropertyChanged(nameof(IsFeedbackError));

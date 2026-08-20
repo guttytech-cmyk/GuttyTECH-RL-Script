@@ -421,9 +421,9 @@
                         <Button Margin="0,12,0,0"
                                 HorizontalAlignment="Stretch"
                                 Focusable="False"
-                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Style="{DynamicResource RefreshStatusButtonStyle}"
                                 Command="{Binding RefreshStatusCommand}"
-                                Content="ATUALIZAR"
+                                Content="{Binding RefreshButtonLabel, FallbackValue=ATUALIZAR}"
                                 ToolTip="Atualiza o estado local e procura versão nova no GitHub" />
                     </StackPanel>
                 </Border>

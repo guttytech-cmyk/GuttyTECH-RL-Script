@@ -151,6 +151,11 @@ internal static class ErrorRepair
         else
             lines.Add("Watcher: inativo");
 
+        GameInstallProbe.Report install = GameInstallProbe.ScanLive();
+        lines.Add(GameInstallProbe.DiagnosticLine(install));
+        if (install.Verdict != GameInstallProbe.InstallVerdict.Ok)
+            issues = true;
+
         var (eacOk, eacDetail) = EacRepairService.Assess();
         lines.Add(eacOk ? "EAC: OK — " + eacDetail : "EAC: PROBLEMA — " + eacDetail);
         if (!eacOk) issues = true;
@@ -176,7 +181,10 @@ internal static class ErrorRepair
                 issues = true;
         }
 
-        if (bootRisk)
+        string installAction = GameInstallProbe.SuggestedAction(install);
+        if (!string.IsNullOrWhiteSpace(installAction))
+            lines.Add("ACAO: " + installAction);
+        else if (bootRisk)
             lines.Add("ACAO: use RECUPERAR BOOT / CORRIGIR TUDO (caminho nuclear).");
         else if (issues && lines.Any(l => l.Contains("LOAD FAILURE", StringComparison.OrdinalIgnoreCase)
                                           && l.Contains("provavel", StringComparison.OrdinalIgnoreCase)))
@@ -338,7 +346,14 @@ internal static class ErrorRepair
         var eac = EacRepairService.Repair();
         if (interactive)
             Ui.StepAnimated("Reparando Easy Anti-Cheat (30005/1072)", () => eac.Ok || !eac.NeedsReboot);
-        report.Add(eac.Ok ? "EAC OK" : (eac.NeedsReboot ? "EAC precisa REBOOT" : "EAC parcial"));
+        if (eac.Ok)
+            report.Add("EAC OK");
+        else if (eac.NeedsReboot)
+            report.Add("EAC precisa REBOOT");
+        else if (eac.Detail.Contains("nao encontrado", StringComparison.OrdinalIgnoreCase))
+            report.Add("EAC setup ausente");
+        else
+            report.Add("EAC parcial");
         if (!string.IsNullOrWhiteSpace(eac.Detail))
             AppMeta.Log("UNBREAK-BOOT EAC: " + eac.Detail);
 
@@ -369,7 +384,7 @@ internal static class ErrorRepair
 
         AppMeta.Log("UNBREAK-BOOT: " + string.Join("; ", report));
 
-        bool ok = iniOk && bootSafe;
+        bool ok = iniOk && bootSafe && eac.Ok;
         if (interactive)
         {
             Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MAmber, ok ? "JOGO DESBLOQUEADO" : "RECUPERACAO PARCIAL", new[]
