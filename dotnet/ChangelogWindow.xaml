@@ -2,9 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="GuttyTECH — Changelog"
-        Width="460"
+        Width="500"
+        MinWidth="480"
+        MaxWidth="520"
         MinHeight="320"
-        MaxHeight="620"
+        MaxHeight="640"
         SizeToContent="Height"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -13,6 +15,95 @@
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
         Topmost="True">
+    <Window.Resources>
+        <DataTemplate x:Key="ChangelogLineTemplate">
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{DynamicResource ChangelogBulletMarkStyle}"
+                           Text="—" />
+                <TextBlock Grid.Column="1"
+                           Style="{DynamicResource BodyTextStyle}"
+                           FontSize="13"
+                           LineHeight="19"
+                           TextWrapping="Wrap"
+                           Text="{Binding}" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ChangelogSectionTemplate">
+            <StackPanel>
+                <TextBlock Style="{DynamicResource ChangelogSectionHeadingStyle}"
+                           Text="{Binding Heading}" />
+                <ItemsControl ItemsSource="{Binding Lines}"
+                              ItemTemplate="{StaticResource ChangelogLineTemplate}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ChangelogVersionTemplate">
+            <Border Style="{DynamicResource ChangelogVersionCardStyle}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border CornerRadius="8,0,0,8"
+                            SnapsToDevicePixels="True">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{DynamicResource TransparentBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLatest}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource CtaBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+                    <StackPanel Grid.Column="1"
+                                Margin="14,12,14,12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                       FontSize="22"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Text="{Binding VersionLabel}" />
+                            <Border Grid.Column="1"
+                                    VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border" BasedOn="{StaticResource ModeTagChipStyle}">
+                                        <Setter Property="Background" Value="{DynamicResource CtaBrush}" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <Setter Property="Padding" Value="8,2" />
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLatest}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="NOVA" />
+                            </Border>
+                        </Grid>
+                        <ItemsControl Margin="0,2,0,0"
+                                      ItemsSource="{Binding Sections}"
+                                      ItemTemplate="{StaticResource ChangelogSectionTemplate}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
     <Border Margin="14"
             Padding="20"
             Background="{DynamicResource SurfaceBrush}"
@@ -28,7 +119,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid>
+            <Grid MouseLeftButtonDown="OnHeaderMouseDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -42,15 +133,13 @@
                                FontFamily="{DynamicResource TitleFontFamily}"
                                FontSize="28"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="O QUE MUDOU" />
+                               Text="{Binding TitleText, FallbackValue=O QUE MUDOU}" />
                 </StackPanel>
                 <Button Grid.Column="1"
-                        Width="28"
-                        Height="28"
                         VerticalAlignment="Top"
-                        Focusable="False"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Content="×"
+                        Style="{DynamicResource ChangelogCloseButtonStyle}"
+                        Content="&#xE8BB;"
+                        ToolTip="Fechar"
                         Click="OnCloseClick" />
             </Grid>
 
@@ -59,36 +148,22 @@
                        Margin="0,8,0,0"
                        Style="{DynamicResource MutedTextStyle}"
                        TextWrapping="Wrap"
-                       Text="Atualizou? Aqui está o que mudou nesta versão." />
+                       Text="{Binding SubtitleText, FallbackValue=Atualizou? Aqui está o que mudou nas últimas versões.}" />
 
-            <Border Grid.Row="2"
-                    Margin="0,14,0,0"
-                    Padding="12"
-                    MaxHeight="360"
-                    Background="{DynamicResource SurfaceRaisedBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled">
-                    <TextBox x:Name="NotesBox"
-                             IsReadOnly="True"
-                             BorderThickness="0"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextSecondaryBrush}"
-                             FontFamily="{DynamicResource BodyFontFamily}"
-                             FontSize="13"
-                             TextWrapping="Wrap"
-                             AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Disabled"
-                             Cursor="Arrow" />
-                </ScrollViewer>
-            </Border>
+            <ScrollViewer Grid.Row="2"
+                          Margin="0,14,0,0"
+                          MaxHeight="380"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False">
+                <ItemsControl x:Name="VersionsHost"
+                              ItemsSource="{Binding Versions}"
+                              ItemTemplate="{StaticResource ChangelogVersionTemplate}" />
+            </ScrollViewer>
 
             <Button Grid.Row="3"
                     Margin="0,16,0,0"
-                    MinWidth="140"
-                    HorizontalAlignment="Right"
+                    HorizontalAlignment="Stretch"
                     Focusable="False"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Content="ENTENDI"

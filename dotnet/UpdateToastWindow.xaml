@@ -44,12 +44,10 @@
                                Text="VERSÃO NOVA" />
                 </StackPanel>
                 <Button Grid.Column="1"
-                        Width="28"
-                        Height="28"
                         VerticalAlignment="Top"
-                        Focusable="False"
-                        Style="{DynamicResource SecondaryButtonStyle}"
-                        Content="×"
+                        Style="{DynamicResource ChangelogCloseButtonStyle}"
+                        Content="&#xE8BB;"
+                        ToolTip="Fechar"
                         Click="OnDismissClick" />
             </Grid>
 

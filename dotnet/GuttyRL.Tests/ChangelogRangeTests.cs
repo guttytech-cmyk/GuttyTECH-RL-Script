@@ -71,4 +71,33 @@ public class ChangelogRangeTests
         Assert.Single(selected);
         Assert.Equal("25.0.16", ChangelogRange.Normalize(selected[0].Tag));
     }
+
+    [Fact]
+    public void BuildCards_marks_newest_and_splits_sections()
+    {
+        var selected = ChangelogRange.SelectRange(Sample, afterVersion: "25.0.10");
+        IReadOnlyList<ChangelogVersionCard> cards = ChangelogRange.BuildCards(selected);
+
+        Assert.Equal(3, cards.Count);
+        Assert.Equal("v25.0.17", cards[0].VersionLabel);
+        Assert.True(cards[0].IsLatest);
+        Assert.False(cards[1].IsLatest);
+        Assert.Contains(cards[0].Sections.SelectMany(s => s.Lines), line => line.Contains("toast TwoWay", StringComparison.Ordinal));
+        Assert.Contains(cards[1].Sections.SelectMany(s => s.Lines), line => line.Contains("BUSCANDO", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            cards.SelectMany(c => c.Sections).SelectMany(s => s.Lines),
+            line => line.Contains("Baixe o exe", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ParseCards_rebuilds_structure_from_formatted_notes()
+    {
+        var selected = ChangelogRange.SelectRange(Sample, afterVersion: "25.0.10");
+        string text = ChangelogRange.Format(selected);
+        IReadOnlyList<ChangelogVersionCard> cards = ChangelogRange.ParseCards(text);
+
+        Assert.Equal(["v25.0.17", "v25.0.16", "v25.0.15"], cards.Select(c => c.VersionLabel).ToArray());
+        Assert.True(cards[0].IsLatest);
+        Assert.Contains(cards[0].Sections.SelectMany(s => s.Lines), line => line.Contains("toast TwoWay", StringComparison.Ordinal));
+    }
 }

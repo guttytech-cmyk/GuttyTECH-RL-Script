@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.19] — 2026-08-20
+### Melhorado
+- **Changelog:** cada versão vira um card (chip NOVA na mais recente). O X de fechar ficou visível — antes o padding recortava o glifo.
+
 ## [v25.0.18] — 2026-08-20
 ### Melhorado
 - **Changelog:** quem pula versões (ex.: 25.0.10 → 25.0.18) vê a lista de **todas** as versões no meio, não só a última. O popup de atualizar e a 1ª abertura da versão nova usam essa lista.

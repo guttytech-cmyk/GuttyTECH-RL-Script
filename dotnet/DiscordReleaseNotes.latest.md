@@ -1,10 +1,11 @@
-GUTTYTECH RL Optimizer v25.0.18
+GUTTYTECH RL Optimizer v25.0.19
 
-Se você pulou versões, o changelog mostra tudo que mudou desde a sua — não só a última.
+O changelog ficou em cards por versão, com X visível pra fechar.
 
 O que mudou:
-- ATUALIZAR / 1ª abertura: lista v25.0.11, v25.0.12… até a nova, a mais recente no topo
-- Popup de versão nova sem crash de binding no changelog
+- Cada versão (v25.0.18, v25.0.17…) tem o próprio bloco; a mais nova vem marcada
+- O X do popup não some mais no fundo escuro
+- v25.0.18: quem pula versões vê tudo que mudou desde a sua
 
 Como atualizar:
 1. Baixe o GuttyTECH_RL.exe novo

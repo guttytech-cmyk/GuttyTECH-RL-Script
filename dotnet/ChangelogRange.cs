@@ -10,6 +10,26 @@ internal sealed record ChangelogRelease(
     bool Draft = false,
     bool Prerelease = false);
 
+internal sealed class ChangelogSectionCard
+{
+    public string Heading { get; init; } = "";
+    public IReadOnlyList<string> Lines { get; init; } = [];
+}
+
+internal sealed class ChangelogVersionCard
+{
+    public string VersionLabel { get; init; } = "";
+    public bool IsLatest { get; init; }
+    public IReadOnlyList<ChangelogSectionCard> Sections { get; init; } = [];
+}
+
+internal sealed class ChangelogWindowModel
+{
+    public string TitleText { get; init; } = "O QUE MUDOU";
+    public string SubtitleText { get; init; } = "";
+    public IReadOnlyList<ChangelogVersionCard> Versions { get; init; } = [];
+}
+
 /// <summary>Junta as notas de todas as versões entre a instalada e a mais nova.</summary>
 internal static class ChangelogRange
 {
@@ -74,6 +94,114 @@ internal static class ChangelogRange
         }
 
         return sb.ToString().Trim() + Environment.NewLine;
+    }
+
+    public static IReadOnlyList<ChangelogVersionCard> BuildCards(IReadOnlyList<ChangelogRelease> selected)
+    {
+        var cards = new List<ChangelogVersionCard>(selected.Count);
+        for (int i = 0; i < selected.Count; i++)
+        {
+            ChangelogRelease release = selected[i];
+            string body = ReleaseNotesFormatter.ToUiStyle(release.Body, release.Tag);
+            body = ReleaseNotesFormatter.StripMarkdown(body);
+            body = StripProductHeader(body);
+            cards.Add(new ChangelogVersionCard
+            {
+                VersionLabel = Label(release.Tag),
+                IsLatest = i == 0,
+                Sections = ParseSections(body),
+            });
+        }
+
+        return cards;
+    }
+
+    public static IReadOnlyList<ChangelogVersionCard> ParseCards(string notes)
+    {
+        if (string.IsNullOrWhiteSpace(notes))
+            return [];
+
+        var cards = new List<ChangelogVersionCard>();
+        MatchCollection headers = Regex.Matches(notes, @"(?m)^(v\d+(?:\.\d+)+)\s*$");
+        if (headers.Count == 0)
+        {
+            IReadOnlyList<ChangelogSectionCard> sections = ParseSections(notes);
+            if (sections.Count == 0)
+                return [];
+
+            cards.Add(new ChangelogVersionCard
+            {
+                VersionLabel = "O que mudou",
+                IsLatest = true,
+                Sections = sections,
+            });
+            return cards;
+        }
+
+        for (int i = 0; i < headers.Count; i++)
+        {
+            int start = headers[i].Index + headers[i].Length;
+            int end = i + 1 < headers.Count ? headers[i + 1].Index : notes.Length;
+            string body = notes[start..end].Trim();
+            cards.Add(new ChangelogVersionCard
+            {
+                VersionLabel = Label(headers[i].Groups[1].Value),
+                IsLatest = i == 0,
+                Sections = ParseSections(body),
+            });
+        }
+
+        return cards;
+    }
+
+    private static IReadOnlyList<ChangelogSectionCard> ParseSections(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return [];
+
+        var sections = new List<ChangelogSectionCard>();
+        string heading = "";
+        var lines = new List<string>();
+
+        void Flush()
+        {
+            if (lines.Count == 0 && string.IsNullOrWhiteSpace(heading))
+                return;
+            sections.Add(new ChangelogSectionCard
+            {
+                Heading = string.IsNullOrWhiteSpace(heading) ? "O que mudou:" : heading,
+                Lines = lines.ToList(),
+            });
+            heading = "";
+            lines = new List<string>();
+        }
+
+        foreach (string raw in body.Replace("\r\n", "\n").Split('\n'))
+        {
+            string trimmed = raw.Trim();
+            if (trimmed.Length == 0)
+                continue;
+
+            if (trimmed.StartsWith("• ", StringComparison.Ordinal)
+                || trimmed.StartsWith("- ", StringComparison.Ordinal)
+                || trimmed.StartsWith("— ", StringComparison.Ordinal))
+            {
+                lines.Add(trimmed[2..].Trim());
+                continue;
+            }
+
+            if (trimmed.EndsWith(':') && trimmed.Length <= 48 && !trimmed.Contains("  ", StringComparison.Ordinal))
+            {
+                Flush();
+                heading = trimmed;
+                continue;
+            }
+
+            lines.Add(trimmed);
+        }
+
+        Flush();
+        return sections;
     }
 
     public static string Normalize(string tag)

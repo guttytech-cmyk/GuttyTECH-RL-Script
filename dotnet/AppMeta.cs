@@ -3,7 +3,7 @@ namespace GuttyRL;
 /// <summary>Metadados e caminhos persistentes — fonte unica de versao/pastas.</summary>
 internal static class AppMeta
 {
-    public const string Version = "v25.0.18";
+    public const string Version = "v25.0.19";
 
     public const string GitHubOwner = "guttytech-cmyk";
     public const string GitHubRepo = "GuttyTECH-RL-Script";

@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media.Animation;
 
 namespace GuttyRL;
@@ -11,11 +12,15 @@ public partial class ChangelogWindow : Window
     {
         InitializeComponent();
         _markShownVersion = markShownVersion;
-        TitleText.Text = string.IsNullOrWhiteSpace(tag) ? "O QUE MUDOU" : tag.ToUpperInvariant();
-        if (!string.IsNullOrWhiteSpace(subtitle))
-            SubtitleText.Text = subtitle;
-        // WPF nao renderiza Markdown — remove **, `, links, etc.
-        NotesBox.Text = ReleaseNotesFormatter.StripMarkdown(notes.Trim());
+        IReadOnlyList<ChangelogVersionCard> cards = ChangelogRange.ParseCards(notes);
+        DataContext = new ChangelogWindowModel
+        {
+            TitleText = string.IsNullOrWhiteSpace(tag) ? "O QUE MUDOU" : tag.ToUpperInvariant(),
+            SubtitleText = string.IsNullOrWhiteSpace(subtitle)
+                ? "Atualizou? Aqui está o que mudou nas últimas versões."
+                : subtitle,
+            Versions = cards,
+        };
         Loaded += OnLoaded;
     }
 
@@ -42,6 +47,12 @@ public partial class ChangelogWindow : Window
     {
         Opacity = 0;
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
+    }
+
+    private void OnHeaderMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+            DragMove();
     }
 
     private void OnCloseClick(object sender, RoutedEventArgs e)
