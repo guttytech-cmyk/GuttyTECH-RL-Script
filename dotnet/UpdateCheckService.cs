@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace GuttyRL;
 
@@ -12,6 +11,7 @@ internal static class UpdateCheckService
     private static readonly object Gate = new();
     private static DateTime _lastCheckUtc = DateTime.MinValue;
     private static UpdateCheckResult? _lastResult;
+    private static List<ChangelogRelease> _lastReleases = new();
 
     private static HttpClient CreateClient()
     {
@@ -38,7 +38,7 @@ internal static class UpdateCheckService
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, AppMeta.GitHubReleasesLatestApi);
+            using var request = new HttpRequestMessage(HttpMethod.Get, AppMeta.GitHubReleasesApi);
             using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
             string body = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -52,11 +52,39 @@ internal static class UpdateCheckService
                     null,
                     AppMeta.GitHubReleasesPage,
                     null,
-                    $"GitHub respondeu {(int)response.StatusCode}. Tenta de novo em instantes."));
+                    $"GitHub respondeu {(int)response.StatusCode}. Tente de novo em instantes."));
             }
 
-            GitHubReleaseDto? release = JsonSerializer.Deserialize(body, AppJsonContext.Default.GitHubReleaseDto);
-            if (release is null || string.IsNullOrWhiteSpace(release.TagName))
+            List<GitHubReleaseDto>? releases = JsonSerializer.Deserialize(
+                body,
+                AppJsonContext.Default.ListGitHubReleaseDto);
+            if (releases is null || releases.Count == 0)
+            {
+                return Cache(new UpdateCheckResult(
+                    false,
+                    false,
+                    AppMeta.Version,
+                    null,
+                    null,
+                    AppMeta.GitHubReleasesPage,
+                    null,
+                    "Não consegui ler as releases no GitHub."));
+            }
+
+            List<ChangelogRelease> mapped = releases
+                .Select(item => new ChangelogRelease(
+                    item.TagName,
+                    item.Name,
+                    item.Body,
+                    item.Draft,
+                    item.Prerelease))
+                .ToList();
+
+            lock (Gate)
+                _lastReleases = mapped;
+
+            ChangelogRelease? newest = ChangelogRange.SelectRange(mapped, afterVersion: "0.0.0").FirstOrDefault();
+            if (newest is null)
             {
                 return Cache(new UpdateCheckResult(
                     false,
@@ -69,23 +97,33 @@ internal static class UpdateCheckService
                     "Não consegui ler a release mais recente no GitHub."));
             }
 
-            string latest = NormalizeTag(release.TagName);
-            string current = NormalizeTag(AppMeta.Version);
-            bool newer = IsNewer(latest, current);
-            string? download = PickExeAsset(release);
-            string notes = ReleaseNotesFormatter.FormatForUi(release.Body, release.TagName, release.Name);
+            string latest = ChangelogRange.Normalize(newest.Tag);
+            string current = ChangelogRange.Normalize(AppMeta.Version);
+            bool newer = ChangelogRange.IsNewer(latest, current);
+
+            GitHubReleaseDto? latestDto = releases.FirstOrDefault(item =>
+                string.Equals(
+                    ChangelogRange.Normalize(item.TagName),
+                    latest,
+                    StringComparison.OrdinalIgnoreCase));
+            string? download = latestDto is null ? null : PickExeAsset(latestDto);
+
+            IReadOnlyList<ChangelogRelease> missed = ChangelogRange.SelectRange(mapped, afterVersion: current);
+            string notes = missed.Count > 0
+                ? ChangelogRange.Format(missed)
+                : ReleaseNotesFormatter.FormatForUi(newest.Body, newest.Tag, newest.Name);
 
             string message = newer
-                ? $"Tem versão nova no GitHub: {latest} (você está em {current})."
-                : $"Você já está na última: {current}.";
+                ? $"Tem versão nova no GitHub: v{latest} (você está em v{current}). Abaixo está o que mudou desde a sua versão."
+                : $"Você já está na última: v{current}.";
 
             return Cache(new UpdateCheckResult(
                 true,
                 newer,
                 current,
                 latest,
-                release.Name,
-                string.IsNullOrWhiteSpace(release.HtmlUrl) ? AppMeta.GitHubReleasesPage : release.HtmlUrl,
+                newest.Name,
+                string.IsNullOrWhiteSpace(latestDto?.HtmlUrl) ? AppMeta.GitHubReleasesPage : latestDto!.HtmlUrl,
                 download,
                 message,
                 notes));
@@ -105,7 +143,7 @@ internal static class UpdateCheckService
                 null,
                 AppMeta.GitHubReleasesPage,
                 null,
-                "Sem ligação ao GitHub agora. Verifica a internet e tenta ATUALIZAR de novo."));
+                "Sem conexão com o GitHub agora. Verifique a internet e tente ATUALIZAR de novo."));
         }
     }
 
@@ -219,29 +257,16 @@ internal static class UpdateCheckService
         return preferred?.BrowserDownloadUrl;
     }
 
-    internal static string NormalizeTag(string tag)
+    internal static string FormatCachedRange(string afterVersion, string? untilVersion = null)
     {
-        tag = tag.Trim();
-        if (tag.StartsWith("v", StringComparison.OrdinalIgnoreCase))
-            tag = tag[1..];
-        return tag;
+        List<ChangelogRelease> snapshot;
+        lock (Gate)
+            snapshot = _lastReleases.ToList();
+
+        return ChangelogRange.Format(ChangelogRange.SelectRange(snapshot, afterVersion, untilVersion));
     }
 
-    internal static bool IsNewer(string latest, string current)
-    {
-        if (TryParseVersion(latest, out Version latestV) && TryParseVersion(current, out Version currentV))
-            return latestV > currentV;
+    internal static string NormalizeTag(string tag) => ChangelogRange.Normalize(tag);
 
-        return !string.Equals(latest, current, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool TryParseVersion(string text, out Version version)
-    {
-        Match match = Regex.Match(text, @"^\d+(\.\d+){0,3}");
-        if (match.Success && Version.TryParse(match.Value, out version!))
-            return true;
-
-        version = new Version(0, 0);
-        return false;
-    }
+    internal static bool IsNewer(string latest, string current) => ChangelogRange.IsNewer(latest, current);
 }

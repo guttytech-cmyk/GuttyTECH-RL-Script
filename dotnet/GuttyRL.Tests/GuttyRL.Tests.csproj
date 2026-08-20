@@ -20,6 +20,9 @@
     <Compile Include="..\GameInstallProbe.cs" Link="GameInstallProbe.cs" />
     <Compile Include="..\CrashFilter.cs" Link="CrashFilter.cs" />
     <Compile Include="..\UpdateCheckBusyState.cs" Link="UpdateCheckBusyState.cs" />
+    <Compile Include="..\ChangelogRange.cs" Link="ChangelogRange.cs" />
+    <Compile Include="..\ReleaseNotesFormatter.cs" Link="ReleaseNotesFormatter.cs" />
+    <Compile Include="..\AppMeta.cs" Link="AppMeta.cs" />
   </ItemGroup>
 
 </Project>

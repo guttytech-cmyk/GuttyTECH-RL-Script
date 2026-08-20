@@ -14,6 +14,7 @@ public partial class UpdateToastWindow : Window
         InitializeComponent();
         _model = new UpdateToastViewModel(update);
         DataContext = _model;
+        NotesBox.Text = _model.Notes;
 
         _autoCloseTimer = new DispatcherTimer
         {

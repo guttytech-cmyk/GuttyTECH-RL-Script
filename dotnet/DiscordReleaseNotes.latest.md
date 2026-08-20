@@ -1,10 +1,10 @@
-GUTTYTECH RL Optimizer v25.0.17
+GUTTYTECH RL Optimizer v25.0.18
 
-O aviso de versão nova não fecha mais o app com erro de binding.
+Se você pulou versões, o changelog mostra tudo que mudou desde a sua — não só a última.
 
 O que mudou:
-- Popup ATUALIZAR: o texto “O QUE MUDOU” deixa de crashar (Notes só-leitura + TextBox TwoWay)
-- v25.0.16: o botão ATUALIZAR mostra BUSCANDO… enquanto consulta o GitHub
+- ATUALIZAR / 1ª abertura: lista v25.0.11, v25.0.12… até a nova, a mais recente no topo
+- Popup de versão nova sem crash de binding no changelog
 
 Como atualizar:
 1. Baixe o GuttyTECH_RL.exe novo

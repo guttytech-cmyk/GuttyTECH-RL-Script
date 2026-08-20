@@ -29,6 +29,12 @@ internal sealed class GitHubReleaseDto
 
     [JsonPropertyName("assets")]
     public List<GitHubAssetDto>? Assets { get; set; }
+
+    [JsonPropertyName("draft")]
+    public bool Draft { get; set; }
+
+    [JsonPropertyName("prerelease")]
+    public bool Prerelease { get; set; }
 }
 
 internal sealed class GitHubAssetDto
@@ -45,5 +51,6 @@ internal sealed class GitHubAssetDto
 
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(GitHubReleaseDto))]
+[JsonSerializable(typeof(List<GitHubReleaseDto>))]
 [JsonSerializable(typeof(List<GitHubAssetDto>))]
 internal partial class AppJsonContext : JsonSerializerContext;

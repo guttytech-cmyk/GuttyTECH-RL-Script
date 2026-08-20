@@ -77,6 +77,13 @@ internal static class ReleaseNotesFormatter
                 string title = SoftInline(h.Groups[1].Value).Trim().Trim('*');
                 if (title.Length == 0) continue;
 
+                if (Regex.IsMatch(title, @"^Como atualizar\b", RegexOptions.IgnoreCase)
+                    || Regex.IsMatch(title, @"^How to update\b", RegexOptions.IgnoreCase))
+                {
+                    skipDownloadBlock = true;
+                    continue;
+                }
+
                 if (Regex.IsMatch(title, @"^(GUTTYTECH|v?\d+\.\d+)", RegexOptions.IgnoreCase))
                 {
                     if (!wroteHeader)

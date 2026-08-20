@@ -67,14 +67,14 @@
                            Text="O QUE MUDOU" />
                 <Border Margin="0,8,0,0"
                         Padding="10"
-                        MaxHeight="220"
+                        MaxHeight="320"
                         Background="{DynamicResource SurfaceRaisedBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
-                        <TextBox Text="{Binding Notes, Mode=OneWay}"
+                        <TextBox x:Name="NotesBox"
                                  IsReadOnly="True"
                                  BorderThickness="0"
                                  Background="Transparent"

@@ -20,6 +20,21 @@ internal static class WhatsNewService
         }
     }
 
+    public static string? ReadShownVersion()
+    {
+        try
+        {
+            if (!File.Exists(ShownFile))
+                return null;
+            string saved = File.ReadAllText(ShownFile).Trim();
+            return saved.Length == 0 ? null : saved;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static bool WasShown(string? version)
     {
         if (string.IsNullOrWhiteSpace(version)) return false;
@@ -93,7 +108,23 @@ internal static class WhatsNewService
         if (string.IsNullOrWhiteSpace(notes))
         {
             UpdateCheckResult update = await UpdateCheckService.CheckLatestAsync(force: false);
-            if (update.Success
+            string? since = ReadShownVersion();
+            if (!string.IsNullOrWhiteSpace(since)
+                && !string.Equals(
+                    UpdateCheckService.NormalizeTag(since),
+                    UpdateCheckService.NormalizeTag(current),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                string ranged = UpdateCheckService.FormatCachedRange(since, current);
+                if (!string.IsNullOrWhiteSpace(ranged))
+                {
+                    notes = ranged;
+                    tag = current;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(notes)
+                && update.Success
                 && !string.IsNullOrWhiteSpace(update.ReleaseNotes)
                 && string.Equals(
                     UpdateCheckService.NormalizeTag(update.LatestTag ?? ""),
@@ -103,7 +134,7 @@ internal static class WhatsNewService
                 notes = update.ReleaseNotes;
                 tag = update.LatestTag ?? current;
             }
-            else
+            else if (string.IsNullOrWhiteSpace(notes))
             {
                 // So marca como visto se ja estamos na ultima e nao ha notas —
                 // se ainda ha update pendente, nao marca (mostra apos atualizar).
@@ -113,10 +144,19 @@ internal static class WhatsNewService
             }
         }
 
+        string? sinceLabel = ReadShownVersion();
+        string subtitle = !string.IsNullOrWhiteSpace(sinceLabel)
+            && !string.Equals(
+                UpdateCheckService.NormalizeTag(sinceLabel),
+                UpdateCheckService.NormalizeTag(current),
+                StringComparison.OrdinalIgnoreCase)
+            ? "O que mudou desde a v" + UpdateCheckService.NormalizeTag(sinceLabel) + ":"
+            : "Atualizou? Aqui está o que mudou nas versões novas.";
+
         ChangelogWindow.Show(
             tag,
             notes,
-            subtitle: "Atualizou? Aqui está o que mudou nesta versão.",
+            subtitle: subtitle,
             markShownVersion: current);
     }
 }
