@@ -5,8 +5,9 @@ namespace GuttyRL;
 
 /// <summary>
 /// Resolve o INI/saves do RL sem cair no OneDrive nem noutro perfil Windows.
-/// Caso MENĐONÇA: OneDrive desinstalado mas Documentos ainda redirecionado;
-/// RESTAURAR PRESETS recriava OneDrive\Documentos e copiava saves para Steam.
+/// Caso MENĐONÇA: OneDrive no perfil atual (gusta) + perfil Windows antigo
+/// (Gustavo) com Documentos local. v25.0.13 pinava o perfil errado e o restore
+/// nunca migrava o OneDrive do jogo real.
 /// </summary>
 internal static class RlPathResolver
 {
@@ -24,20 +25,24 @@ internal static class RlPathResolver
 
     private static string PinFile => Path.Combine(AppMeta.GuttyDir, "rl-ini.path");
 
-    public static bool IsOneDrivePath(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return false;
-        return path.IndexOf("OneDrive", StringComparison.OrdinalIgnoreCase) >= 0;
-    }
+    public static bool IsOneDrivePath(string? path) => RlPathPolicy.IsOneDrivePath(path);
 
     public static string? ResolveIni()
     {
+        string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string? ov = Environment.GetEnvironmentVariable("GUTTYRL_INI");
         if (!string.IsNullOrWhiteSpace(ov) && File.Exists(ov))
             return ov;
 
         string? pinned = ReadPinned();
-        if (pinned is not null && File.Exists(pinned) && !IsOneDrivePath(pinned))
+        if (pinned is not null && !RlPathPolicy.IsPinnedUsable(pinned, me))
+        {
+            AppMeta.Log("Pin ignorado: " + pinned);
+            try { File.Delete(PinFile); } catch { }
+            pinned = null;
+        }
+
+        if (pinned is not null && File.Exists(pinned))
             return pinned;
 
         var ranked = RankCandidates();
@@ -52,37 +57,47 @@ internal static class RlPathResolver
             }
         }
 
-        if (pinned is not null && File.Exists(pinned))
-            return pinned;
-
         return ranked.FirstOrDefault();
     }
 
     /// <summary>
-    /// Se o INI/saves estiverem no OneDrive: copia para Documentos local,
-    /// desfaz o redirecionamento do Windows e devolve o novo caminho.
+    /// Se o INI do usuario atual estiver no OneDrive: copia para Documentos
+    /// local e desfaz o redirecionamento. Nao mexe em perfil Windows alheio
+    /// nem desfaz Documentos sem uma fonte OneDrive deste usuario.
     /// </summary>
     public static string RelocateOffOneDriveIfNeeded(string iniPath)
     {
-        if (string.IsNullOrWhiteSpace(iniPath) || !IsOneDrivePath(iniPath))
+        string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(iniPath) || !RlPathPolicy.NeedsRelocation(iniPath, me))
             return iniPath;
 
-        string? localDocs = GetDefaultDocumentsPath() ?? LocalDocumentsGuess();
-        if (string.IsNullOrWhiteSpace(localDocs))
+        string? localDocs = ResolveLocalDocumentsDir();
+        if (string.IsNullOrWhiteSpace(localDocs)
+            || RlPathPolicy.IsOneDrivePath(localDocs)
+            || !RlPathPolicy.IsUnderProfile(localDocs, me))
         {
-            AppMeta.Log("OneDrive: nao achei Documentos local para migrar.");
+            AppMeta.Log("OneDrive: nao achei Documentos local para migrar (" + localDocs + ").");
             return iniPath;
         }
 
         try { Directory.CreateDirectory(localDocs); } catch { }
 
-        string? srcRl = TryGetRocketLeagueRoot(iniPath);
         string destRl = Path.Combine(localDocs, "My Games", "Rocket League");
         string destIni = Path.Combine(destRl, "TAGame", "Config", "TASystemSettings.ini");
 
-        if (srcRl is not null && Directory.Exists(srcRl))
+        string? srcIni = RlPathPolicy.ChooseCopySourceIni(iniPath, EnumerateCurrentUserInis(), me);
+        if (!RlPathPolicy.CanRelocateOffOneDrive(srcIni, me))
         {
-            AppMeta.Log("OneDrive: a copiar RL -> " + destRl);
+            AppMeta.Log("OneDrive: relocate recusado (fonte nao e o OneDrive deste usuario).");
+            return iniPath;
+        }
+
+        string? srcRl = TryGetRocketLeagueRoot(srcIni!);
+        if (srcRl is not null
+            && Directory.Exists(srcRl)
+            && !SamePath(srcRl, destRl))
+        {
+            AppMeta.Log("OneDrive: a copiar RL -> " + destRl + " (fonte " + srcRl + ")");
             CopyTree(srcRl, destRl);
         }
 
@@ -106,6 +121,7 @@ internal static class RlPathResolver
         sb.AppendLine("UserProfile=" + Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         sb.AppendLine("MyDocuments(atual)=" + Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
         sb.AppendLine("Documents(default)=" + (GetDefaultDocumentsPath() ?? "(n/d)"));
+        sb.AppendLine("Documents(local dest)=" + (ResolveLocalDocumentsDir() ?? "(n/d)"));
         sb.AppendLine("Pinned=" + (ReadPinned() ?? "(nenhum)"));
         int i = 0;
         foreach (string ini in RankCandidates())
@@ -121,9 +137,8 @@ internal static class RlPathResolver
         foreach (string root in CandidateDocumentRoots(currentUserOnly: true))
             Consider(root, me, scored);
 
-        // Outro perfil Windows so se o atual nao tiver nada local.
-        bool hasLocalMine = scored.Any(x => !IsOneDrivePath(x.Ini));
-        if (!hasLocalMine)
+        // Outro perfil Windows so se o atual nao tiver NADA (nem OneDrive).
+        if (RlPathPolicy.ShouldScanOtherProfiles(scored.Select(x => x.Ini)))
         {
             try
             {
@@ -153,11 +168,7 @@ internal static class RlPathResolver
         string configDir = Path.Combine(docsRoot, @"My Games\Rocket League\TAGame\Config");
         if (!Directory.Exists(configDir)) return;
         string ini = Path.Combine(configDir, "TASystemSettings.ini");
-        int score = 0;
-        if (!IsOneDrivePath(ini)) score += 100;
-        else score -= 80;
-        if (ini.StartsWith(myProfile, StringComparison.OrdinalIgnoreCase)) score += 40;
-        else score -= 50;
+        int score = RlPathPolicy.Score(ini, myProfile);
 
         DateTime mtime = DateTime.MinValue;
         try
@@ -225,13 +236,19 @@ internal static class RlPathResolver
 
     public static string? GetDefaultDocumentsPath()
     {
+        string? raw = GetKnownFolderDefaultRaw();
+        return string.IsNullOrWhiteSpace(raw) ? LocalDocumentsGuess() : raw;
+    }
+
+    private static string? GetKnownFolderDefaultRaw()
+    {
         Guid id = FolderIdDocuments;
         if (SHGetKnownFolderPath(ref id, KfFlagDefaultPath, IntPtr.Zero, out IntPtr p) != 0 || p == IntPtr.Zero)
-            return LocalDocumentsGuess();
+            return null;
         try
         {
             string? s = Marshal.PtrToStringUni(p);
-            return string.IsNullOrWhiteSpace(s) ? LocalDocumentsGuess() : s;
+            return string.IsNullOrWhiteSpace(s) ? null : s;
         }
         finally
         {
@@ -242,11 +259,57 @@ internal static class RlPathResolver
     private static string? LocalDocumentsGuess()
     {
         string up = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string docs = Path.Combine(up, "Documents");
-        string docsPt = Path.Combine(up, "Documentos");
-        if (Directory.Exists(docs) && !IsOneDrivePath(docs)) return docs;
-        if (Directory.Exists(docsPt) && !IsOneDrivePath(docsPt)) return docsPt;
-        return docs;
+        return ResolveLocalDocumentsDir() ?? Path.Combine(up, "Documents");
+    }
+
+    private static string? ResolveLocalDocumentsDir()
+    {
+        string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var candidates = new List<string>();
+        string? def = GetKnownFolderDefaultRaw();
+        if (!string.IsNullOrWhiteSpace(def)) candidates.Add(PhysicalOrSelf(def));
+        candidates.Add(PhysicalOrSelf(Path.Combine(me, "Documents")));
+        candidates.Add(PhysicalOrSelf(Path.Combine(me, "Documentos")));
+        return RlPathPolicy.PickLocalDocuments(me, candidates);
+    }
+
+    private static IEnumerable<string> EnumerateCurrentUserInis()
+    {
+        string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        foreach (string root in CandidateDocumentRootsFor(me))
+        {
+            string configDir = Path.Combine(root, @"My Games\Rocket League\TAGame\Config");
+            if (!Directory.Exists(configDir)) continue;
+            yield return Path.Combine(configDir, "TASystemSettings.ini");
+        }
+    }
+
+    private static string PhysicalOrSelf(string path)
+    {
+        try
+        {
+            var di = new DirectoryInfo(path);
+            if (di.Exists)
+            {
+                FileSystemInfo? target = di.ResolveLinkTarget(returnFinalTarget: true);
+                if (target is not null) return target.FullName;
+            }
+        }
+        catch { }
+
+        return path;
+    }
+
+    private static bool SamePath(string a, string b)
+    {
+        try
+        {
+            return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     private static bool TryUnredirectDocuments(string localDocs)
@@ -327,6 +390,13 @@ internal static class RlPathResolver
 
     public static void Pin(string iniPath)
     {
+        string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!RlPathPolicy.IsPinnedUsable(iniPath, me))
+        {
+            AppMeta.Log("Pin recusado: " + iniPath);
+            return;
+        }
+
         try
         {
             Directory.CreateDirectory(AppMeta.GuttyDir);

@@ -169,8 +169,16 @@ internal static class ErrorRepair
         if (IsOneDrivePath(cfg) || IsOneDrivePath(epic) || IsOneDrivePath(steam))
         {
             lines.Add("  !! OneDrive: INI/saves em " + (cfg ?? epic ?? steam));
-            lines.Add("  ACAO: RESTAURAR PRESETS (v25.0.13+ copia para Documentos local e desfaz o redirecionamento)");
+            lines.Add("  ACAO: RESTAURAR PRESETS (v25.0.20+ copia para Documentos local do SEU usuario)");
             lines.Add("  Mesmo sem OneDrive instalado o Windows pode ainda apontar Documentos para la — presets OK offline e somem online");
+            issues = true;
+        }
+
+        string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(cfg) && RlPathPolicy.IsForeignProfile(cfg, me))
+        {
+            lines.Add("  !! INI noutro perfil Windows: " + cfg);
+            lines.Add("  ACAO: fecha o Gutty antigo (Downloads) e usa so o exe novo — restore no perfil errado nao mexe no jogo");
             issues = true;
         }
 

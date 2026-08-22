@@ -1,15 +1,16 @@
-GUTTYTECH RL Optimizer v25.0.19
+GUTTYTECH RL Optimizer v25.0.20
 
-O changelog ficou em cards por versão, com X visível pra fechar.
+O restore de presets deixou de gravar na pasta de outro usuario Windows.
 
 O que mudou:
-- Cada versão (v25.0.18, v25.0.17…) tem o próprio bloco; a mais nova vem marcada
-- O X do popup não some mais no fundo escuro
-- v25.0.18: quem pula versões vê tudo que mudou desde a sua
+- Se o Windows ainda tem um perfil antigo (ex.: Gustavo) e o jogo corre noutro (gusta), o Gutty usa o seu perfil — nao o antigo
+- OneDrive: copia a pasta do RL do seu usuario para Documentos local e solta o redirecionamento
+- Quem tem o RL em Documentos normal (sem OneDrive / sem outro usuario) nao muda nada
 
 Como atualizar:
-1. Baixe o GuttyTECH_RL.exe novo
-2. Feche o app antigo
-3. Abra o .exe novo
+1. Feche TODOS os GuttyTECH_RL que estiverem abertos
+2. Baixe o GuttyTECH_RL.exe novo
+3. Abra o .exe novo (nao o da pasta Downloads antigo)
+4. Feche o Rocket League → RESTAURAR PRESETS → abra o RL offline uma vez
 
 ⚠️ Roda como administrador. Só trocar o arquivo.

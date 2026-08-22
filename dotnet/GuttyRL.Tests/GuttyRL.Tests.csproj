@@ -23,6 +23,7 @@
     <Compile Include="..\ChangelogRange.cs" Link="ChangelogRange.cs" />
     <Compile Include="..\ReleaseNotesFormatter.cs" Link="ReleaseNotesFormatter.cs" />
     <Compile Include="..\AppMeta.cs" Link="AppMeta.cs" />
+    <Compile Include="..\RlPathPolicy.cs" Link="RlPathPolicy.cs" />
   </ItemGroup>
 
 </Project>
