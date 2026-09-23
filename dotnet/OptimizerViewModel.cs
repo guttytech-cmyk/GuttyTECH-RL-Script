@@ -16,21 +16,29 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private bool _refreshInFlight;
     private bool _isCheckingUpdates;
     private int _progressValue;
-    private string _operationTitle = "PREPARANDO OPERAÇÃO";
-    private string _progressMessage = "Aguarde um instante";
+    private string _operationTitle = UiCopy.Get("op.preparing");
+    private string _progressMessage = UiCopy.Get("prog.wait");
     private string _progressDetail = string.Empty;
-    private string _appliedMode = "CARREGANDO";
-    private string _stateLabel = "Lendo perfil do Rocket League";
+    private string _progressMessageKey = "prog.wait";
+    private string? _progressDetailKey;
+    private string _appliedMode = UiCopy.Get("state.loading");
+    private string _stateLabel = UiCopy.Get("state.reading");
     private string _writableLabel = "…";
-    private string _writableHint = "A verificar permissão da pasta";
+    private string _writableHint = UiCopy.Get("hint.writable");
     private string _rocketLeagueLabel = "…";
-    private string _rocketLeagueHint = "A verificar se o jogo está aberto";
+    private string _rocketLeagueHint = UiCopy.Get("hint.game");
     private string _protectedLabel = "…";
-    private string _protectedHint = "A verificar bloqueio do perfil";
+    private string _protectedHint = UiCopy.Get("hint.protect");
     private string _administratorLabel = "…";
-    private string _administratorHint = "A verificar direitos de administrador";
-    private string _configPath = "Localizando TASystemSettings.ini...";
-    private string _lastUpdated = "AGORA";
+    private string _administratorHint = UiCopy.Get("hint.admin");
+    private string _configPath = UiCopy.Get("dash.pathSearching");
+    private string _lastUpdated = UiCopy.Get("dash.now");
+    private OptimizerStatus? _status;
+    private OperationResult? _lastResult;
+    private OptimizerAction? _runningAction;
+    private FooterMode _footer = FooterMode.Now;
+    private string _footerA = "";
+    private string _footerB = "";
     private bool _isWritable;
     private bool _isRocketLeagueOpen;
     private bool _isProtected;
@@ -43,8 +51,17 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private bool _isConfirmationVisible;
     private string _confirmationTitle = string.Empty;
     private string _confirmationMessage = string.Empty;
-    private string _confirmationActionLabel = "CONTINUAR";
+    private string _confirmationActionLabel = "";
     private OptimizerAction? _pendingAction;
+
+    private enum FooterMode
+    {
+        Now,
+        Clock,
+        Checking,
+        NewVersion,
+        UpToDate,
+    }
 
     public OptimizerViewModel(OptimizerService service)
     {
@@ -89,6 +106,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             Interval = TimeSpan.FromSeconds(5),
         };
         _refreshTimer.Tick += OnRefreshTimerTick;
+        UiLanguage.Changed += OnLanguageChanged;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -162,7 +180,8 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         }
     }
 
-    public string RefreshButtonLabel => UpdateCheckBusyState.ButtonLabel(IsCheckingUpdates);
+    public string RefreshButtonLabel =>
+        UiCopy.Get(IsCheckingUpdates ? "btn.searching" : "btn.refresh");
 
     public int ProgressValue
     {
@@ -370,8 +389,34 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
     public void Dispose()
     {
+        UiLanguage.Changed -= OnLanguageChanged;
         _refreshTimer.Stop();
         _refreshTimer.Tick -= OnRefreshTimerTick;
+    }
+
+    private void OnLanguageChanged()
+    {
+        OnPropertyChanged(nameof(RefreshButtonLabel));
+        PublishFooter();
+        if (_status is not null)
+            PaintStatus(_status);
+        if (_runningAction is OptimizerAction running)
+            OperationTitle = GetOperationTitle(running);
+        ProgressMessage = UiCopy.Get(_progressMessageKey);
+        ProgressDetail = string.IsNullOrEmpty(_progressDetailKey) ? "" : UiCopy.Get(_progressDetailKey);
+        OnPropertyChanged(nameof(IsProgressDetailVisible));
+        if (_lastResult is not null && IsFeedbackVisible)
+        {
+            FeedbackTitle = _lastResult.Title;
+            FeedbackMessage = _lastResult.Message;
+        }
+        if (_pendingAction is OptimizerAction pending && IsConfirmationVisible
+            && TryGetConfirmation(pending, out string title, out string message, out string actionLabel))
+        {
+            ConfirmationTitle = title;
+            ConfirmationMessage = message;
+            ConfirmationActionLabel = actionLabel;
+        }
     }
 
     private AsyncRelayCommand CreateOperationCommand(OptimizerAction action)
@@ -429,17 +474,22 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
         IsBusy = true;
         DismissFeedback();
+        _runningAction = action;
         ProgressValue = 0;
         OperationTitle = GetOperationTitle(action);
-        ProgressMessage = "Preparando ambiente";
+        _progressMessageKey = "prog.wait";
+        _progressDetailKey = null;
+        ProgressMessage = UiCopy.Get("prog.wait");
         ProgressDetail = string.Empty;
         NotifyProgressSteps();
 
         var progress = new Progress<OperationProgress>(value =>
         {
             ProgressValue = Math.Clamp(value.Percentage, 0, 100);
-            ProgressMessage = value.Message;
-            ProgressDetail = value.Detail ?? string.Empty;
+            _progressMessageKey = value.Message;
+            _progressDetailKey = value.Detail;
+            ProgressMessage = UiCopy.Get(value.Message);
+            ProgressDetail = string.IsNullOrEmpty(value.Detail) ? "" : UiCopy.Get(value.Detail);
         });
 
         try
@@ -450,6 +500,7 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         }
         finally
         {
+            _runningAction = null;
             IsBusy = false;
         }
     }
@@ -485,7 +536,10 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             if (checkUpdates)
             {
                 if (userCheck)
-                    LastUpdated = UpdateCheckBusyState.FooterChecking;
+                {
+                    _footer = FooterMode.Checking;
+                    PublishFooter();
+                }
 
                 await CheckForUpdatesAsync(forceToast: true, showFeedback: showFeedback);
                 return;
@@ -497,8 +551,8 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                     true,
                     false,
                     FeedbackTone.Success,
-                    "STATUS ATUALIZADO",
-                    "Perfil, acesso e processo do Rocket League foram verificados."));
+                    "fb.statusTitle",
+                    "fb.statusBody"));
             }
         }
         finally
@@ -511,14 +565,15 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
     private void BeginCheckingUpdatesUi()
     {
-        LastUpdated = UpdateCheckBusyState.FooterChecking;
+        _footer = FooterMode.Checking;
+        PublishFooter();
         IsCheckingUpdates = true;
         ShowFeedback(new OperationResult(
             true,
             false,
             FeedbackTone.Warning,
-            UpdateCheckBusyState.OverlayTitle,
-            UpdateCheckBusyState.OverlayMessage));
+            "upd.overlayTitle",
+            "upd.overlayBody"));
     }
 
     private void EndCheckingUpdatesUi() => IsCheckingUpdates = false;
@@ -534,7 +589,8 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                     false,
                     true,
                     FeedbackTone.Warning,
-                    "GITHUB INDISPONÍVEL",
+                    "fb.githubDownTitle",
+                    "raw.pass",
                     update.Message));
             }
 
@@ -543,7 +599,10 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
         if (update.UpdateAvailable)
         {
-            LastUpdated = $"NOVA {update.LatestTag} · local {update.CurrentVersion}";
+            _footer = FooterMode.NewVersion;
+            _footerA = update.LatestTag ?? "";
+            _footerB = update.CurrentVersion;
+            PublishFooter();
             if (forceToast || !UpdateCheckService.WasDismissed(update.LatestTag))
                 UpdateToastWindow.ShowUpdate(update);
 
@@ -553,14 +612,18 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                     true,
                     false,
                     FeedbackTone.Warning,
-                    "VERSÃO NOVA NO GITHUB",
-                    update.Message + " Veja o changelog no popup e use BAIXAR."));
+                    "fb.newTitle",
+                    "fb.newBody",
+                    update.Message));
             }
 
             return;
         }
 
-        LastUpdated = DateTime.Now.ToString("'ATUALIZADO' HH:mm:ss") + " · " + update.CurrentVersion;
+        _footer = FooterMode.UpToDate;
+        _footerA = DateTime.Now.ToString("HH:mm:ss");
+        _footerB = update.CurrentVersion;
+        PublishFooter();
         if (showFeedback)
         {
             // Ja atualizado: ainda assim mostra o changelog da versao atual (pedido Discord).
@@ -569,14 +632,15 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
                 ChangelogWindow.Show(
                     update.LatestTag ?? update.CurrentVersion,
                     update.ReleaseNotes!,
-                    subtitle: "Você já está na última versão. Resumo do que mudou:");
+                    subtitle: UiCopy.Get("log.already"));
             }
 
             ShowFeedback(new OperationResult(
                 true,
                 false,
                 FeedbackTone.Success,
-                "ÚLTIMA VERSÃO",
+                "fb.latestTitle",
+                "raw.pass",
                 update.Message));
         }
     }
@@ -584,61 +648,93 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private async Task RefreshStatusCoreAsync()
     {
         OptimizerStatus status = await _service.GetStatusAsync();
-        AppliedMode = status.AppliedMode;
-        StateLabel = status.StateLabel;
+        _status = status;
+        PaintStatus(status);
+        _footer = FooterMode.Clock;
+        _footerA = DateTime.Now.ToString("HH:mm:ss");
+        PublishFooter();
+    }
+
+    private void PaintStatus(OptimizerStatus status)
+    {
+        AppliedMode = LocalMode(status.AppliedMode);
+        StateLabel = LocalState(status.StateLabel);
         IsWritable = status.IsWritable;
         IsRocketLeagueOpen = status.IsRocketLeagueOpen;
         IsProtected = status.IsProtected;
         IsAdministrator = status.IsAdministrator;
         ConfigExists = status.ConfigExists;
 
-        // Textos curtos em PT-BR — cabem nos cards sem cortar.
-        WritableLabel = status.IsWritable ? "OK" : "BLOQUEADA";
-        WritableHint = status.IsWritable
-            ? "Podemos salvar o perfil"
-            : "Sem permissão — Corrigir";
+        WritableLabel = status.IsWritable ? UiCopy.Get("card.ok") : UiCopy.Get("card.blocked");
+        WritableHint = status.IsWritable ? UiCopy.Get("hint.canWrite") : UiCopy.Get("hint.noPerm");
 
-        RocketLeagueLabel = status.IsRocketLeagueOpen ? "ABERTO" : "FECHADO";
-        RocketLeagueHint = status.IsRocketLeagueOpen
-            ? "Feche o jogo pra aplicar"
-            : "Pode aplicar um modo";
+        RocketLeagueLabel = status.IsRocketLeagueOpen ? UiCopy.Get("card.open") : UiCopy.Get("card.closed");
+        RocketLeagueHint = status.IsRocketLeagueOpen ? UiCopy.Get("hint.closeGame") : UiCopy.Get("hint.canApply");
 
-        // Proteção = modo Gutty ativo (+ watcher). INI read-only fica off de proposito.
         IsProtected = status.IsProtected;
         if (status.IsProtected)
         {
             if (status.IsWatcherActive)
             {
-                ProtectedLabel = "ATIVA";
-                ProtectedHint = "Watcher anti-rewrite · vídeo livre";
+                ProtectedLabel = UiCopy.Get("card.active");
+                ProtectedHint = UiCopy.Get("hint.watcher");
             }
             else
             {
-                ProtectedLabel = "MODO";
-                ProtectedHint = "Modo ativo — watcher a arrancar";
+                ProtectedLabel = UiCopy.Get("card.modeOnly");
+                ProtectedHint = UiCopy.Get("hint.watcherStarting");
             }
         }
         else
         {
-            ProtectedLabel = "OFF";
-            ProtectedHint = "Sem modo Gutty aplicado";
+            ProtectedLabel = UiCopy.Get("card.off");
+            ProtectedHint = UiCopy.Get("hint.noMode");
         }
 
-        AdministratorLabel = status.IsAdministrator ? "SIM" : "NÃO";
-        AdministratorHint = status.IsAdministrator
-            ? "Rodando como admin"
-            : "ERRO: abra como administrador";
+        AdministratorLabel = status.IsAdministrator ? UiCopy.Get("card.yes") : UiCopy.Get("card.no");
+        AdministratorHint = status.IsAdministrator ? UiCopy.Get("hint.adminOk") : UiCopy.Get("hint.adminBad");
 
         ConfigPath = string.IsNullOrWhiteSpace(status.ConfigPath)
-            ? "Perfil ainda não encontrado — abra o Rocket League uma vez."
+            ? UiCopy.Get("dash.pathMissing")
             : status.ConfigPath;
-        LastUpdated = DateTime.Now.ToString("'ATUALIZADO' HH:mm:ss");
+    }
+
+    private static string LocalMode(string mode) => mode switch
+    {
+        "COMPLETO" => UiCopy.Get("mode.completo"),
+        "CRIADOR" => UiCopy.Get("mode.criador"),
+        "ORIGINAL" => UiCopy.Get("mode.original"),
+        _ => mode,
+    };
+
+    private static string LocalState(string label) => label switch
+    {
+        "FPS máximo ativo" => UiCopy.Get("state.fps"),
+        "Visual + perf ativo" => UiCopy.Get("state.creator"),
+        "Original (não otimizado)" => UiCopy.Get("state.original"),
+        "Otimizado (versão antiga)" => UiCopy.Get("state.legacy"),
+        "Perfil do Rocket League ainda não localizado" => UiCopy.Get("state.missing"),
+        "INI ausente — abra o Rocket League uma vez" => UiCopy.Get("state.noini"),
+        _ => label,
+    };
+
+    private void PublishFooter()
+    {
+        LastUpdated = _footer switch
+        {
+            FooterMode.Checking => UiCopy.Get("upd.footerChecking"),
+            FooterMode.NewVersion => UiCopy.Format("upd.footerNew", _footerA, _footerB),
+            FooterMode.UpToDate => UiCopy.Format("upd.footerOk", _footerA, _footerB),
+            FooterMode.Clock => UiCopy.Format("dash.updated", _footerA),
+            _ => UiCopy.Get("dash.now"),
+        };
     }
 
     private void Navigate(OptimizerSection section) => SelectedSection = section;
 
     private void ShowFeedback(OperationResult result)
     {
+        _lastResult = result;
         _feedbackTone = result.Tone;
         FeedbackTitle = result.Title;
         FeedbackMessage = result.Message;
@@ -652,8 +748,9 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     {
         AppMeta.Log($"GUI command: {ex.GetType().Name}: {ex.Message}");
         _feedbackTone = FeedbackTone.Error;
-        FeedbackTitle = "ERRO NA INTERFACE";
-        FeedbackMessage = "A ação foi interrompida com segurança. Consulte " + AppMeta.LogFile;
+        _lastResult = new OperationResult(false, false, FeedbackTone.Error, "fb.uiErrorTitle", "fb.uiErrorBody", AppMeta.LogFile);
+        FeedbackTitle = _lastResult.Title;
+        FeedbackMessage = _lastResult.Message;
         IsFeedbackVisible = true;
         IsBusy = false;
         IsCheckingUpdates = false;
@@ -698,22 +795,22 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     }
 
     private static string GetOperationTitle(OptimizerAction action) =>
-        action switch
+        UiCopy.Get(action switch
         {
-            OptimizerAction.Completo => "APLICANDO MODO COMPLETO",
-            OptimizerAction.Criador => "APLICANDO MODO CRIADOR",
-            OptimizerAction.Remover => "REMOVENDO OTIMIZAÇÃO",
-            OptimizerAction.CopiarComando => "COPIANDO COMANDO",
-            OptimizerAction.CorrigirPermissoes => "CORRIGINDO PERMISSÕES",
-            OptimizerAction.RepararPerfil => "REPARANDO PERFIL",
-            OptimizerAction.RecuperarBoot => "RECUPERANDO BOOT",
-            OptimizerAction.RepararEac => "REPARANDO EASY ANTI-CHEAT",
-            OptimizerAction.Diagnostico => "GERANDO PACOTE DE LOGS",
-            OptimizerAction.CorrigirTudo => "CORRIGINDO TUDO",
-            OptimizerAction.RestaurarPresets => "RESTAURANDO PRESETS",
-            OptimizerAction.CorrigirSave => "CORRIGINDO SAVE / LOAD FAILURE",
-            _ => "EXECUTANDO OPERAÇÃO",
-        };
+            OptimizerAction.Completo => "op.completo",
+            OptimizerAction.Criador => "op.criador",
+            OptimizerAction.Remover => "op.remove",
+            OptimizerAction.CopiarComando => "op.copy",
+            OptimizerAction.CorrigirPermissoes => "op.perm",
+            OptimizerAction.RepararPerfil => "op.profile",
+            OptimizerAction.RecuperarBoot => "op.boot",
+            OptimizerAction.RepararEac => "op.eac",
+            OptimizerAction.Diagnostico => "op.diag",
+            OptimizerAction.CorrigirTudo => "op.all",
+            OptimizerAction.RestaurarPresets => "op.presets",
+            OptimizerAction.CorrigirSave => "op.save",
+            _ => "op.generic",
+        });
 
     private static bool TryGetConfirmation(
         OptimizerAction action,
@@ -724,29 +821,29 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         (title, message, actionLabel) = action switch
         {
             OptimizerAction.Remover => (
-                "REMOVER OTIMIZAÇÃO DO SISTEMA?",
-                "Para o watcher automático, restaura o INI stock/original, limpa o cache Epic e remove marcas Gutty. Presets e garagem ficam no cofre. Não apaga a pasta de backups.",
-                "REMOVER DO SISTEMA"),
+                UiCopy.Get("confirm.removeTitle"),
+                UiCopy.Get("confirm.removeBody"),
+                UiCopy.Get("confirm.removeAction")),
             OptimizerAction.RecuperarBoot => (
-                "JOGO NÃO ABRE — RECUPERAR BOOT?",
-                "Fecha o RL, remove o otimizador (INI stock), limpa boot-killers, põe saves suspeitos em quarentena e repara Easy Anti-Cheat (erro 30005). A garagem fica no Best — depois use RESTAURAR PRESETS. Só reaplique COMPLETO/CRIADOR depois do jogo abrir.",
-                "DESBLOQUEAR JOGO"),
+                UiCopy.Get("confirm.bootTitle"),
+                UiCopy.Get("confirm.bootBody"),
+                UiCopy.Get("confirm.bootAction")),
             OptimizerAction.RepararEac => (
-                "ERRO EAC 30005 — REPARAR ANTI-CHEAT?",
-                "Reinstala o serviço EasyAntiCheat_EOS (CreateService 1072). Não mexe no INI. Se o Windows marcou o serviço para apagar, pode ser preciso reiniciar o PC.",
-                "REPARAR EAC"),
+                UiCopy.Get("confirm.eacTitle"),
+                UiCopy.Get("confirm.eacBody"),
+                UiCopy.Get("confirm.eacAction")),
             OptimizerAction.CorrigirTudo => (
-                "JOGO NÃO ABRE — CORRIGIR TUDO?",
-                "Caminho nuclear: prioridade é o Rocket League voltar a abrir. Tira os saves live (garagem fica no Best). Depois que o jogo abrir: use RESTAURAR PRESETS. NÃO reaplica COMPLETO/CRIADOR em cima do perfil partido.",
-                "DESBLOQUEAR AGORA"),
+                UiCopy.Get("confirm.allTitle"),
+                UiCopy.Get("confirm.allBody"),
+                UiCopy.Get("confirm.allAction")),
             OptimizerAction.RestaurarPresets => (
-                "RESTAURAR PRESETS?",
-                "Vamos repor a maior garagem guardada (cofre Best) nas contas Epic/Steam e quarentenar o remote Steam Cloud. Depois abra o jogo OFFLINE na 1ª sessão.",
-                "RESTAURAR BACKUP"),
+                UiCopy.Get("confirm.presetsTitle"),
+                UiCopy.Get("confirm.presetsBody"),
+                UiCopy.Get("confirm.presetsAction")),
             OptimizerAction.CorrigirSave => (
-                "LOAD FAILURE — LIMPAR SAVE STEAM?",
-                "Fecha Steam+RL, desliga Cloud no localconfig, limpa SaveData (sem repor Best — isso fazia o aviso voltar). Depois abre o RL e se o aviso aparecer clica NEW SAVE (tutorial às vezes é normal; rank/itens online ficam). Só depois RESTAURAR PRESETS.",
-                "LIMPAR SAVE"),
+                UiCopy.Get("confirm.saveTitle"),
+                UiCopy.Get("confirm.saveBody"),
+                UiCopy.Get("confirm.saveAction")),
             _ => (string.Empty, string.Empty, string.Empty),
         };
 

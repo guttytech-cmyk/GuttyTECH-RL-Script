@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.21] — 2026-09-23
+### Adicionado
+- Botão **PT / EN** no canto superior direito. O padrão continua português.
+- A interface troca na hora: menus, modos, recuperação, sistema, avisos e o overlay de operação.
+
 ## [v25.0.20] — 2026-08-22
 ### Corrigido
 - **MENĐONÇA / OneDrive:** se existia um perfil Windows antigo (`Gustavo`) com Documentos local, o Gutty pinava esse INI e o restore gravava presets no perfil errado. O jogo (conta `gusta`) continuava no OneDrive.

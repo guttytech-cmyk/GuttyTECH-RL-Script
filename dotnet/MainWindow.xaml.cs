@@ -13,7 +13,34 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = new OptimizerViewModel(OptimizerService.Instance);
         DataContext = _viewModel;
+        UiLanguage.Changed += OnLanguageChanged;
+        UpdateLanguageVisual();
         UpdateMaximizeVisual();
+    }
+
+    private void OnPortugueseClick(object sender, RoutedEventArgs e) =>
+        UiLanguage.Use(AppLanguage.Portuguese);
+
+    private void OnEnglishClick(object sender, RoutedEventArgs e) =>
+        UiLanguage.Use(AppLanguage.English);
+
+    private void OnLanguageChanged()
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(OnLanguageChanged);
+            return;
+        }
+
+        UpdateLanguageVisual();
+        UpdateMaximizeVisual();
+    }
+
+    private void UpdateLanguageVisual()
+    {
+        bool english = UiLanguage.IsEnglish;
+        PortugueseButton.Tag = english ? null : "on";
+        EnglishButton.Tag = english ? "on" : null;
     }
 
     protected override void OnContentRendered(EventArgs e)
@@ -24,6 +51,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        UiLanguage.Changed -= OnLanguageChanged;
         _viewModel.Dispose();
         base.OnClosed(e);
     }
@@ -60,7 +88,7 @@ public partial class MainWindow : Window
     private void UpdateMaximizeVisual()
     {
         bool maximized = WindowState == WindowState.Maximized;
-        MaximizeButton.ToolTip = maximized ? "Restaurar" : "Maximizar";
+        MaximizeButton.ToolTip = maximized ? UiCopy.Get("cap.restore") : UiCopy.Get("cap.max");
         MaximizeIcon.Data = Geometry.Parse(
             maximized
                 ? "M3,1 H9 V7 H8 V2 H3 Z M1,3 H7 V9 H1 Z"

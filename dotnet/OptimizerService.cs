@@ -27,7 +27,7 @@ internal sealed class OptimizerService
         await _operationGate.WaitAsync(cancellationToken);
         try
         {
-            progress?.Report(new OperationProgress(8, "Preparando ambiente seguro"));
+            progress?.Report(new OperationProgress(8, "prog.safe"));
             return await Task.Run(
                 () => ExecuteCore(action, progress, cancellationToken),
                 cancellationToken);
@@ -38,8 +38,8 @@ internal sealed class OptimizerService
                 false,
                 true,
                 FeedbackTone.Warning,
-                "OPERAÇÃO CANCELADA",
-                "Nenhuma nova operação foi iniciada.");
+                "res.cancelledTitle",
+                "res.cancelledBody");
         }
         catch (Exception ex)
         {
@@ -48,8 +48,9 @@ internal sealed class OptimizerService
                 false,
                 false,
                 FeedbackTone.Error,
-                "FALHA INESPERADA",
-                "O motor interrompeu a operação com segurança. Consulte o log em " + AppMeta.LogFile);
+                "res.crashTitle",
+                "res.crashBody",
+                AppMeta.LogFile);
         }
         finally
         {
@@ -66,45 +67,36 @@ internal sealed class OptimizerService
 
         if (action == OptimizerAction.CopiarComando)
         {
-            progress?.Report(new OperationProgress(40, "Preparando comando unificado"));
+            progress?.Report(new OperationProgress(40, "prog.cmdPrep"));
             string cmd = LaunchCommand.Trim();
-            progress?.Report(new OperationProgress(65, "A gravar no Desktop e copiar"));
+            progress?.Report(new OperationProgress(65, "prog.cmdWrite"));
             string? desktopFile = TryWriteLaunchCommandFile(cmd);
             bool copied = ClipboardUtil.TryCopy(cmd);
             // App elevado → clipboard do admin != clipboard do user (Steam). De-eleva via explorer.
             if (!copied || ElevationService.IsAdministrator())
                 copied = ClipboardUtil.TryCopyUnelevated(cmd) || copied;
 
-            progress?.Report(new OperationProgress(100, copied ? "Comando pronto" : "Salvo no Desktop"));
-            string where = desktopFile is not null
-                ? "\nTambém salvo em: " + desktopFile
-                : "";
+            progress?.Report(new OperationProgress(100, copied ? "prog.cmdReady" : "prog.cmdDesktop"));
             if (copied)
             {
-                return Success(
-                    "COMANDO COPIADO",
-                    "Colado na área de transferência (sessão do utilizador):\n" + cmd + where
-                    + "\n\nSteam e Epic usam o mesmo comando.");
+                return desktopFile is not null
+                    ? Success("res.copyTitle", "res.copyBodyFile", cmd, desktopFile)
+                    : Success("res.copyTitle", "res.copyBody", cmd);
             }
 
             return desktopFile is not null
-                ? Success(
-                    "COMANDO NO DESKTOP",
-                    "O Windows bloqueou o clipboard (app em admin). Abre o ficheiro e copia (Ctrl+C):\n"
-                    + desktopFile + "\n\n" + cmd)
-                : Failure(
-                    "NÃO FOI POSSÍVEL COPIAR",
-                    "Copia manualmente:\n" + cmd);
+                ? Success("res.copyDesktopTitle", "res.copyDesktopBody", desktopFile, cmd)
+                : Failure("res.copyFailTitle", "res.copyFailBody", cmd);
         }
 
         if (action == OptimizerAction.Diagnostico)
         {
-            progress?.Report(new OperationProgress(20, "Lendo perfil e logs do otimizador"));
+            progress?.Report(new OperationProgress(20, "prog.diagRead"));
             Program.EnsureEngineInitializedForGui();
             cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report(new OperationProgress(55, "Empacotando diagnóstico e INI"));
+            progress?.Report(new OperationProgress(55, "prog.diagPack"));
             SupportLogService.PackResult pack = Program.CreateSupportPackForGui();
-            progress?.Report(new OperationProgress(100, pack.Success ? "Pacote pronto no Desktop" : "Falha ao gerar pacote"));
+            progress?.Report(new OperationProgress(100, pack.Success ? "prog.diagReady" : "prog.diagFail"));
             return BuildSupportPackResult(pack);
         }
 
@@ -117,17 +109,15 @@ internal sealed class OptimizerService
 
         if (before.IsRocketLeagueOpen)
         {
-            progress?.Report(new OperationProgress(8, "Fechando Rocket League", "O jogo sobrescreve o perfil se ficar aberto"));
+            progress?.Report(new OperationProgress(8, "prog.closing", "prog.closingDetail"));
             ErrorRepair.ForceCloseRocketLeague();
             if (System.Diagnostics.Process.GetProcessesByName("RocketLeague").Length > 0)
             {
-                return NoOp(
-                    "NÃO CONSEGUI FECHAR O JOGO",
-                    "Feche o Rocket League manualmente e tente de novo — o jogo sobrescreve o INI ao sair.");
+                return NoOp("res.closeFailTitle", "res.closeFailBody");
             }
         }
 
-        progress?.Report(new OperationProgress(12, GetPreparationMessage(action), "Preparando motor Gutty"));
+        progress?.Report(new OperationProgress(12, GetPreparationMessage(action), "prog.prepModeDetail"));
         cancellationToken.ThrowIfCancellationRequested();
 
         void Sink(int pct, string message, string? detail) =>
@@ -144,7 +134,7 @@ internal sealed class OptimizerService
             Program.GuiProgress = null;
         }
 
-        progress?.Report(new OperationProgress(98, "Validando resultado", "Lendo perfil aplicado"));
+        progress?.Report(new OperationProgress(98, "prog.validate", "prog.validateDetail"));
 
         if (exitCode == 0)
         {
@@ -177,7 +167,7 @@ internal sealed class OptimizerService
             after = Program.GetStatusForGui();
         }
 
-        progress?.Report(new OperationProgress(100, exitCode == 0 ? "Operação concluída" : "Ação requer atenção", null));
+        progress?.Report(new OperationProgress(100, exitCode == 0 ? "prog.done" : "prog.attention", null));
 
         // CORRIGIR-EAC: exit 2 = precisa reiniciar PC (serviço 1072) — nao e falha do otimizador.
         if (action == OptimizerAction.RepararEac && exitCode == 2)
@@ -186,8 +176,8 @@ internal sealed class OptimizerService
                 true,
                 false,
                 FeedbackTone.Warning,
-                "REINICIE O PC",
-                "O Windows marcou o Easy Anti-Cheat para apagar (1072). Reinicie e abra o RL. Se continuar: Verificar ficheiros na Epic.");
+                "res.rebootTitle",
+                "res.rebootBody");
         }
 
         if (exitCode != 0)
@@ -207,8 +197,8 @@ internal sealed class OptimizerService
             File.WriteAllText(
                 path,
                 cmd + Environment.NewLine + Environment.NewLine
-                + "Steam: Biblioteca → Rocket League → Engrenagem → Propriedades → Opções de inicialização" + Environment.NewLine
-                + "Epic: Library → Rocket League → … → Manage → Launch Options" + Environment.NewLine,
+                + UiCopy.Get("file.steam") + Environment.NewLine
+                + UiCopy.Get("file.epic") + Environment.NewLine,
                 new System.Text.UTF8Encoding(false));
             return path;
         }
@@ -224,9 +214,7 @@ internal sealed class OptimizerService
         if (string.IsNullOrWhiteSpace(status.ConfigPath)
             && action != OptimizerAction.Diagnostico)
         {
-            return NoOp(
-                "PERFIL DO JOGO NÃO ENCONTRADO",
-                "Abra o Rocket League uma vez para criar a pasta TAGame\\Config e tente novamente.");
+            return NoOp("res.noProfileTitle", "res.noProfileBody");
         }
 
         // Recuperar Boot / Corrigir Tudo fecham o RL automaticamente no ExecuteCore.
@@ -234,9 +222,7 @@ internal sealed class OptimizerService
         if (action == OptimizerAction.RepararPerfil
             && status.AppliedMode is not ("COMPLETO" or "CRIADOR"))
         {
-            return NoOp(
-                "NENHUM MODO ATIVO",
-                "Se o jogo não abre, use RECUPERAR BOOT ou CORRIGIR TUDO. Se abre, aplique COMPLETO/CRIADOR e depois repare.");
+            return NoOp("res.noModeTitle", "res.noModeBody");
         }
 
         return null;
@@ -249,59 +235,31 @@ internal sealed class OptimizerService
         action switch
         {
             OptimizerAction.Completo => Success(
-                "MODO COMPLETO APLICADO",
-                before.AppliedMode == "COMPLETO"
-                    ? "Perfil reaplicado. INI + watcher OK (menu de vídeo sincroniza quando houver save leve)."
-                    : "FPS máximo ativado, INI gravado e backup preservado."),
+                "res.okCompletoTitle",
+                before.AppliedMode == "COMPLETO" ? "res.okCompletoAgain" : "res.okCompletoFresh"),
             OptimizerAction.Criador => Success(
-                "MODO CRIADOR APLICADO",
-                before.AppliedMode == "CRIADOR"
-                    ? "Perfil visual reaplicado. INI + watcher OK (menu de vídeo sincroniza quando houver save leve)."
-                    : "Performance forte com visual competitivo. INI gravado e backup preservado."),
-            OptimizerAction.Remover => Success(
-                "OTIMIZAÇÃO REMOVIDA DO SISTEMA",
-                "Watcher parado, INI stock, cache Epic limpo. Presets/garagem intactos. Se colou flags em Steam/Epic, remova-as manualmente."),
+                "res.okCriadorTitle",
+                before.AppliedMode == "CRIADOR" ? "res.okCriadorAgain" : "res.okCriadorFresh"),
+            OptimizerAction.Remover => Success("res.okRemoveTitle", "res.okRemoveBody"),
             OptimizerAction.CorrigirPermissoes => Success(
-                "ACESSO RESTABELECIDO",
-                after.IsWritable
-                    ? "A pasta do jogo está gravável novamente."
-                    : "O reparo terminou, mas o Windows ainda pode exigir uma exceção no Defender."),
-            OptimizerAction.RepararPerfil => Success(
-                "PERFIL REPARADO",
-                "INI, menu de vídeo e cache foram sincronizados sem remover o modo aplicado."),
-            OptimizerAction.RecuperarBoot => Success(
-                "JOGO DESBLOQUEADO",
-                "INI stock + boot-safe + saves em quarentena + EAC OK. Próximo passo obrigatório: RESTAURAR PRESETS (este caminho tirou os saves live de propósito). Depois abra o RL 1× e só então reaplique o modo."),
-            OptimizerAction.RepararEac => Success(
-                "EAC REPARADO",
-                "Serviço EasyAntiCheat_EOS reinstalado. Abra o Rocket League pela Epic/Steam."),
-            OptimizerAction.CorrigirTudo => Success(
-                "CORREÇÃO NUCLEAR CONCLUÍDA",
-                "Boot desbloqueado (não reaplica o otimizador). AGORA use RESTAURAR PRESETS — os saves live foram pra quarentena de propósito. Só depois que a garagem voltar: abra o RL e reaplique COMPLETO/CRIADOR."),
-            OptimizerAction.RestaurarPresets => Success(
-                "PRESETS RESTAURADOS",
-                "Garagem reposta + Steam Cloud remote em quarentena. Abra OFFLINE na 1ª sessão; Steam: cloud OFF temporário."),
-            OptimizerAction.CorrigirSave => Success(
-                "SAVE STEAM LIMPO",
-                "Steam fechada, Cloud OFF, pasta SaveData limpa (sem repor Best). Abre o RL → se LOAD FAILURE usa NEW SAVE (tutorial pode aparecer; itens online ficam). Depois RESTAURAR PRESETS. Guia no Desktop."),
-            _ => Success("OPERAÇÃO CONCLUÍDA", "O estado do otimizador foi atualizado."),
+                "res.okPermTitle",
+                after.IsWritable ? "res.okPermYes" : "res.okPermMaybe"),
+            OptimizerAction.RepararPerfil => Success("res.okProfileTitle", "res.okProfileBody"),
+            OptimizerAction.RecuperarBoot => Success("res.okBootTitle", "res.okBootBody"),
+            OptimizerAction.RepararEac => Success("res.okEacTitle", "res.okEacBody"),
+            OptimizerAction.CorrigirTudo => Success("res.okAllTitle", "res.okAllBody"),
+            OptimizerAction.RestaurarPresets => Success("res.okPresetsTitle", "res.okPresetsBody"),
+            OptimizerAction.CorrigirSave => Success("res.okSaveTitle", "res.okSaveBody"),
+            _ => Success("res.okGenericTitle", "res.okGenericBody"),
         };
 
     private static OperationResult BuildFailure(OptimizerAction action, OptimizerStatus status)
     {
         if (status.IsRocketLeagueOpen)
-        {
-            return Failure(
-                "AÇÃO BLOQUEADA PELO JOGO",
-                "Feche o Rocket League e execute a operação novamente.");
-        }
+            return Failure("res.blockedTitle", "res.blockedBody");
 
         if (!status.IsWritable)
-        {
-            return Failure(
-                "PASTA AINDA BLOQUEADA",
-                "Execute CORRIGIR PERMISSÕES como administrador ou permita o aplicativo no Acesso Controlado a Pastas.");
-        }
+            return Failure("res.lockedTitle", "res.lockedBody");
 
         if (action is OptimizerAction.RecuperarBoot
             or OptimizerAction.RepararEac
@@ -312,40 +270,29 @@ internal sealed class OptimizerService
             {
                 return Failure(
                     install.Verdict == GameInstallProbe.InstallVerdict.Missing
-                        ? "JOGO NAO ENCONTRADO"
-                        : "INSTALACAO INCOMPLETA",
-                    GameInstallProbe.SuggestedAction(install)
-                    + " Depois que o RL abrir sozinho pela Epic/Steam, use RESTAURAR PRESETS.");
+                        ? "res.gameMissingTitle"
+                        : "res.gameBadTitle",
+                    install.Verdict == GameInstallProbe.InstallVerdict.Missing
+                        ? "res.installMissing"
+                        : "res.installIncomplete");
             }
         }
 
         return action switch
         {
-            OptimizerAction.RepararPerfil => Failure(
-                "REPARO PARCIAL",
-                "O modo foi detectado, mas INI, save ou cache não sincronizou por completo."),
-            OptimizerAction.RecuperarBoot => Failure(
-                "RECUPERAÇÃO INCOMPLETA",
-                "Não foi possível restaurar todos os arquivos stock/saves/EAC. Se viu erro 30005, reinicie o PC e use REPARAR EAC."),
-            OptimizerAction.RepararEac => Failure(
-                "EAC AINDA FALHOU",
-                "Reinicie o PC (serviço marcado para apagar — 1072). Depois Epic → Verificar arquivos e abra o jogo."),
-            OptimizerAction.RestaurarPresets => Failure(
-                "SEM BACKUP RECUPERÁVEL",
-                "Não há save grande em Backups/Presets/Best. Sem esse arquivo local não dá para recuperar a garagem."),
-            OptimizerAction.CorrigirSave => Failure(
-                "SAVE AINDA EM RISCO",
-                "Não consegui limpar o SaveData/Steam Cloud. Feche Steam + RL e tente de novo; se falhar, use RECUPERAR BOOT."),
-            _ => Failure(
-                "OPERAÇÃO NÃO CONCLUÍDA",
-                "O motor preservou o backup, mas uma etapa falhou. Gere o pacote de logs e manda pro Gutty."),
+            OptimizerAction.RepararPerfil => Failure("res.profilePartialTitle", "res.profilePartialBody"),
+            OptimizerAction.RecuperarBoot => Failure("res.bootPartialTitle", "res.bootPartialBody"),
+            OptimizerAction.RepararEac => Failure("res.eacFailTitle", "res.eacFailBody"),
+            OptimizerAction.RestaurarPresets => Failure("res.noBackupTitle", "res.noBackupBody"),
+            OptimizerAction.CorrigirSave => Failure("res.saveRiskTitle", "res.saveRiskBody"),
+            _ => Failure("res.failTitle", "res.failBody"),
         };
     }
 
     private static OperationResult BuildSupportPackResult(SupportLogService.PackResult pack)
     {
         if (!pack.Success)
-            return Failure("PACOTE NÃO GERADO", pack.Summary);
+            return Failure("res.packFailTitle", "raw.pass", pack.Summary);
 
         if (pack.HasIssues)
         {
@@ -353,11 +300,12 @@ internal sealed class OptimizerService
                 true,
                 false,
                 FeedbackTone.Warning,
-                "PACOTE PRONTO — TEM ALERTAS",
+                "res.packWarnTitle",
+                "raw.pass",
                 pack.Summary);
         }
 
-        return Success("PACOTE PRONTO NO DESKTOP", pack.Summary);
+        return Success("res.packOkTitle", "raw.pass", pack.Summary);
     }
 
     private static string ToEngineMode(OptimizerAction action) =>
@@ -379,11 +327,11 @@ internal sealed class OptimizerService
     private static string GetPreparationMessage(OptimizerAction action) =>
         action switch
         {
-            OptimizerAction.Completo or OptimizerAction.Criador => "Criando backup e limpando perfil anterior",
-            OptimizerAction.Remover => "Parando watcher e preservando presets",
-            OptimizerAction.RestaurarPresets => "Localizando o melhor backup de garagem",
-            OptimizerAction.CorrigirSave => "Analisando saves Steam e remote Cloud",
-            _ => "Analisando INI, saves e permissões",
+            OptimizerAction.Completo or OptimizerAction.Criador => "prog.prepMode",
+            OptimizerAction.Remover => "prog.prepRemove",
+            OptimizerAction.RestaurarPresets => "prog.prepPresets",
+            OptimizerAction.CorrigirSave => "prog.prepSave",
+            _ => "prog.prepGeneric",
         };
 
     private static string GetExecutionMessage(OptimizerAction action) =>
@@ -402,11 +350,11 @@ internal sealed class OptimizerService
             _ => "Executando operação",
         };
 
-    private static OperationResult Success(string title, string message) =>
-        new(true, false, FeedbackTone.Success, title, message);
+    private static OperationResult Success(string title, string message, string arg0 = "", string arg1 = "") =>
+        new(true, false, FeedbackTone.Success, title, message, arg0, arg1);
 
-    private static OperationResult Failure(string title, string message) =>
-        new(false, false, FeedbackTone.Error, title, message);
+    private static OperationResult Failure(string title, string message, string arg0 = "") =>
+        new(false, false, FeedbackTone.Error, title, message, arg0);
 
     private static OperationResult NoOp(string title, string message) =>
         new(false, true, FeedbackTone.Warning, title, message);

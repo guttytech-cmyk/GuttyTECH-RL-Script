@@ -86,8 +86,8 @@ internal static class SupportLogService
 
             AppMeta.Log($"SUPPORT-PACK: {zipPath} files={included.Count} issues={issues}");
             string summary = issues
-                ? $"Zip no Desktop com alertas ({included.Count} ficheiros). Manda o ZIP pro Gutty: {Path.GetFileName(zipPath)}"
-                : $"Zip no Desktop pronto ({included.Count} ficheiros). Manda o ZIP pro Gutty: {Path.GetFileName(zipPath)}";
+                ? UiCopy.Format("pack.summaryWarn", included.Count, Path.GetFileName(zipPath))
+                : UiCopy.Format("pack.summaryOk", included.Count, Path.GetFileName(zipPath));
 
             return new PackResult(true, zipPath, summary, issues);
         }
@@ -97,7 +97,7 @@ internal static class SupportLogService
             return new PackResult(
                 false,
                 zipPath,
-                "Não consegui gerar o pacote de logs (" + ex.Message + "). Tenta de novo ou manda o log.txt da pasta GuttyTECH.",
+                UiCopy.Format("pack.summaryFail", ex.Message),
                 true);
         }
         finally

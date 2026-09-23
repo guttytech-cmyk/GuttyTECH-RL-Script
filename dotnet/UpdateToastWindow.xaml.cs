@@ -88,7 +88,7 @@ public partial class UpdateToastWindow : Window
             _autoCloseTimer.Stop();
             if (!string.IsNullOrWhiteSpace(_model.DownloadUrl) && !string.IsNullOrWhiteSpace(_model.Tag))
             {
-                _model.Detail = "Baixando para o Desktop…";
+                _model.Detail = UiCopy.Get("toast.downloading");
                 string? path = await UpdateCheckService.DownloadLatestAsync(_model.DownloadUrl, _model.Tag);
                 if (!string.IsNullOrWhiteSpace(path))
                 {
@@ -104,7 +104,7 @@ public partial class UpdateToastWindow : Window
                         ChangelogWindow.Show(
                             _model.Tag,
                             _model.Notes,
-                            subtitle: "Download pronto no Desktop. Feche este app e abra o .exe novo.");
+                            subtitle: UiCopy.Get("toast.downloadedSub"));
                     }
 
                     return;
@@ -118,7 +118,7 @@ public partial class UpdateToastWindow : Window
         catch (Exception ex)
         {
             AppMeta.Log("UPDATE-TOAST download: " + ex.Message);
-            _model.Detail = "Download falhou — abrindo a página da release.";
+            _model.Detail = UiCopy.Get("toast.downFail");
             UpdateCheckService.OpenUrl(_model.ReleaseUrl);
         }
     }
@@ -136,7 +136,7 @@ public partial class UpdateToastWindow : Window
             Notes = (update.ReleaseNotes ?? "").Trim();
             HasNotes = Notes.Length > 0;
             _detail = string.IsNullOrWhiteSpace(update.ReleaseName)
-                ? "Baixa o .exe novo, fecha este app e abre o arquivo do Desktop."
+                ? UiCopy.Get("toast.detailDefault")
                 : update.ReleaseName!;
         }
 

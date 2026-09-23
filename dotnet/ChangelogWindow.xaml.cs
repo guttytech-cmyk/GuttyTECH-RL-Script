@@ -15,9 +15,9 @@ public partial class ChangelogWindow : Window
         IReadOnlyList<ChangelogVersionCard> cards = ChangelogRange.ParseCards(notes);
         DataContext = new ChangelogWindowModel
         {
-            TitleText = string.IsNullOrWhiteSpace(tag) ? "O QUE MUDOU" : tag.ToUpperInvariant(),
+            TitleText = string.IsNullOrWhiteSpace(tag) ? UiCopy.Get("log.titleFallback") : tag.ToUpperInvariant(),
             SubtitleText = string.IsNullOrWhiteSpace(subtitle)
-                ? "Atualizou? Aqui está o que mudou nas últimas versões."
+                ? UiCopy.Get("log.subFallback")
                 : subtitle,
             Versions = cards,
         };

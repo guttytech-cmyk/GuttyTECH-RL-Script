@@ -41,6 +41,8 @@ internal static class Program
         }
         catch { }
 
+        UiLanguage.Load();
+
         if (args.Length == 0)
             ConsoleWindowService.Hide();
         else
@@ -166,6 +168,7 @@ internal static class Program
     {
         try
         {
+            UiLanguage.Load();
             var application = new App();
             application.DispatcherUnhandledException += (_, e) =>
             {
@@ -176,7 +179,7 @@ internal static class Program
                     return;
                 }
 
-                StartupGuard.ReportFatal("Erro na interface do GuttyRL.", e.Exception);
+                StartupGuard.ReportFatal(UiCopy.Get("fatal.ui"), e.Exception);
                 e.Handled = true;
                 try { application.Shutdown(99); } catch { }
             };
@@ -185,7 +188,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            StartupGuard.ReportFatal("Falha ao abrir a janela do GuttyRL.", ex);
+            StartupGuard.ReportFatal(UiCopy.Get("fatal.window"), ex);
             return 99;
         }
     }
@@ -692,7 +695,7 @@ internal static class Program
         }
 
         EnsureOriginalBackup();
-        ReportGui(18, "Backup do perfil", "Preservando INI e presets da garagem");
+        ReportGui(18, "prog.backup", "prog.backupDetail");
         // Presets/garagem (saves grandes) — antes de qualquer patch de video.
         try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
 
@@ -717,10 +720,10 @@ internal static class Program
         }
         else
         {
-            ReportGui(24, "Destravando arquivo", "Removendo somente-leitura se existir");
+            ReportGui(24, "prog.unlock", "prog.unlockDetail");
             Backup();
             Unlock(_cfg!);
-            ReportGui(32, "Limpando modo anterior", "Reset limpo antes de gravar " + mode);
+            ReportGui(32, "prog.clean", "prog.cleanDetail");
             if (!TryRestoreIni()) return FailOrElevate(mode, interactive);
         }
 
@@ -759,11 +762,11 @@ internal static class Program
         }
         else
         {
-            ReportGui(42, "Gravando otimização", mode + " → TASystemSettings.ini");
+            ReportGui(42, "prog.write", mode + " → TASystemSettings.ini");
             if (!DoWrite(content, mode)) return FailOrElevate(mode, interactive);
-            ReportGui(48, "Validando boot-safe", "Checando chaves que travam o jogo");
+            ReportGui(48, "prog.bootcheck", "prog.bootcheckDetail");
             ErrorRepair.ForceBootSafeIni(_cfg!);
-            ReportGui(52, "Sincronizando menu de vídeo", "Patch nas contas — esta etapa demora mais");
+            ReportGui(52, "prog.sync", "prog.syncDetail");
             int lastSyncPct = 52;
             Action<int, int, string> guiBar = (cur, tot, detail) =>
             {
@@ -772,15 +775,15 @@ internal static class Program
                 if (pct < lastSyncPct) pct = lastSyncPct;
                 else lastSyncPct = pct;
                 string label = string.IsNullOrWhiteSpace(detail)
-                    ? $"Conta {cur}/{safeTot}"
+                    ? UiCopy.Format("prog.account", cur, safeTot)
                     : $"{detail} ({cur}/{safeTot})";
-                ReportGui(Math.Min(pct, 86), "Sincronizando menu de vídeo", label);
+                ReportGui(Math.Min(pct, 86), "prog.sync", label);
             };
             if (!VideoSettingsSync.SyncVideoSave(_cfg!, mode, interactive, guiBar)) return 1;
-            ReportGui(90, "Reforçando presets", "Garantindo que a garagem não sumiu");
+            ReportGui(90, "prog.presets", "prog.presetsDetail");
             ErrorRepair.ForceBootSafeIni(_cfg!);
             if (mode is "CRIADOR" or "COMPLETO") UnlockCfg();
-            ReportGui(96, "Finalizando", "INI liberado pra o menu do jogo");
+            ReportGui(96, "prog.finish", "prog.finishDetail");
         }
 
         string msg = previous is null ? $"Aplicado {mode} (limpo)."

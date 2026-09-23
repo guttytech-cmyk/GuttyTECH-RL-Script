@@ -2,6 +2,7 @@
              x:Name="PanelRoot"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:GuttyRL"
              Background="{DynamicResource BackgroundBrush}"
              Focusable="False"
              Opacity="0">
@@ -79,7 +80,7 @@
                                Text="RL OPTIMIZER" />
                     <TextBlock Margin="0,4,0,0"
                                Style="{DynamicResource MutedTextStyle}"
-                               Text="Otimizador competitivo do Rocket League"
+                               Text="{ui:Tx brand.tagline}"
                                TextWrapping="Wrap" />
                 </StackPanel>
 
@@ -88,7 +89,7 @@
                     <TextBlock Margin="10,0,0,10"
                                Style="{DynamicResource EyebrowTextStyle}"
                                Foreground="{DynamicResource TextMutedBrush}"
-                               Text="NAVEGAÇÃO" />
+                               Text="{ui:Tx nav.eyebrow}" />
 
                     <Button Focusable="False"
                             Command="{Binding NavigateDashboardCommand}">
@@ -123,7 +124,7 @@
                             </Border>
                             <TextBlock Grid.Column="1"
                                        VerticalAlignment="Center"
-                                       Text="Visão Geral" />
+                                       Text="{ui:Tx nav.overview}" />
                             <Border Grid.Column="2"
                                     Background="{DynamicResource CtaBrush}">
                                 <Border.Style>
@@ -201,7 +202,7 @@
                             </Border>
                             <TextBlock Grid.Column="1"
                                        VerticalAlignment="Center"
-                                       Text="Otimização" />
+                                       Text="{ui:Tx nav.optimize}" />
                             <Border Grid.Column="2"
                                     Background="{DynamicResource CtaBrush}">
                                 <Border.Style>
@@ -279,7 +280,7 @@
                             </Border>
                             <TextBlock Grid.Column="1"
                                        VerticalAlignment="Center"
-                                       Text="Recuperação" />
+                                       Text="{ui:Tx nav.recovery}" />
                             <Border Grid.Column="2"
                                     Background="{DynamicResource WarningBrush}">
                                 <Border.Style>
@@ -357,7 +358,7 @@
                             </Border>
                             <TextBlock Grid.Column="1"
                                        VerticalAlignment="Center"
-                                       Text="Sistema" />
+                                       Text="{ui:Tx nav.system}" />
                             <Border Grid.Column="2"
                                     Background="{DynamicResource CyanBrush}">
                                 <Border.Style>
@@ -411,7 +412,7 @@
                     <StackPanel>
                         <TextBlock Style="{DynamicResource MutedTextStyle}"
                                    FontSize="10"
-                                   Text="ÚLTIMA ATUALIZAÇÃO" />
+                                   Text="{ui:Tx dash.lastUpdate}" />
                         <TextBlock Margin="0,6,0,0"
                                    FontSize="12"
                                    FontWeight="SemiBold"
@@ -424,7 +425,7 @@
                                 Style="{DynamicResource RefreshStatusButtonStyle}"
                                 Command="{Binding RefreshStatusCommand}"
                                 Content="{Binding RefreshButtonLabel, FallbackValue=ATUALIZAR}"
-                                ToolTip="Atualiza o estado local e procura versão nova no GitHub" />
+                                ToolTip="{ui:Tx dash.refreshTip}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -445,13 +446,13 @@
 
                     <StackPanel>
                         <TextBlock Style="{DynamicResource EyebrowTextStyle}"
-                                   Text="CENTRO DE COMANDO" />
+                                   Text="{ui:Tx dash.command}" />
                         <TextBlock Margin="0,4,0,0"
                                    Style="{DynamicResource PageTitleTextStyle}"
-                                   Text="VISÃO GERAL" />
+                                   Text="{ui:Tx dash.overview}" />
                         <TextBlock Margin="0,2,0,0"
                                    Style="{DynamicResource BodyTextStyle}"
-                                   Text="Estado do perfil e atalhos para as operações principais." />
+                                   Text="{ui:Tx dash.overviewSub}" />
                     </StackPanel>
 
                     <!-- Mode + status cards (legendas para cliente novo) -->
@@ -533,7 +534,7 @@
                             <StackPanel>
                                 <TextBlock Style="{DynamicResource MutedTextStyle}"
                                            FontSize="10"
-                                           Text="MODO ATIVO" />
+                                           Text="{ui:Tx card.mode}" />
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="22"
@@ -570,7 +571,7 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="PASTA" />
+                                               Text="{ui:Tx card.folder}" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
@@ -608,7 +609,7 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="JOGO" />
+                                               Text="{ui:Tx card.game}" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
@@ -649,7 +650,7 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="PROTEÇÃO" />
+                                               Text="{ui:Tx card.protect}" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
@@ -690,7 +691,7 @@
                                     <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                FontSize="10"
                                                VerticalAlignment="Center"
-                                               Text="ADMIN" />
+                                               Text="{ui:Tx card.admin}" />
                                 </StackPanel>
                                 <TextBlock Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
@@ -716,7 +717,7 @@
                         <StackPanel>
                             <TextBlock Style="{DynamicResource MutedTextStyle}"
                                        FontSize="10"
-                                       Text="CAMINHO DO PERFIL" />
+                                       Text="{ui:Tx card.path}" />
                             <TextBlock Margin="0,6,0,0"
                                        Style="{DynamicResource BodyTextStyle}"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
@@ -734,17 +735,17 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
-                                       Text="APLICAR PERFIL" />
+                                       Text="{ui:Tx dash.apply}" />
                             <TextBlock Margin="0,2,0,0"
                                        Style="{DynamicResource MutedTextStyle}"
-                                       Text="Escolha o modo. O resto é guerra." />
+                                       Text="{ui:Tx dash.applySub}" />
                         </StackPanel>
                         <Button Grid.Column="1"
                                 VerticalAlignment="Center"
                                 Focusable="False"
                                 Style="{DynamicResource GhostButtonStyle}"
                                 Command="{Binding NavigateOptimizationCommand}"
-                                Content="Ver detalhes →" />
+                                Content="{ui:Tx dash.details}" />
                     </Grid>
 
                     <UniformGrid Columns="2">
@@ -769,25 +770,25 @@
                                     <TextBlock FontSize="10"
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="FPS MÁXIMO" />
+                                               Text="{ui:Tx tag.fps}" />
                                 </Border>
 
                                 <TextBlock Grid.Row="1"
                                            Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="28"
-                                           Text="COMPLETO" />
+                                           Text="{ui:Tx mode.completo}" />
 
                                 <StackPanel Grid.Row="2" Margin="0,10,0,14">
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ Texturas esmagadas até 2×2" />
+                                               Text="{ui:Tx dash.b1}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ Sem sombras, decals, efeitos e tessellation" />
+                                               Text="{ui:Tx dash.b2}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
-                                               Text="▸ LOD 2x2 · sombra 1 · watcher anti-rewrite" />
+                                               Text="{ui:Tx dash.b3}" />
                                 </StackPanel>
 
                                 <Border Grid.Row="3"
@@ -798,7 +799,7 @@
                                                FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="14"
                                                Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="DETONAR COMPLETO" />
+                                               Text="{ui:Tx btn.detonate}" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -824,25 +825,25 @@
                                     <TextBlock FontSize="10"
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource CyanBrush}"
-                                               Text="STREAM / CAPTURA" />
+                                               Text="{ui:Tx tag.stream}" />
                                 </Border>
 
                                 <TextBlock Grid.Row="1"
                                            Margin="0,10,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="28"
-                                           Text="CRIADOR" />
+                                           Text="{ui:Tx mode.criador}" />
 
                                 <StackPanel Grid.Row="2" Margin="0,10,0,14">
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ Visual pra câmera não ficar feia" />
+                                               Text="{ui:Tx dash.c1}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0,0,0,6"
-                                               Text="▸ FPS + Apex/foliage/MSAA off — visual intacto" />
+                                               Text="{ui:Tx dash.c2}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
-                                               Text="▸ Estável pra clips e stream" />
+                                               Text="{ui:Tx dash.c3}" />
                                 </StackPanel>
 
                                 <Border Grid.Row="3"
@@ -855,7 +856,7 @@
                                                FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="14"
                                                Foreground="{DynamicResource CyanBrush}"
-                                               Text="ATIVAR CRIADOR" />
+                                               Text="{ui:Tx btn.creator}" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -871,13 +872,13 @@
                           Visibility="{Binding IsOptimizationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Margin="32,28,32,40">
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
-                               Text="PERFIS DE PERFORMANCE" />
+                               Text="{ui:Tx opt.eyebrow}" />
                     <TextBlock Margin="0,4,0,0"
                                Style="{DynamicResource PageTitleTextStyle}"
-                               Text="OTIMIZAÇÃO" />
+                               Text="{ui:Tx opt.title}" />
                     <TextBlock Margin="0,2,0,0"
                                Style="{DynamicResource BodyTextStyle}"
-                               Text="Escolha o modo. Resolução, borda e backups ficam intactos — o resto é guerra." />
+                               Text="{ui:Tx opt.sub}" />
 
                     <UniformGrid Margin="0,22,0,0" Columns="2">
                         <!-- COMPLETO -->
@@ -901,29 +902,29 @@
                                     <TextBlock FontSize="10"
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="FPS MÁXIMO" />
+                                               Text="{ui:Tx tag.fps}" />
                                 </Border>
 
                                 <StackPanel Grid.Row="1" Margin="0,12,0,0">
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="36"
-                                               Text="COMPLETO" />
+                                               Text="{ui:Tx mode.completo}" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Ranked. Throughput máximo. PC fraco ou sede de FPS."
+                                               Text="{ui:Tx opt.completoSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Margin="0,16,0,18">
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Bola, pitch, carros, banners e mapas: clamp até 2×2" />
+                                               Text="{ui:Tx opt.b1}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Sombras, decals, folhagem, APEX e pós: OFF; partículas no mínimo" />
+                                               Text="{ui:Tx opt.b2}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Tessellation mínima + draw distance e LOD no limite" />
+                                               Text="{ui:Tx opt.b3}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
-                                               Text="▸ FPS ilimitado + VSync off + menu sincronizado" />
+                                               Text="{ui:Tx opt.b4}" />
                                 </StackPanel>
 
                                 <Border Grid.Row="3"
@@ -934,7 +935,7 @@
                                                FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="16"
                                                Foreground="{DynamicResource TextPrimaryBrush}"
-                                               Text="DETONAR COMPLETO" />
+                                               Text="{ui:Tx btn.detonate}" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -960,29 +961,29 @@
                                     <TextBlock FontSize="10"
                                                FontWeight="SemiBold"
                                                Foreground="{DynamicResource CyanBrush}"
-                                               Text="STREAM / CAPTURA" />
+                                               Text="{ui:Tx tag.stream}" />
                                 </Border>
 
                                 <StackPanel Grid.Row="1" Margin="0,12,0,0">
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="36"
-                                               Text="CRIADOR" />
+                                               Text="{ui:Tx mode.criador}" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Clipes, stream e gravação sem parecer batata total."
+                                               Text="{ui:Tx opt.creatorSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Margin="0,16,0,18">
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Mantém leitura visual pra câmera não ficar feia" />
+                                               Text="{ui:Tx opt.c1}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ Texturas e mundo mais altos — ainda empurra FPS" />
+                                               Text="{ui:Tx opt.c2}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
-                                               Text="▸ FPS uncapped com perfil estável pra gravação" />
+                                               Text="{ui:Tx opt.c3}" />
                                     <TextBlock Style="{DynamicResource ModeBulletTextStyle}"
                                                Margin="0"
-                                               Text="▸ Ideal pra conteúdo competitivo sem sacrificar a imagem" />
+                                               Text="{ui:Tx opt.c4}" />
                                 </StackPanel>
 
                                 <Border Grid.Row="3"
@@ -995,7 +996,7 @@
                                                FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="16"
                                                Foreground="{DynamicResource CyanBrush}"
-                                               Text="ATIVAR CRIADOR" />
+                                               Text="{ui:Tx btn.creator}" />
                                 </Border>
                             </Grid>
                         </Button>
@@ -1006,17 +1007,17 @@
                             Style="{DynamicResource SurfaceBorderStyle}">
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
-                                       Text="PROTOCOLO AUTOMÁTICO" />
+                                       Text="{ui:Tx proto.title}" />
                             <UniformGrid Margin="0,18,0,0" Columns="4">
                                 <StackPanel Margin="0,0,12,0">
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="22"
                                                Foreground="{DynamicResource CtaBrush}"
                                                Text="01" />
-                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Backup" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="{ui:Tx proto.backup}" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Snapshot de segurança"
+                                               Text="{ui:Tx proto.backupSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                                 <StackPanel Margin="12,0">
@@ -1024,10 +1025,10 @@
                                                FontSize="22"
                                                Foreground="{DynamicResource CtaBrush}"
                                                Text="02" />
-                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Limpeza" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="{ui:Tx proto.clean}" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Remove resíduos antigos"
+                                               Text="{ui:Tx proto.cleanSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                                 <StackPanel Margin="12,0">
@@ -1035,10 +1036,10 @@
                                                FontSize="22"
                                                Foreground="{DynamicResource CtaBrush}"
                                                Text="03" />
-                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Aplicação" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="{ui:Tx proto.apply}" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Grava o novo perfil"
+                                               Text="{ui:Tx proto.applySub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                                 <StackPanel Margin="12,0,0,0">
@@ -1046,10 +1047,10 @@
                                                FontSize="22"
                                                Foreground="{DynamicResource CtaBrush}"
                                                Text="04" />
-                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="Sincronização" />
+                                    <TextBlock Margin="0,6,0,0" FontWeight="SemiBold" Text="{ui:Tx proto.sync}" />
                                     <TextBlock Margin="0,4,0,0"
                                                Style="{DynamicResource MutedTextStyle}"
-                                               Text="Epic, Steam e menu"
+                                               Text="{ui:Tx proto.syncSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </UniformGrid>
@@ -1061,7 +1062,7 @@
                             Focusable="False"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Command="{Binding RemoverCommand}"
-                            Content="REMOVER OTIMIZAÇÃO DO SISTEMA" />
+                            Content="{ui:Tx btn.remove}" />
                 </StackPanel>
             </ScrollViewer>
 
@@ -1074,13 +1075,13 @@
                 <StackPanel Margin="32,28,32,40">
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
                                Foreground="{DynamicResource WarningBrush}"
-                               Text="QUANDO DER PROBLEMA" />
+                               Text="{ui:Tx rec.eyebrow}" />
                     <TextBlock Margin="0,4,0,0"
                                Style="{DynamicResource PageTitleTextStyle}"
-                               Text="RECUPERAÇÃO" />
+                               Text="{ui:Tx rec.title}" />
                     <TextBlock Margin="0,2,0,0"
                                Style="{DynamicResource BodyTextStyle}"
-                               Text="Escolha a correção certa pro seu problema."
+                               Text="{ui:Tx rec.sub}"
                                TextWrapping="Wrap" />
 
                     <!-- 01–04: grid 2x2 por urgência -->
@@ -1115,10 +1116,10 @@
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="18"
                                                TextWrapping="Wrap"
-                                               Text="CORRIGIR PERMISSÕES" />
+                                               Text="{ui:Tx rec.perm}" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Desbloqueia a pasta do jogo quando o Windows impede de salvar."
+                                               Text="{ui:Tx rec.permSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
@@ -1154,10 +1155,10 @@
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="18"
                                                TextWrapping="Wrap"
-                                               Text="REPARAR PERFIL" />
+                                               Text="{ui:Tx rec.profile}" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Mantém seu modo (COMPLETO/CRIADOR) e conserta o menu de vídeo."
+                                               Text="{ui:Tx rec.profileSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
@@ -1193,10 +1194,10 @@
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="18"
                                                TextWrapping="Wrap"
-                                               Text="RESTAURAR PRESETS" />
+                                               Text="{ui:Tx rec.presets}" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Traz de volta carros e presets da garagem pelos backups locais."
+                                               Text="{ui:Tx rec.presetsSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
@@ -1232,10 +1233,10 @@
                                     <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                                FontSize="18"
                                                TextWrapping="Wrap"
-                                               Text="RECUPERAR BOOT" />
+                                               Text="{ui:Tx rec.boot}" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Jogo não abre / EAC 30005. Depois aplique o modo de novo."
+                                               Text="{ui:Tx rec.bootSub}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </Grid>
@@ -1273,10 +1274,10 @@
                                 <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="18"
                                            TextWrapping="Wrap"
-                                           Text="REPARAR EASY ANTI-CHEAT" />
+                                           Text="{ui:Tx rec.eac}" />
                                 <TextBlock Margin="0,6,0,0"
                                            Style="{DynamicResource BodyTextStyle}"
-                                           Text="Erro 30005 CreateService 1072 — serviço EAC preso. Não mexe no INI. Se pedir, reinicie o PC."
+                                           Text="{ui:Tx rec.eacSub}"
                                            TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
@@ -1313,10 +1314,10 @@
                                 <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="18"
                                            TextWrapping="Wrap"
-                                           Text="CORRIGIR SAVE — LOAD FAILURE" />
+                                           Text="{ui:Tx rec.save}" />
                                 <TextBlock Margin="0,6,0,0"
                                            Style="{DynamicResource BodyTextStyle}"
-                                           Text="Aviso LOAD FAILURE na Steam. Limpa o save quebrado. No aviso: NEW SAVE (oficial Epic) — depois use RESTAURAR PRESETS."
+                                           Text="{ui:Tx rec.saveSub}"
                                            TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
@@ -1333,12 +1334,12 @@
                             <TextBlock FontFamily="{DynamicResource TitleFontFamily}"
                                        FontSize="20"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="CORRIGIR TUDO" />
+                                       Text="{ui:Tx rec.all}" />
                             <TextBlock Margin="0,6,0,0"
                                        FontSize="13"
                                        LineHeight="20"
                                        Foreground="{DynamicResource TextPrimaryBrush}"
-                                       Text="Último recurso pra abrir o jogo. Tira saves live (Best fica). Depois: RESTAURAR PRESETS → só então reaplica o modo."
+                                       Text="{ui:Tx rec.allSub}"
                                        TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>
@@ -1354,13 +1355,13 @@
                 <StackPanel Margin="32,28,32,40">
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
                                Foreground="{DynamicResource CyanBrush}"
-                               Text="STEAM E EPIC GAMES" />
+                               Text="{ui:Tx sys.eyebrow}" />
                     <TextBlock Margin="0,4,0,0"
                                Style="{DynamicResource PageTitleTextStyle}"
-                               Text="SISTEMA" />
+                               Text="{ui:Tx sys.title}" />
                     <TextBlock Margin="0,2,0,0"
                                Style="{DynamicResource BodyTextStyle}"
-                               Text="Comando de inicialização e logs de suporte pra mandar pro Gutty." />
+                               Text="{ui:Tx sys.sub}" />
 
                     <Border Margin="0,26,0,0"
                             MinHeight="200"
@@ -1369,10 +1370,10 @@
                             Effect="{DynamicResource CardShadow}">
                         <StackPanel>
                             <TextBlock Style="{DynamicResource SectionTitleTextStyle}"
-                                       Text="COMANDO DE INICIALIZAÇÃO PARA A STEAM E EPIC GAMES" />
+                                       Text="{ui:Tx sys.cmdTitle}" />
                             <TextBlock Margin="0,4,0,0"
                                        Style="{DynamicResource MutedTextStyle}"
-                                       Text="O mesmo comando funciona nas duas plataformas." />
+                                       Text="{ui:Tx sys.cmdSub}" />
 
                             <Border Margin="0,18,0,0"
                                     Padding="16,14"
@@ -1392,12 +1393,12 @@
                                     Focusable="False"
                                     Style="{DynamicResource PrimaryButtonStyle}"
                                     Command="{Binding CopiarComandoCommand}"
-                                    Content="COPIAR COMANDO" />
+                                    Content="{ui:Tx btn.copy}" />
 
                             <TextBlock Margin="0,22,0,0"
                                        Style="{DynamicResource MutedTextStyle}"
                                        FontSize="10"
-                                       Text="O QUE CADA FLAG FAZ" />
+                                       Text="{ui:Tx sys.flags}" />
                             <StackPanel Margin="0,10,0,0">
                                 <DockPanel Margin="0,0,0,8" LastChildFill="True">
                                     <TextBlock DockPanel.Dock="Left"
@@ -1408,7 +1409,7 @@
                                                Foreground="{DynamicResource CyanBrush}"
                                                Text="-nomovie" />
                                     <TextBlock Style="{DynamicResource BodyTextStyle}"
-                                               Text="Pula as intros / cutscenes na abertura do jogo."
+                                               Text="{ui:Tx flag.nomovie}"
                                                TextWrapping="Wrap" />
                                 </DockPanel>
                                 <DockPanel Margin="0,0,0,8" LastChildFill="True">
@@ -1420,7 +1421,7 @@
                                                Foreground="{DynamicResource CyanBrush}"
                                                Text="-NOSPLASH" />
                                     <TextBlock Style="{DynamicResource BodyTextStyle}"
-                                               Text="Remove a tela de splash (logo) antes do menu."
+                                               Text="{ui:Tx flag.nosplash}"
                                                TextWrapping="Wrap" />
                                 </DockPanel>
                                 <DockPanel Margin="0,0,0,8" LastChildFill="True">
@@ -1432,7 +1433,7 @@
                                                Foreground="{DynamicResource CyanBrush}"
                                                Text="-nomansky" />
                                     <TextBlock Style="{DynamicResource BodyTextStyle}"
-                                               Text="Céu mais leve — menos carga na GPU."
+                                               Text="{ui:Tx flag.nomansky}"
                                                TextWrapping="Wrap" />
                                 </DockPanel>
                                 <DockPanel Margin="0,0,0,8" LastChildFill="True">
@@ -1444,7 +1445,7 @@
                                                Foreground="{DynamicResource CyanBrush}"
                                                Text="+mat_antialias 0" />
                                     <TextBlock Style="{DynamicResource BodyTextStyle}"
-                                               Text="Desliga o anti-aliasing forçado — ganha FPS."
+                                               Text="{ui:Tx flag.aa}"
                                                TextWrapping="Wrap" />
                                 </DockPanel>
                                 <DockPanel LastChildFill="True">
@@ -1456,7 +1457,7 @@
                                                Foreground="{DynamicResource CyanBrush}"
                                                Text="-high" />
                                     <TextBlock Style="{DynamicResource BodyTextStyle}"
-                                               Text="Prioridade alta no Windows. Se o PC engasgar, tire só essa flag."
+                                               Text="{ui:Tx flag.high}"
                                                TextWrapping="Wrap" />
                                 </DockPanel>
                             </StackPanel>
@@ -1466,14 +1467,14 @@
                                     <TextBlock FontWeight="SemiBold" Text="Steam" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Biblioteca → Rocket League → Propriedades → Opções de inicialização."
+                                               Text="{ui:Tx sys.steamHelp}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                                 <StackPanel Margin="16,0,0,0">
                                     <TextBlock FontWeight="SemiBold" Text="Epic Games" />
                                     <TextBlock Margin="0,6,0,0"
                                                Style="{DynamicResource BodyTextStyle}"
-                                               Text="Biblioteca → Rocket League → Gerenciar → Argumentos adicionais."
+                                               Text="{ui:Tx sys.epicHelp}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                             </UniformGrid>
@@ -1496,19 +1497,19 @@
                             <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
                                 <TextBlock Style="{DynamicResource EyebrowTextStyle}"
                                            Foreground="{DynamicResource CyanBrush}"
-                                           Text="SUPORTE GUTTY" />
+                                           Text="{ui:Tx sys.supportEyebrow}" />
                                 <TextBlock Margin="0,6,0,0"
                                            FontFamily="{DynamicResource TitleFontFamily}"
                                            FontSize="28"
-                                           Text="LOGS PRA MANDAR PRO GUTTY" />
+                                           Text="{ui:Tx sys.supportTitle}" />
                                 <TextBlock Margin="0,8,0,0"
                                            Style="{DynamicResource BodyTextStyle}"
-                                           Text="Junta logs do app, INI, saves e diagnóstico num zip. Manda pro Gutty — ele abre, lê e mata o erro."
+                                           Text="{ui:Tx sys.supportSub}"
                                            TextWrapping="Wrap" />
                                 <TextBlock Margin="0,14,0,0"
                                            Style="{DynamicResource MutedTextStyle}"
                                            FontSize="12"
-                                           Text="1 gera o zip  ·  2 manda pro Gutty" />
+                                           Text="{ui:Tx sys.supportSteps}" />
                             </StackPanel>
                             <Button Grid.Column="1"
                                     MinWidth="160"
@@ -1517,7 +1518,7 @@
                                     Focusable="False"
                                     Style="{DynamicResource PrimaryButtonStyle}"
                                     Command="{Binding DiagnosticoCommand}"
-                                    Content="GERAR PACOTE" />
+                                    Content="{ui:Tx btn.pack}" />
                         </Grid>
                     </Border>
                 </StackPanel>
@@ -1699,7 +1700,7 @@
                                     Focusable="False"
                                     Style="{DynamicResource SecondaryButtonStyle}"
                                     Command="{Binding CancelConfirmationCommand}"
-                                    Content="CANCELAR" />
+                                    Content="{ui:Tx btn.cancel}" />
                             <Button Grid.Column="1"
                                     Margin="6,0,0,0"
                                     Focusable="False"
@@ -1729,7 +1730,7 @@
                     <StackPanel>
                         <TextBlock Style="{DynamicResource EyebrowTextStyle}"
                                    Foreground="{DynamicResource CtaBrush}"
-                                   Text="OPERAÇÃO EM ANDAMENTO" />
+                                   Text="{ui:Tx busy.eyebrow}" />
                         <TextBlock Margin="0,8,0,0"
                                    FontFamily="{DynamicResource TitleFontFamily}"
                                    FontSize="26"
@@ -1763,7 +1764,7 @@
                         <StackPanel Margin="0,18,0,0">
                             <TextBlock Style="{DynamicResource MutedTextStyle}"
                                        FontSize="10"
-                                       Text="ETAPAS" />
+                                       Text="{ui:Tx busy.steps}" />
                             <StackPanel Margin="0,10,0,0">
                                 <!-- 1 Backup -->
                                 <DockPanel Margin="0,0,0,8">
@@ -1779,7 +1780,7 @@
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="Backup do perfil e presets" />
+                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="{ui:Tx busy.s1}" />
                                 </DockPanel>
                                 <!-- 2 Limpar -->
                                 <DockPanel Margin="0,0,0,8">
@@ -1795,7 +1796,7 @@
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="Limpar modo anterior" />
+                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="{ui:Tx busy.s2}" />
                                 </DockPanel>
                                 <!-- 3 Gravar -->
                                 <DockPanel Margin="0,0,0,8">
@@ -1811,7 +1812,7 @@
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="Gravar otimização no INI" />
+                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="{ui:Tx busy.s3}" />
                                 </DockPanel>
                                 <!-- 4 Sync -->
                                 <DockPanel Margin="0,0,0,8">
@@ -1831,10 +1832,10 @@
                                         </Ellipse.Style>
                                     </Ellipse>
                                     <StackPanel>
-                                        <TextBlock Style="{DynamicResource BodyTextStyle}" Text="Sincronizar menu de vídeo" />
+                                        <TextBlock Style="{DynamicResource BodyTextStyle}" Text="{ui:Tx busy.s4}" />
                                         <TextBlock Style="{DynamicResource MutedTextStyle}"
                                                    FontSize="11"
-                                                   Text="Etapa mais longa — patch nas contas Epic/Steam" />
+                                                   Text="{ui:Tx busy.s4sub}" />
                                     </StackPanel>
                                 </DockPanel>
                                 <!-- 5 Finish -->
@@ -1851,7 +1852,7 @@
                                             </Style>
                                         </Ellipse.Style>
                                     </Ellipse>
-                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="Validar e finalizar" />
+                                    <TextBlock Style="{DynamicResource BodyTextStyle}" Text="{ui:Tx busy.s5}" />
                                 </DockPanel>
                             </StackPanel>
                         </StackPanel>

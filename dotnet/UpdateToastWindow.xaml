@@ -1,7 +1,8 @@
 <Window x:Class="GuttyRL.UpdateToastWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="GuttyTECH — Atualização"
+             xmlns:ui="clr-namespace:GuttyRL"
+        Title="{ui:Tx toast.title}"
         Width="420"
         MaxHeight="560"
         SizeToContent="Height"
@@ -36,18 +37,18 @@
                 <StackPanel>
                     <TextBlock Style="{DynamicResource EyebrowTextStyle}"
                                Foreground="{DynamicResource CtaBrush}"
-                               Text="ATUALIZAÇÃO GITHUB" />
+                               Text="{ui:Tx toast.github}" />
                     <TextBlock Margin="0,6,0,0"
                                FontFamily="{DynamicResource TitleFontFamily}"
                                FontSize="26"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               Text="VERSÃO NOVA" />
+                               Text="{ui:Tx toast.new}" />
                 </StackPanel>
                 <Button Grid.Column="1"
                         VerticalAlignment="Top"
                         Style="{DynamicResource ChangelogCloseButtonStyle}"
                         Content="&#xE8BB;"
-                        ToolTip="Fechar"
+                        ToolTip="{ui:Tx cap.close}"
                         Click="OnDismissClick" />
             </Grid>
 
@@ -62,7 +63,7 @@
                         Visibility="{Binding HasNotes, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <TextBlock Style="{DynamicResource EyebrowTextStyle}"
                            Foreground="{DynamicResource WarningBrush}"
-                           Text="O QUE MUDOU" />
+                           Text="{ui:Tx toast.what}" />
                 <Border Margin="0,8,0,0"
                         Padding="10"
                         MaxHeight="320"
@@ -101,12 +102,12 @@
                         Margin="0,0,8,0"
                         Focusable="False"
                         Style="{DynamicResource SecondaryButtonStyle}"
-                        Content="DEPOIS"
+                        Content="{ui:Tx toast.later}"
                         Click="OnDismissClick" />
                 <Button MinWidth="120"
                         Focusable="False"
                         Style="{DynamicResource PrimaryButtonStyle}"
-                        Content="BAIXAR"
+                        Content="{ui:Tx toast.download}"
                         Click="OnDownloadClick" />
             </StackPanel>
         </Grid>

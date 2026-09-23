@@ -32,7 +32,7 @@ internal static class FatalDialogService
 
             var window = new Window
             {
-                Title = "GUTTYTECH · FALHA SEGURA",
+                Title = UiCopy.Get("fatal.title"),
                 Width = 540,
                 Height = 330,
                 MinWidth = 540,
@@ -79,7 +79,7 @@ internal static class FatalDialogService
             titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             titleBar.Children.Add(new TextBlock
             {
-                Text = "GUTTYTECH  /  PROTEÇÃO DE STARTUP",
+                Text = UiCopy.Get("fatal.bar"),
                 Margin = new Thickness(18, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = titleFont,
@@ -129,7 +129,7 @@ internal static class FatalDialogService
 
             var closeAction = new Button
             {
-                Content = "FECHAR COM SEGURANÇA",
+                Content = UiCopy.Get("fatal.close"),
                 Margin = new Thickness(0, 20, 0, 0),
                 Padding = new Thickness(18, 10, 18, 10),
                 HorizontalAlignment = HorizontalAlignment.Left,

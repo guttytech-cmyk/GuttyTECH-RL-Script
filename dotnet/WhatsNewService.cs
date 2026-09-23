@@ -150,8 +150,8 @@ internal static class WhatsNewService
                 UpdateCheckService.NormalizeTag(sinceLabel),
                 UpdateCheckService.NormalizeTag(current),
                 StringComparison.OrdinalIgnoreCase)
-            ? "O que mudou desde a v" + UpdateCheckService.NormalizeTag(sinceLabel) + ":"
-            : "Atualizou? Aqui está o que mudou nas versões novas.";
+            ? UiCopy.Format("log.since", UpdateCheckService.NormalizeTag(sinceLabel))
+            : UiCopy.Get("log.updated");
 
         ChangelogWindow.Show(
             tag,

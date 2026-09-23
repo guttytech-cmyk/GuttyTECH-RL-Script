@@ -52,7 +52,7 @@ internal static class UpdateCheckService
                     null,
                     AppMeta.GitHubReleasesPage,
                     null,
-                    $"GitHub respondeu {(int)response.StatusCode}. Tente de novo em instantes."));
+                    UiCopy.Format("upd.githubStatus", (int)response.StatusCode)));
             }
 
             List<GitHubReleaseDto>? releases = JsonSerializer.Deserialize(
@@ -68,7 +68,7 @@ internal static class UpdateCheckService
                     null,
                     AppMeta.GitHubReleasesPage,
                     null,
-                    "Não consegui ler as releases no GitHub."));
+                    UiCopy.Get("upd.githubParse")));
             }
 
             List<ChangelogRelease> mapped = releases
@@ -94,7 +94,7 @@ internal static class UpdateCheckService
                     null,
                     AppMeta.GitHubReleasesPage,
                     null,
-                    "Não consegui ler a release mais recente no GitHub."));
+                    UiCopy.Get("upd.githubLatest")));
             }
 
             string latest = ChangelogRange.Normalize(newest.Tag);
@@ -114,8 +114,8 @@ internal static class UpdateCheckService
                 : ReleaseNotesFormatter.FormatForUi(newest.Body, newest.Tag, newest.Name);
 
             string message = newer
-                ? $"Tem versão nova no GitHub: v{latest} (você está em v{current}). Abaixo está o que mudou desde a sua versão."
-                : $"Você já está na última: v{current}.";
+                ? UiCopy.Format("upd.newMsg", latest, current)
+                : UiCopy.Format("upd.currentMsg", current);
 
             return Cache(new UpdateCheckResult(
                 true,
@@ -143,7 +143,7 @@ internal static class UpdateCheckService
                 null,
                 AppMeta.GitHubReleasesPage,
                 null,
-                "Sem conexão com o GitHub agora. Verifique a internet e tente ATUALIZAR de novo."));
+                UiCopy.Get("upd.offline")));
         }
     }
 
@@ -214,7 +214,7 @@ internal static class UpdateCheckService
         string dest = Path.Combine(desktop, fileName);
         string temp = dest + ".partial";
 
-        progress?.Report("Baixando " + fileName + "…");
+        progress?.Report(UiCopy.Format("upd.downloadingFile", fileName));
         using var response = await Http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -229,7 +229,7 @@ internal static class UpdateCheckService
         File.Move(temp, dest);
 
         AppMeta.Log("UPDATE-DOWNLOAD: " + dest);
-        progress?.Report("Download concluído no Desktop");
+        progress?.Report(UiCopy.Get("upd.downloadDone"));
         return dest;
     }
 

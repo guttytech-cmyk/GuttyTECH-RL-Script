@@ -22,29 +22,24 @@ internal static class StartupGuard
                     return;
                 }
 
-                ReportFatal("Erro inesperado no GuttyRL.", ex);
+                ReportFatal(UiCopy.Get("fatal.unexpected"), ex);
             }
             else
-                ReportFatal("Erro inesperado no GuttyRL.", new Exception(e.ExceptionObject?.ToString() ?? "desconhecido"));
+                ReportFatal(UiCopy.Get("fatal.unexpected"), new Exception(e.ExceptionObject?.ToString() ?? "desconhecido"));
         };
 
         try
         {
             if (!OperatingSystem.IsWindows())
             {
-                ReportFatal(
-                    "Este GuttyRL e exclusivo para Windows.\n\n" +
-                    $"SO detectado: {Environment.OSVersion}",
-                    null);
+                ReportFatal(UiCopy.Format("fatal.windowsOnly", Environment.OSVersion.ToString()), null);
                 Environment.Exit(3);
             }
 
             if (RuntimeInformation.ProcessArchitecture != Architecture.X64)
             {
                 ReportFatal(
-                    "Este GuttyRL e so para Windows 64-bit (x64).\n\n" +
-                    $"Seu processador: {RuntimeInformation.ProcessArchitecture}\n\n" +
-                    "Use um PC Windows x64 ou o GuttyRL.bat (modo pasta) se disponivel.",
+                    UiCopy.Format("fatal.arch", RuntimeInformation.ProcessArchitecture.ToString()),
                     null);
                 Environment.Exit(3);
             }
@@ -108,7 +103,7 @@ internal static class StartupGuard
         try { return main(); }
         catch (Exception ex)
         {
-            ReportFatal("O GuttyRL encontrou um erro e nao pode continuar.", ex);
+            ReportFatal(UiCopy.Get("fatal.cannot"), ex);
             return 99;
         }
     }
