@@ -263,7 +263,16 @@ internal static class VideoSettingsSync
 
                     idleTicks++;
                     if (idleTicks == 1 || idleTicks % 15 == 0) // ~0s e a cada ~30s
-                        TryPreventiveReclamp(iniPath, mode);
+                    {
+                        if (RlBuildStamp.TryDetectUpdate(out string buildChange))
+                        {
+                            AppMeta.Log($"WATCH: RL atualizou ({buildChange}). Reaplicando {mode}.");
+                            if (HealUntilStable(iniPath, mode, passes: 2))
+                                RlBuildStamp.RememberInstalled();
+                        }
+                        else
+                            TryPreventiveReclamp(iniPath, mode);
+                    }
 
                     Thread.Sleep(2000);
                 }
@@ -273,16 +282,34 @@ internal static class VideoSettingsSync
                 AppMeta.Log($"WATCH: RL detetado (sessao {session}) — a aguardar fecho...");
                 // Nao escrever no INI com o jogo aberto: o RL regrava no exit e
                 // mid-session write so gera corrida (historico: attrib +r = boot hang).
+                // So observa. Se varias chaves sairem do contrato, o fecho repos.
+                int watchTicks = 0;
+                int driftSeen = 0;
                 while (GetRl().Length > 0)
                 {
                     if (!StillCurrentWatcher()) return 0;
+                    watchTicks++;
+                    if (watchTicks % 5 == 0)
+                    {
+                        int n = SampleSessionDrift(iniPath, mode);
+                        if (n >= 3 && driftSeen < 3)
+                            AppMeta.Log($"WATCH: {n} chaves fora do {mode} durante a sessao — repor no fecho.");
+                        driftSeen = Math.Max(driftSeen, n);
+                    }
                     Thread.Sleep(2000);
                 }
 
                 Thread.Sleep(3000); // cloud/EOS a gravar
                 if (!StillCurrentWatcher()) return 0;
 
-                AppMeta.Log($"WATCH: sessao {session} fechou — a reparar INI+save...");
+                if (driftSeen >= 3)
+                    AppMeta.Log($"WATCH: sessao {session} saiu com {driftSeen} chaves fora — repondo {mode}.");
+                else
+                    AppMeta.Log($"WATCH: sessao {session} fechou — a reparar INI+save...");
+
+                if (RlBuildStamp.TryDetectUpdate(out string buildOnClose))
+                    AppMeta.Log($"WATCH: build mudou durante a sessao ({buildOnClose}).");
+
                 bool ok = HealUntilStable(iniPath, mode, passes: 2);
 
                 // 3o passe atrasado: Epic cloud por vezes regrava depois.
@@ -293,6 +320,8 @@ internal static class VideoSettingsSync
                     ok = ok && ok3;
                     AppMeta.Log(ok3 ? "WATCH: passe cloud OK." : "WATCH: passe cloud falhou.");
                 }
+                if (ok)
+                    RlBuildStamp.RememberInstalled();
                 AppMeta.Log(ok
                     ? $"WATCH: sessao {session} protegida."
                     : $"WATCH: sessao {session} com reparo parcial; continuando monitor.");
@@ -306,18 +335,45 @@ internal static class VideoSettingsSync
         }
     }
 
+    private static int SampleSessionDrift(string iniPath, string mode)
+    {
+        try
+        {
+            if (!mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
+                return 0;
+            if (!File.Exists(iniPath))
+                return 0;
+            int n = CompletoForce.DescribeDrift(File.ReadAllText(iniPath)).Count;
+            return n;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
     private static void TryPreventiveReclamp(string iniPath, string mode)
     {
         try
         {
             if (GetRl().Length > 0) return;
-            if (!mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)) return;
             if (!File.Exists(iniPath)) return;
-            string text = File.ReadAllText(iniPath);
-            if (!CompletoForce.HasDrift(text)) return;
-            var sample = CompletoForce.DescribeDrift(text);
-            AppMeta.Log("WATCH: drift preventivo — " + string.Join("; ", sample.Take(4)));
-            HealUntilStable(iniPath, mode, passes: 1);
+            if (mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
+            {
+                string text = File.ReadAllText(iniPath);
+                int n = CompletoForce.DescribeDrift(text).Count;
+                if (n == 0) return;
+                AppMeta.Log(n >= 3
+                    ? $"WATCH: {n} chaves fora — repondo COMPLETO."
+                    : "WATCH: drift preventivo — " + string.Join("; ", CompletoForce.DescribeDrift(text).Take(4)));
+                if (n >= 3)
+                    HealUntilStable(iniPath, mode, passes: 1);
+                else
+                    ReclampIni(iniPath, mode);
+                return;
+            }
+
+            ReclampIni(iniPath, mode);
         }
         catch (Exception ex)
         {
@@ -396,11 +452,16 @@ internal static class VideoSettingsSync
 
             int dupKeys = IniHygiene.CountDuplicateKeyLines(text);
             bool bloated = text.Length >= IniHygiene.SoftBloatBytes || dupKeys > 0;
+            int driftN = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
+                ? CompletoForce.DescribeDrift(text).Count
+                : 0;
+            bool many = driftN >= 3;
             string forced;
-            if (bloated)
+            if (bloated || many)
             {
-                AppMeta.Log(
-                    $"INI reclamp {mode}: inchado ({text.Length} bytes, dups={dupKeys}) — reescreve template limpo.");
+                AppMeta.Log(many
+                    ? $"INI reclamp {mode}: {driftN} chaves fora do contrato — reescreve template."
+                    : $"INI reclamp {mode}: inchado ({text.Length} bytes, dups={dupKeys}) — reescreve template limpo.");
                 forced = IniHygiene.RebuildModeFromTemplate(iniPath, mode);
             }
             else

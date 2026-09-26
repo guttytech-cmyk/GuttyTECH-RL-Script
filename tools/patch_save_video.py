@@ -23,6 +23,9 @@ UNCAPPED_MAX_FPS = 10000
 # acima e garagem/presets (nao pode encolher no assemble).
 SOFT_GARAGE_MIN = 250_000
 MAX_PATCH_BYTES = 1_200_000
+# Garagem real (presets) passa deste teto. O patch de video entra com rollback
+# se o assemble encolher — senao o menu regrava o INI no proximo boot.
+MAX_GARAGE_PATCH = 16_000_000
 
 # Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
 # HighPerformance em Particle/Render quebra o menu (branco / Alta qualidade).
@@ -321,18 +324,26 @@ def patch_file(path: Path, *, completo: bool) -> bool:
 
 
 def _select_files(files: list[Path]) -> list[Path]:
-    """Perfis recentes <1.2MB. Garagem >= SoftGarageMin entra com rollback de tamanho."""
+    """Leves (<1.2MB) primeiro. Garagem ate 16MB entra com rollback de tamanho."""
     max_files = 6
     ranked = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
-    chosen: list[Path] = []
+    light: list[Path] = []
+    garage: list[Path] = []
     for f in ranked:
         try:
             sz = f.stat().st_size
         except OSError:
             continue
-        if sz > MAX_PATCH_BYTES:
-            print(f"SKIP {f.name} (grande demais: {sz // 1024}KB)", flush=True)
+        if sz <= 0 or sz > MAX_GARAGE_PATCH:
+            print(f"SKIP {f.name} (fora da faixa: {sz // 1024}KB)", flush=True)
             continue
+        if sz > MAX_PATCH_BYTES:
+            print(f"GARAGE {f.name} ({sz // 1024}KB) — video only, rollback se encolher", flush=True)
+            garage.append(f)
+        else:
+            light.append(f)
+    chosen: list[Path] = []
+    for f in light + garage:
         chosen.append(f)
         if len(chosen) >= max_files:
             break

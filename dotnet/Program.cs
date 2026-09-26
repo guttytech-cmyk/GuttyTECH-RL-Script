@@ -502,9 +502,15 @@ internal static class Program
             string? activeMode = DetectAppliedMode();
             if (activeMode is "COMPLETO" or "CRIADOR")
             {
+                bool gameUpdated = RlBuildStamp.TryDetectUpdate(out string buildChange);
+                if (gameUpdated)
+                    AppMeta.Log($"RL atualizou ({buildChange}). Reaplicando {activeMode}.");
+
                 if (GetRl().Length == 0)
                 {
                     bool healed = VideoSettingsSync.HealIfNeeded(_cfg, activeMode);
+                    if (gameUpdated && healed)
+                        RlBuildStamp.RememberInstalled();
                     AppMeta.Log(healed
                         ? $"GUI startup heal completo ({activeMode}) OK."
                         : $"GUI startup heal completo ({activeMode}) parcial.");
@@ -791,6 +797,8 @@ internal static class Program
                 ? $"Reaplicado {mode} (limpo + sync contas)."
                 : $"Trocou {previous} → {mode} (limpo + sync contas).";
         ModeDetect.Persist(mode);
+        if (mode is "COMPLETO" or "CRIADOR")
+            RlBuildStamp.RememberInstalled();
         Log(msg);
         RefreshWritableCache();
         // Watcher sempre — GUI e CLI. Sem isto PROTEÇÃO fica OFF apos Apply nao-interativo.
