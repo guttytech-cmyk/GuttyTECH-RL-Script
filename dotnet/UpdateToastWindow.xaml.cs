@@ -81,7 +81,12 @@ public partial class UpdateToastWindow : Window
         Close();
     }
 
-    private async void OnDownloadClick(object sender, RoutedEventArgs e)
+    private void OnDownloadClick(object sender, RoutedEventArgs e)
+    {
+        _ = DownloadAsync();
+    }
+
+    private async Task DownloadAsync()
     {
         try
         {

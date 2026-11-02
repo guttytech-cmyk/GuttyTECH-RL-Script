@@ -3,6 +3,16 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.23] — 2026-11-02
+### Melhorado
+- Correções e melhorias na interface: tudo numa página só, sem abas e sem submenu. Status, modos, comando de inicialização, protocolo, recuperação, suporte e o remover ficam visíveis.
+- O comando da Steam/Epic fica logo abaixo dos modos. O botão de remover a otimização ficou grande.
+- Scroll mais suave e entrada da tela mais calma.
+### Corrigido
+- O watcher do modo CRIADOR agora detecta e corrige drift, do mesmo jeito que o COMPLETO.
+- Remover a otimização também apaga a marca da versão do jogo, para o próximo apply não achar um patch fantasma.
+- Troca de idioma e o download da atualização não travam a interface.
+
 ## [v25.0.22] — 2026-09-26
 ### Melhorado
 - Se o Rocket League atualizar (exe novo), o watcher reaplica COMPLETO/CRIADOR sozinho. Sem aviso pra clicar de novo.

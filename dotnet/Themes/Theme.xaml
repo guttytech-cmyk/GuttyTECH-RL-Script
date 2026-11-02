@@ -520,6 +520,78 @@
         <Setter Property="CornerRadius" Value="12" />
     </Style>
 
+    <!-- Entrada suave de seções (fade + slide 12px). Reusável em qualquer Border/StackPanel. -->
+    <Style x:Key="SectionEnterStyle" TargetType="Border" BasedOn="{StaticResource SurfaceBorderStyle}">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="12" />
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Visibility" Value="Visible">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0"
+                                             To="1"
+                                             Duration="0:0:0.28"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             From="12"
+                                             To="0"
+                                             Duration="0:0:0.30"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Mesma entrada para StackPanel (seções sem card de fundo). -->
+    <Style x:Key="SectionEnterStackStyle" TargetType="StackPanel">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0" />
+        <Setter Property="RenderTransform">
+            <Setter.Value>
+                <TranslateTransform Y="12" />
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Visibility" Value="Visible">
+                <Trigger.EnterActions>
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                             From="0"
+                                             To="1"
+                                             Duration="0:0:0.28"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                                             From="12"
+                                             To="0"
+                                             Duration="0:0:0.30"
+                                             EasingFunction="{StaticResource MotionEaseOut}" />
+                        </Storyboard>
+                    </BeginStoryboard>
+                </Trigger.EnterActions>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Botão grande de remover: pulso leve na borda ao passar o mouse. -->
+    <Style x:Key="RemoveButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+        <Setter Property="Padding" Value="24,18" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource CtaHoverBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- Fade + slide-in when a workspace section becomes visible -->
     <Style x:Key="AnimatedSectionScrollViewerStyle" TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
         <Setter Property="Opacity" Value="0" />

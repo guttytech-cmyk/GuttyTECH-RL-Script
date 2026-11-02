@@ -335,16 +335,18 @@ internal static class VideoSettingsSync
         }
     }
 
+    private static List<string> DescribeModeDrift(string iniText, string mode) =>
+        mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
+            ? CompletoForce.DescribeDrift(iniText)
+            : CriadorForce.DescribeDrift(iniText);
+
     private static int SampleSessionDrift(string iniPath, string mode)
     {
         try
         {
-            if (!mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
-                return 0;
             if (!File.Exists(iniPath))
                 return 0;
-            int n = CompletoForce.DescribeDrift(File.ReadAllText(iniPath)).Count;
-            return n;
+            return DescribeModeDrift(File.ReadAllText(iniPath), mode).Count;
         }
         catch
         {
@@ -358,22 +360,16 @@ internal static class VideoSettingsSync
         {
             if (GetRl().Length > 0) return;
             if (!File.Exists(iniPath)) return;
-            if (mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
-            {
-                string text = File.ReadAllText(iniPath);
-                int n = CompletoForce.DescribeDrift(text).Count;
-                if (n == 0) return;
-                AppMeta.Log(n >= 3
-                    ? $"WATCH: {n} chaves fora — repondo COMPLETO."
-                    : "WATCH: drift preventivo — " + string.Join("; ", CompletoForce.DescribeDrift(text).Take(4)));
-                if (n >= 3)
-                    HealUntilStable(iniPath, mode, passes: 1);
-                else
-                    ReclampIni(iniPath, mode);
-                return;
-            }
-
-            ReclampIni(iniPath, mode);
+            string text = File.ReadAllText(iniPath);
+            var drift = DescribeModeDrift(text, mode);
+            if (drift.Count == 0) return;
+            AppMeta.Log(drift.Count >= 3
+                ? $"WATCH: {drift.Count} chaves fora — repondo {mode}."
+                : "WATCH: drift preventivo — " + string.Join("; ", drift.Take(4)));
+            if (drift.Count >= 3)
+                HealUntilStable(iniPath, mode, passes: 1);
+            else
+                ReclampIni(iniPath, mode);
         }
         catch (Exception ex)
         {
@@ -381,22 +377,21 @@ internal static class VideoSettingsSync
         }
     }
 
-    /// <summary>Heal + verifica contrato Completo; repete se ainda houver drift.</summary>
+    /// <summary>Heal + verifica contrato do modo; repete se ainda houver drift.</summary>
     private static bool HealUntilStable(string iniPath, string mode, int passes)
     {
         bool ok = true;
         for (int i = 0; i < passes; i++)
         {
             ok = HealIfNeeded(iniPath, mode) && ok;
-            if (!mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
-                continue;
             try
             {
                 string after = File.ReadAllText(iniPath);
-                if (!CompletoForce.HasDrift(after))
+                var drift = DescribeModeDrift(after, mode);
+                if (drift.Count == 0)
                     return ok;
                 AppMeta.Log("WATCH: drift pos-heal, a repetir — "
-                            + string.Join("; ", CompletoForce.DescribeDrift(after).Take(3)));
+                            + string.Join("; ", drift.Take(3)));
                 Thread.Sleep(1500);
             }
             catch { }
@@ -443,18 +438,16 @@ internal static class VideoSettingsSync
             try { File.SetAttributes(iniPath, FileAttributes.Normal); } catch { }
 
             string text = File.ReadAllText(iniPath);
-            if (mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
-                && CompletoForce.HasDrift(text))
+            var drift = DescribeModeDrift(text, mode);
+            if (drift.Count > 0)
             {
                 AppMeta.Log("INI drift detetado: "
-                            + string.Join("; ", CompletoForce.DescribeDrift(text).Take(5)));
+                            + string.Join("; ", drift.Take(5)));
             }
 
             int dupKeys = IniHygiene.CountDuplicateKeyLines(text);
             bool bloated = text.Length >= IniHygiene.SoftBloatBytes || dupKeys > 0;
-            int driftN = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
-                ? CompletoForce.DescribeDrift(text).Count
-                : 0;
+            int driftN = drift.Count;
             bool many = driftN >= 3;
             string forced;
             if (bloated || many)
@@ -486,20 +479,21 @@ internal static class VideoSettingsSync
             // Nunca deixar boot-killers apos reclamp (HealIfNeeded / RepararPerfil).
             ErrorRepair.ForceBootSafeIni(iniPath);
 
-            if (mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase))
+            string verify = File.ReadAllText(iniPath);
+            var afterDrift = DescribeModeDrift(verify, mode);
+            if (afterDrift.Count > 0)
             {
-                string verify = File.ReadAllText(iniPath);
-                if (CompletoForce.HasDrift(verify))
-                {
-                    AppMeta.Log("INI reclamp verify FALHOU: "
-                                + string.Join("; ", CompletoForce.DescribeDrift(verify).Take(4)));
-                    // Uma segunda aplicacao cobre corrida rara de escrita.
-                    File.WriteAllText(iniPath, CompletoForce.Apply(verify));
-                    ErrorRepair.ForceBootSafeIni(iniPath);
-                    verify = File.ReadAllText(iniPath);
-                    if (CompletoForce.HasDrift(verify))
-                        return false;
-                }
+                AppMeta.Log("INI reclamp verify FALHOU: "
+                            + string.Join("; ", afterDrift.Take(4)));
+                // Uma segunda aplicacao cobre corrida rara de escrita.
+                string retry = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
+                    ? CompletoForce.Apply(verify)
+                    : CriadorForce.Apply(verify);
+                File.WriteAllText(iniPath, EnsureModeLine(retry, mode));
+                ErrorRepair.ForceBootSafeIni(iniPath);
+                verify = File.ReadAllText(iniPath);
+                if (DescribeModeDrift(verify, mode).Count > 0)
+                    return false;
             }
 
             AppMeta.Log($"INI reclamp {mode} OK.");

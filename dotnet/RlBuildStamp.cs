@@ -79,6 +79,16 @@ internal static class RlBuildStamp
             Remember(current);
     }
 
+    public static void Clear()
+    {
+        try
+        {
+            if (File.Exists(TagPath))
+                File.Delete(TagPath);
+        }
+        catch { }
+    }
+
     /// <summary>
     /// True se o exe mudou desde a ultima reaplicacao. Nao grava a tag —
     /// quem chama grava so depois do heal, pra repetir se falhar.

@@ -1,11 +1,14 @@
-GUTTYTECH RL Optimizer v25.0.22
+GUTTYTECH RL Optimizer v25.0.23
 
-O modo volta sozinho quando o jogo mexe no INI ou atualiza.
+Correções e melhorias.
 
 O que mudou:
-- Patch novo do Rocket League: reaplica COMPLETO/CRIADOR sem pedir pra clicar de novo
-- Watcher conta chaves fora do contrato durante a partida e repos no fecho
-- Save grande da garagem agora recebe o sync de vídeo (sem encolher o arquivo)
+- Interface numa página só: sem abas e sem submenu
+- Comando de inicialização logo abaixo dos modos
+- Botão grande para remover a otimização
+- Scroll mais suave
+- Watcher do CRIADOR corrige o INI quando o jogo mexe nas configs
+- Correções de estabilidade na troca de idioma e no download
 
 Como atualizar:
 1. Feche o GuttyTECH_RL que estiver aberto

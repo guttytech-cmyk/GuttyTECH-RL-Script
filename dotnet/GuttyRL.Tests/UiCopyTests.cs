@@ -31,4 +31,42 @@ public class UiCopyTests
             UiLanguage.Use(previous, persist: false);
         }
     }
+
+    [Fact]
+    public void Every_xaml_tx_key_exists_in_catalog_and_panel_is_single_page()
+    {
+        string? dir = AppContext.BaseDirectory;
+        for (int i = 0; i < 8 && dir is not null; i++)
+        {
+            if (File.Exists(Path.Combine(dir, "OptimizerPanel.xaml")))
+                break;
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        Assert.NotNull(dir);
+        var missing = new List<string>();
+        foreach (string path in Directory.GetFiles(dir!, "*.xaml", SearchOption.TopDirectoryOnly))
+        {
+            string xaml = File.ReadAllText(path);
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(xaml, @"\{ui:Tx\s+(?<k>[^\s\}]+)\s*\}"))
+            {
+                string key = m.Groups["k"].Value;
+                if (!UiCopy.HasKey(key))
+                    missing.Add($"{Path.GetFileName(path)}: {key}");
+            }
+        }
+
+        Assert.True(missing.Count == 0, "Chaves {ui:Tx} ausentes no catálogo:\n" + string.Join('\n', missing));
+
+        string panelXaml = File.ReadAllText(Path.Combine(dir!, "OptimizerPanel.xaml"));
+        Assert.DoesNotContain("IsDashboardVisible", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsOptimizationVisible", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsRecoveryVisible", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsSystemVisible", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsProtocolOpen", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsRecoveryOpen", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsLaunchOpen", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsSupportOpen", panelXaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToggleProtocolCommand", panelXaml, StringComparison.Ordinal);
+    }
 }

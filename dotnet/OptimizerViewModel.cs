@@ -10,7 +10,6 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
     private readonly OptimizerService _service;
     private readonly DispatcherTimer _refreshTimer;
     private readonly List<AsyncRelayCommand> _operationCommands = new();
-    private OptimizerSection _selectedSection = OptimizerSection.Dashboard;
     private bool _isBusy;
     private bool _isStarted;
     private bool _refreshInFlight;
@@ -68,10 +67,6 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
         _service = service;
         LaunchCommandText = service.LaunchCommand;
 
-        NavigateDashboardCommand = new RelayCommand(() => Navigate(OptimizerSection.Dashboard));
-        NavigateOptimizationCommand = new RelayCommand(() => Navigate(OptimizerSection.Otimizacao));
-        NavigateRecoveryCommand = new RelayCommand(() => Navigate(OptimizerSection.Recuperacao));
-        NavigateSystemCommand = new RelayCommand(() => Navigate(OptimizerSection.Sistema));
         DismissFeedbackCommand = new RelayCommand(DismissFeedback);
         CancelConfirmationCommand = new RelayCommand(
             CancelConfirmation,
@@ -111,10 +106,6 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ICommand NavigateDashboardCommand { get; }
-    public ICommand NavigateOptimizationCommand { get; }
-    public ICommand NavigateRecoveryCommand { get; }
-    public ICommand NavigateSystemCommand { get; }
     public ICommand DismissFeedbackCommand { get; }
     public ICommand CancelConfirmationCommand { get; }
     public ICommand ConfirmOperationCommand { get; }
@@ -134,26 +125,6 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
     public string LaunchCommandText { get; }
     public string VersionLabel => AppMeta.Version;
-
-    public bool IsDashboardVisible => SelectedSection == OptimizerSection.Dashboard;
-    public bool IsOptimizationVisible => SelectedSection == OptimizerSection.Otimizacao;
-    public bool IsRecoveryVisible => SelectedSection == OptimizerSection.Recuperacao;
-    public bool IsSystemVisible => SelectedSection == OptimizerSection.Sistema;
-
-    public OptimizerSection SelectedSection
-    {
-        get => _selectedSection;
-        private set
-        {
-            if (!SetProperty(ref _selectedSection, value))
-                return;
-
-            OnPropertyChanged(nameof(IsDashboardVisible));
-            OnPropertyChanged(nameof(IsOptimizationVisible));
-            OnPropertyChanged(nameof(IsRecoveryVisible));
-            OnPropertyChanged(nameof(IsSystemVisible));
-        }
-    }
 
     public bool IsBusy
     {
@@ -396,12 +367,31 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnLanguageChanged()
     {
+        var app = System.Windows.Application.Current;
+        if (app?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(OnLanguageChanged);
+            return;
+        }
+
         OnPropertyChanged(nameof(RefreshButtonLabel));
         PublishFooter();
         if (_status is not null)
             PaintStatus(_status);
+        else
+        {
+            AppliedMode = UiCopy.Get("state.loading");
+            StateLabel = UiCopy.Get("state.reading");
+            WritableHint = UiCopy.Get("hint.writable");
+            RocketLeagueHint = UiCopy.Get("hint.game");
+            ProtectedHint = UiCopy.Get("hint.protect");
+            AdministratorHint = UiCopy.Get("hint.admin");
+            ConfigPath = UiCopy.Get("dash.pathSearching");
+        }
         if (_runningAction is OptimizerAction running)
             OperationTitle = GetOperationTitle(running);
+        else
+            OperationTitle = UiCopy.Get("op.preparing");
         ProgressMessage = UiCopy.Get(_progressMessageKey);
         ProgressDetail = string.IsNullOrEmpty(_progressDetailKey) ? "" : UiCopy.Get(_progressDetailKey);
         OnPropertyChanged(nameof(IsProgressDetailVisible));
@@ -729,8 +719,6 @@ internal sealed class OptimizerViewModel : INotifyPropertyChanged, IDisposable
             _ => UiCopy.Get("dash.now"),
         };
     }
-
-    private void Navigate(OptimizerSection section) => SelectedSection = section;
 
     private void ShowFeedback(OperationResult result)
     {

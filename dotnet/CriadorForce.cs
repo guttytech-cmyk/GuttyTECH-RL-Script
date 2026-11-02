@@ -188,6 +188,63 @@ internal static class CriadorForce
         return IniHygiene.DeduplicateSectionKeys(sb.ToString().TrimEnd('\r', '\n') + "\r\n");
     }
 
+    public static bool HasDrift(string iniText) => DescribeDrift(iniText).Count > 0;
+
+    public static List<string> DescribeDrift(string iniText)
+    {
+        var drift = new List<string>();
+        var main = ReadMainSystemSettings(iniText);
+
+        void Expect(string key, string expected)
+        {
+            if (!main.TryGetValue(key, out string? got)
+                || !got.Equals(expected, StringComparison.OrdinalIgnoreCase))
+            {
+                drift.Add($"{key}={got ?? "(ausente)"} (esperado {expected})");
+            }
+        }
+
+        Expect("UncappedFramerate", "True");
+        Expect("UseVsync", "False");
+        Expect("bSmoothFrameRate", "False");
+        Expect("MaxFilterBlurSampleCount", "1");
+        Expect("OnlyStreamInTextures", "False");
+        Expect("WaitForGPU", "False");
+        Expect("AllowApexCloth", "False");
+        Expect("SpeedTreeLeaves", "False");
+        Expect("SpeedTreeFronds", "False");
+        Expect("MaxMultiSamples", "0");
+        Expect("DynamicDecals", "True");
+        Expect("UnbatchedDecals", "True");
+
+        if (!main.TryGetValue("ApexLODResourceBudget", out string? apex)
+            || !apex.StartsWith("0", StringComparison.Ordinal))
+        {
+            drift.Add($"ApexLODResourceBudget={apex ?? "(ausente)"} (esperado 0)");
+        }
+
+        return drift;
+    }
+
+    private static Dictionary<string, string> ReadMainSystemSettings(string iniText)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        bool inMain = false;
+        foreach (string raw in iniText.Replace("\r\n", "\n").Split('\n'))
+        {
+            if (raw.StartsWith('['))
+            {
+                inMain = raw.Equals("[SystemSettings]", StringComparison.OrdinalIgnoreCase);
+                continue;
+            }
+            if (!inMain) continue;
+            int eq = raw.IndexOf('=');
+            if (eq <= 0) continue;
+            map[raw[..eq]] = raw[(eq + 1)..];
+        }
+        return map;
+    }
+
     private static bool IsChildSystemSettings(string header)
     {
         if (!header.StartsWith("[SystemSettings", StringComparison.OrdinalIgnoreCase))

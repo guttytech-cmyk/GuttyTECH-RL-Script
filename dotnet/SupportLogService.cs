@@ -216,6 +216,19 @@ internal static class SupportLogService
                             sb.AppendLine("  - " + d);
                     }
                 }
+                else if (mode == "CRIADOR" || text.Contains("GuttyTechMode=CRIADOR", StringComparison.OrdinalIgnoreCase))
+                {
+                    var drift = CriadorForce.DescribeDrift(text);
+                    sb.AppendLine("CriadorForce.HasDrift: " + (drift.Count > 0));
+                    if (drift.Count == 0)
+                        sb.AppendLine("Contrato CRIADOR: OK (sem drift)");
+                    else
+                    {
+                        sb.AppendLine("Drift CRIADOR:");
+                        foreach (string d in drift.Take(20))
+                            sb.AppendLine("  - " + d);
+                    }
+                }
             }
             catch (Exception ex)
             {

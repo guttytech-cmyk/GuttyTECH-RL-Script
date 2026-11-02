@@ -16,14 +16,6 @@ internal enum OptimizerAction
     RepararEac,
 }
 
-internal enum OptimizerSection
-{
-    Dashboard,
-    Otimizacao,
-    Recuperacao,
-    Sistema,
-}
-
 internal enum FeedbackTone
 {
     Success,

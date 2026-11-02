@@ -14,13 +14,13 @@ internal static class RlPathResolver
     private static readonly Guid FolderIdDocuments = new("FDD39AD0-238F-46AF-ADB4-6C85480369C7");
     private const uint KfFlagDefaultPath = 0x00000400;
 
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern int SHGetKnownFolderPath(ref Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
 
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern int SHSetKnownFolderPath(ref Guid rfid, uint dwFlags, IntPtr hToken, string pszPath);
 
-    [DllImport("ole32.dll")]
+    [DllImport("ole32.dll", SetLastError = true)]
     private static extern void CoTaskMemFree(IntPtr ptr);
 
     private static string PinFile => Path.Combine(AppMeta.GuttyDir, "rl-ini.path");

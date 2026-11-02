@@ -23,6 +23,12 @@ internal static class IniAudit
             fails++;
         }
         fails += CheckFile("CRIADOR+Force", forcedR, CriadorPostForceRules);
+        if (CriadorForce.HasDrift(forcedR))
+        {
+            Console.WriteLine("[X] CRIADOR+Force ainda com drift apos Apply: "
+                              + string.Join("; ", CriadorForce.DescribeDrift(forcedR).Take(5)));
+            fails++;
+        }
         fails += CheckDuplicateKeys("CRIADOR", Templates.Criador, "SystemSettings", "MobileMinimizeFogShaders");
         fails += CheckExclusiveDisplay("COMPLETO", Templates.Completo);
         fails += CheckExclusiveDisplay("CRIADOR", Templates.Criador);

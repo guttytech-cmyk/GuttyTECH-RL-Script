@@ -44,6 +44,8 @@ internal static class ModeDetect
                 File.Delete(TagPath);
         }
         catch { }
+
+        RlBuildStamp.Clear();
     }
 
     private static string? ReadTag()

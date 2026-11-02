@@ -56,6 +56,8 @@ internal static class UiCopy
         Add("btn.detonate", "DETONAR COMPLETO", "DETONATE COMPLETO");
         Add("btn.creator", "ATIVAR CRIADOR", "ENABLE CRIADOR");
 
+        Add("sub.removeHint", "Volta o INI pro original e para o watcher. Presets e garagem não são mexidos.", "Restores the original INI and stops the watcher. Presets and the garage are untouched.");
+
         Add("opt.eyebrow", "PERFIS DE PERFORMANCE", "PERFORMANCE PROFILES");
         Add("opt.title", "OTIMIZAÇÃO", "OPTIMIZE");
         Add("opt.sub", "Escolha o modo. Resolução, borda e backups ficam intactos — o resto é guerra.", "Pick a mode. Resolution, borderless, and backups stay — the rest is war.");
@@ -396,6 +398,9 @@ internal static class UiCopy
             return template;
         }
     }
+
+    public static bool HasKey(string? key) =>
+        !string.IsNullOrEmpty(key) && Pt.ContainsKey(key) && En.ContainsKey(key);
 
     public static IReadOnlyList<string> Audit()
     {
