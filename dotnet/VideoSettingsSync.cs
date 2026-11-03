@@ -552,6 +552,7 @@ internal static class VideoSettingsSync
         bool anyDir = false;
         bool anyOk = false;
         bool deferredOnly = false;
+        bool patchedStub = false;
         foreach (string saveDir in saveDirs)
         {
             if (!Directory.Exists(saveDir)) continue;
@@ -559,19 +560,20 @@ internal static class VideoSettingsSync
             string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
             progress?.Invoke(0, 1, tag);
             BackupSaves(saveDir);
+            if (IsGarageOnlySaveDir(saveDir))
+            {
+                AppMeta.Log($"{tag}: garagem preservada — .save nao e regravado.");
+                anyOk = true;
+                deferredOnly = true;
+                continue;
+            }
+            patchedStub = true;
             if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, (cur, tot, detail) =>
                 {
                     progress?.Invoke(cur, tot, string.IsNullOrWhiteSpace(detail) ? tag : $"{tag} · {detail}");
                 }))
             {
                 anyOk = true;
-            }
-            else if (IsGarageOnlySaveDir(saveDir))
-            {
-                // Sem perfil de video leve (<1.2MB): nao falhar Apply/REPARAR (falso negativo Ziel).
-                AppMeta.Log($"{tag}: so save de garagem — menu sync adiado (INI {mode} permanece).");
-                anyOk = true;
-                deferredOnly = true;
             }
             else if (tag == "Steam")
                 AppMeta.Log("Steam: save invalido/corrompido ignorado (Epic e a fonte principal).");
@@ -588,7 +590,7 @@ internal static class VideoSettingsSync
             return true;
         }
 
-        if (anyOk && deferredOnly)
+        if (anyOk && deferredOnly && !patchedStub)
             AppMeta.Log("Sync OK com aviso: conta sem save leve de video (garagem preservada).");
 
         return anyOk;

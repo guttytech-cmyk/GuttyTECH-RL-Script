@@ -27,6 +27,7 @@
     <Compile Include="..\UiCopy.cs" Link="UiCopy.cs" />
     <Compile Include="..\RlPathPolicy.cs" Link="RlPathPolicy.cs" />
     <Compile Include="..\RlBuildStamp.cs" Link="RlBuildStamp.cs" />
+    <Compile Include="..\SaveGarageGuard.cs" Link="SaveGarageGuard.cs" />
   </ItemGroup>
 
 </Project>

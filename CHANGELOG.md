@@ -3,6 +3,13 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.24] — 2026-11-03
+### Corrigido
+- O sync de vídeo não regrava mais o save da garagem. A regravação apagava o vínculo do preset e a tinta, e na partida o carro entrava com a cor do time.
+- RESTAURAR PRESETS ignora save regravado e devolve a cópia íntegra, mesmo menor. O cofre Best não guarda mais o arquivo quebrado.
+- O reforço automático não cobre uma garagem saudável só porque o backup é maior, e não recria slot que o jogo apagou.
+- O diagnóstico avisa quando o save foi regravado.
+
 ## [v25.0.23] — 2026-11-02
 ### Melhorado
 - Correções e melhorias na interface: tudo numa página só, sem abas e sem submenu. Status, modos, comando de inicialização, protocolo, recuperação, suporte e o remover ficam visíveis.

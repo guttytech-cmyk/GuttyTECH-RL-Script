@@ -1,14 +1,16 @@
-GUTTYTECH RL Optimizer v25.0.23
+GUTTYTECH RL Optimizer v25.0.24
 
-Correções e melhorias.
+Presets e cor do carro.
 
 O que mudou:
-- Interface numa página só: sem abas e sem submenu
-- Comando de inicialização logo abaixo dos modos
-- Botão grande para remover a otimização
-- Scroll mais suave
-- Watcher do CRIADOR corrige o INI quando o jogo mexe nas configs
-- Correções de estabilidade na troca de idioma e no download
+- O app não regrava mais o save da garagem. Era isso que fazia o preset sumir e a cor trocar ao entrar na partida.
+- Restaurar presets ignora o save quebrado e devolve a cópia boa.
+- O app não cobre mais uma garagem saudável com um backup antigo só porque o arquivo é maior.
+
+Se o preset já sumiu:
+1. Feche o Rocket League
+2. No app, clique em RESTAURAR PRESETS
+3. Abra o jogo offline e confira a garagem antes de ligar a nuvem
 
 Como atualizar:
 1. Feche o GuttyTECH_RL que estiver aberto

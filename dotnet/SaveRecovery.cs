@@ -99,25 +99,26 @@ internal static class SaveRecovery
         int secondPass = ReinforceLiveAccounts(iniPath) + RestoreBestVaultInto(iniPath);
         if (secondPass > 0) parts.Add($"2o passe={secondPass}");
 
-        bool ok = epic || steam || reinforced > 0 || secondPass > 0 || cloud > 0;
+        // Cloud isolado nao e preset restaurado. Sem garagem integra, o botao falha.
+        bool ok = epic || steam || reinforced > 0 || secondPass > 0;
         summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups de garagem";
         AppMeta.Log("RESTAURAR-PRESETS: " + summary + (ok ? " OK" : " FALHOU"));
         return ok;
     }
 
     /// <summary>
-    /// Apos patch de video: se a conta live ficou stub (&lt; SoftGarageMin),
-    /// restaura o Best/backup de garagem — Apply nao deve apagar presets.
+    /// Apos sync de video: so devolve o Best se a conta live virou stub
+    /// (&lt; SoftGarageMin). Nao cobre uma garagem saudavel so porque o Best
+    /// e maior, e nao recria slot que o jogo ja apagou.
     /// </summary>
     public static int ReinforceGarageAfterVideoSync(string? iniPath)
     {
         if (iniPath is null) return 0;
         try
         {
-            int n = ReinforceLiveAccounts(iniPath);
-            n += RestoreBestVaultInto(iniPath);
+            int n = RestoreCollapsedStubs(iniPath);
             if (n > 0)
-                AppMeta.Log($"Pos-sync video: reforco garagem/presets={n}");
+                AppMeta.Log($"Pos-sync video: stub restaurado={n}");
             return n;
         }
         catch (Exception ex)
@@ -125,6 +126,36 @@ internal static class SaveRecovery
             AppMeta.Log("ReinforceGarageAfterVideoSync: " + ex.Message);
             return 0;
         }
+    }
+
+    /// <summary>Copia o Best por cima apenas de .save que encolheram abaixo do stub.</summary>
+    private static int RestoreCollapsedStubs(string iniPath)
+    {
+        int n = 0;
+        foreach (bool epic in new[] { true, false })
+        {
+            string? saveDir = SaveDirFromIni(iniPath, epic);
+            if (saveDir is null || !Directory.Exists(saveDir)) continue;
+
+            var groups = IntactGarageBackups();
+
+            foreach (string livePath in Directory.EnumerateFiles(saveDir, "*.save"))
+            {
+                var live = new FileInfo(livePath);
+                if (!live.Exists || live.Length <= 0 || live.Length >= SoftGarageMinBytes)
+                    continue;
+                if (!groups.TryGetValue(live.Name, out var best))
+                    continue;
+                if (best.Length < SoftGarageMinBytes)
+                    continue;
+                if (SafeCopy(best.FullName, livePath, overwrite: true))
+                {
+                    n++;
+                    AppMeta.Log($"Stub restaurado: {live.Name} {live.Length / 1024}KB -> {best.Length / 1024}KB");
+                }
+            }
+        }
+        return n;
     }
 
     /// <summary>Copia saves de garagem (grandes) — so file copy, sem decrypt.</summary>
@@ -210,14 +241,27 @@ internal static class SaveRecovery
 
             Directory.CreateDirectory(BestRoot);
             string bestPath = Path.Combine(BestRoot, accountFileName);
+            bool replaceDamaged = false;
             if (File.Exists(bestPath))
             {
                 long bestLen = new FileInfo(bestPath).Length;
                 if (sourceLength <= bestLen)
-                    return false;
+                {
+                    if (!SaveGarageGuard.IsReserializeDamage(bestPath))
+                        return false;
+                    replaceDamaged = true;
+                }
+            }
+
+            if (SaveGarageGuard.IsReserializeDamage(sourcePath))
+            {
+                AppMeta.Log($"Best ignorado (regravacao quebra preset): {accountFileName}");
+                return false;
             }
 
             SafeCopy(sourcePath, bestPath, overwrite: true);
+            if (replaceDamaged)
+                AppMeta.Log($"Best trocado: save regravado saiu, entrou copia integra ({accountFileName}).");
             return true;
         }
         catch (Exception ex)
@@ -234,6 +278,7 @@ internal static class SaveRecovery
         try
         {
             Directory.CreateDirectory(BestRoot);
+            var byAccount = new Dictionary<string, List<FileInfo>>(StringComparer.OrdinalIgnoreCase);
             foreach (string root in new[] { BackupRoot, PresetsRoot, Path.Combine(AppMeta.BackupDir, "Quarantine") })
             {
                 if (!Directory.Exists(root)) continue;
@@ -247,10 +292,45 @@ internal static class SaveRecovery
                         if (fi.Length < SoftGarageMinBytes || fi.Length > GarageMaxBytes) continue;
                         var m = BackupName.Match(fi.Name);
                         string account = m.Success ? m.Groups[1].Value : fi.Name;
-                        if (UpdateBestVault(account, fi.FullName, fi.Length))
-                            n++;
+                        if (!byAccount.TryGetValue(account, out var list))
+                        {
+                            list = new List<FileInfo>();
+                            byAccount[account] = list;
+                        }
+                        list.Add(fi);
                     }
                     catch { }
+                }
+            }
+
+            foreach (var kv in byAccount)
+            {
+                var ranked = kv.Value
+                    .OrderByDescending(f => f.Length)
+                    .ThenByDescending(f => f.LastWriteTimeUtc)
+                    .ToList();
+                if (ranked.Count == 0) continue;
+
+                string bestPath = Path.Combine(BestRoot, kv.Key);
+                if (File.Exists(bestPath))
+                {
+                    var bestFi = new FileInfo(bestPath);
+                    if (bestFi.Length >= ranked[0].Length
+                        && !SaveGarageGuard.IsReserializeDamage(bestPath))
+                        continue;
+                }
+
+                foreach (var fi in ranked)
+                {
+                    if (SaveGarageGuard.IsReserializeDamage(fi.FullName))
+                    {
+                        AppMeta.Log($"Arquivo ignorado (regravacao quebra preset): {fi.Name}");
+                        continue;
+                    }
+
+                    if (UpdateBestVault(kv.Key, fi.FullName, fi.Length))
+                        n++;
+                    break;
                 }
             }
             if (n > 0) AppMeta.Log($"Best vault herdado de arquivos: {n}.");
@@ -322,11 +402,15 @@ internal static class SaveRecovery
 
             foreach (var g in groups)
             {
-                FileInfo pick = preferGarage
+                FileInfo? pick = preferGarage
                     ? PickGaragePreferred(g)
-                    : preferNewest
-                        ? g.OrderByDescending(x => x.File.LastWriteTimeUtc).First().File
-                        : g.OrderBy(x => x.File.LastWriteTimeUtc).First().File;
+                    : FirstIntact(g, preferNewest);
+
+                if (pick is null)
+                {
+                    AppMeta.Log($"Sem save integro para {g.Key}.");
+                    continue;
+                }
 
                 // Em modo presets, nao vale a pena repor stubs pequeninos por cima do live
                 if (preferGarage && pick.Length < SoftGarageMinBytes)
@@ -378,8 +462,7 @@ internal static class SaveRecovery
             if (!Directory.Exists(saveDir))
                 return 0;
 
-            var groups = CollectBackupGroups()
-                .ToDictionary(g => g.Key, g => PickGaragePreferred(g), StringComparer.OrdinalIgnoreCase);
+            var groups = IntactGarageBackups();
 
             int n = 0;
 
@@ -392,7 +475,11 @@ internal static class SaveRecovery
                     continue;
                 if (best.Length < SoftGarageMinBytes)
                     continue;
-                if (live.Exists && live.Length >= best.Length)
+                bool liveDamaged = live.Length >= SoftGarageMinBytes
+                    && SaveGarageGuard.IsReserializeDamage(live.FullName);
+                // Save quebrado sai mesmo se for maior. Save integro menor que o Best
+                // so e coberto no RESTAURAR explicito, nunca no sync de video.
+                if (!liveDamaged && live.Exists && live.Length >= best.Length)
                     continue;
 
                 if (SafeCopy(best.FullName, livePath, overwrite: true))
@@ -449,9 +536,18 @@ internal static class SaveRecovery
                 {
                     var fi = new FileInfo(best);
                     if (fi.Length < SoftGarageMinBytes) continue;
+                    if (SaveGarageGuard.IsReserializeDamage(fi.FullName))
+                    {
+                        AppMeta.Log($"Best ignorado na restauracao (regravacao): {fi.Name}");
+                        continue;
+                    }
                     string dest = Path.Combine(dir, fi.Name);
-                    bool need = !File.Exists(dest) || new FileInfo(dest).Length < fi.Length;
-                    if (need && SafeCopy(best, dest, overwrite: true))
+                    bool missing = !File.Exists(dest);
+                    bool smaller = !missing && new FileInfo(dest).Length < fi.Length;
+                    bool destDamaged = !missing
+                        && new FileInfo(dest).Length >= SoftGarageMinBytes
+                        && SaveGarageGuard.IsReserializeDamage(dest);
+                    if ((missing || smaller || destDamaged) && SafeCopy(best, dest, overwrite: true))
                         n++;
                 }
             }
@@ -460,24 +556,41 @@ internal static class SaveRecovery
         return n;
     }
 
-    private static FileInfo PickGaragePreferred(IGrouping<string, (string Orig, FileInfo File)> g)
+    private static Dictionary<string, FileInfo> IntactGarageBackups()
     {
-        // 1) Maior save de garagem valido, preferindo o Best vault e depois o mais recente
-        var big = g.Where(x => x.File.Length >= SoftGarageMinBytes && !LooksCorruptHeader(x.File))
+        var map = new Dictionary<string, FileInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var g in CollectBackupGroups())
+        {
+            FileInfo? pick = PickGaragePreferred(g);
+            if (pick is not null)
+                map[g.Key] = pick;
+        }
+        return map;
+    }
+
+    private static FileInfo? FirstIntact(IGrouping<string, (string Orig, FileInfo File)> g, bool newest)
+    {
+        var ranked = g.Select(x => x.File)
+            .Where(f => !LooksCorruptHeader(f) && !SaveGarageGuard.IsReserializeDamage(f.FullName));
+        return newest
+            ? ranked.OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault()
+            : ranked.OrderBy(f => f.LastWriteTimeUtc).FirstOrDefault();
+    }
+
+    private static FileInfo? PickGaragePreferred(IGrouping<string, (string Orig, FileInfo File)> g)
+    {
+        // Maior save de garagem integro. Best vale primeiro. Save regravado nao entra.
+        foreach (var fi in g.Where(x => x.File.Length >= SoftGarageMinBytes && x.File.Length <= GarageMaxBytes && !LooksCorruptHeader(x.File))
             .OrderByDescending(x => IsBestVaultPath(x.File.FullName) ? 1 : 0)
             .ThenByDescending(x => x.File.Length)
             .ThenByDescending(x => x.File.LastWriteTimeUtc)
-            .Select(x => x.File)
-            .FirstOrDefault();
-        if (big is not null) return big;
+            .Select(x => x.File))
+        {
+            if (!SaveGarageGuard.IsReserializeDamage(fi.FullName))
+                return fi;
+        }
 
-        // 2) Sem garagem: o MAIOR disponivel nao-corrompido
-        var any = g.Where(x => !LooksCorruptHeader(x.File))
-            .OrderByDescending(x => x.File.Length)
-            .ThenByDescending(x => x.File.LastWriteTimeUtc)
-            .Select(x => x.File)
-            .FirstOrDefault();
-        return any ?? g.OrderByDescending(x => x.File.Length).First().File;
+        return null;
     }
 
     private static bool IsBestVaultPath(string path) =>
@@ -951,8 +1064,11 @@ internal static class SaveRecovery
             int garage = files.Count(f => f.Length >= SoftGarageMinBytes && f.Length <= GarageMaxBytes);
             int huge = files.Count(f => f.Length > GarageMaxBytes);
             int corruptHeader = files.Count(LooksCorruptHeader);
+            int reserialize = files.Count(f => f.Length >= SoftGarageMinBytes && SaveGarageGuard.IsReserializeDamage(f.FullName));
 
             lines.Add($"{tag}: {files.Count} save(s) | garagem={garage} stub={tiny} zero={zero} enorme={huge}");
+            if (reserialize > 0)
+                lines.Add($"  !! {tag}: {reserialize} save(s) regravados — preset e tinta quebrados. RESTAURAR PRESETS com o jogo fechado");
             if (zero > 0 || corruptHeader > 0)
                 lines.Add($"  !! {tag}: LOAD FAILURE provavel (zero={zero}, header mau={corruptHeader}) — use CORRIGIR SAVE");
             else if (tiny > 0 && garage == 0)

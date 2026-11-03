@@ -23,9 +23,19 @@ UNCAPPED_MAX_FPS = 10000
 # acima e garagem/presets (nao pode encolher no assemble).
 SOFT_GARAGE_MIN = 250_000
 MAX_PATCH_BYTES = 1_200_000
-# Garagem real (presets) passa deste teto. O patch de video entra com rollback
-# se o assemble encolher — senao o menu regrava o INI no proximo boot.
+# Acima disto o arquivo nem e candidato. Entre SOFT_GARAGE_MIN e este teto
+# tambem NAO se regrava: o codec nixwrap troca ObjectProperty/ByteProperty
+# por Int/Str. O jogo perde o vinculo do preset e a tinta (cor de time).
+# Rollback de 10% nao pega isso — um save de 2.5MB sai 3% menor e "valido".
 MAX_GARAGE_PATCH = 16_000_000
+
+_GARAGE_TYPES = {
+    "TAGame.Loadout_TA",
+    "TAGame.LoadoutSet_TA",
+    "TAGame.OnlineProduct_TA",
+    "TAGame.ProductAttribute_Painted_TA",
+    "TAGame.ProductsSave_TA",
+}
 
 # Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
 # HighPerformance em Particle/Render quebra o menu (branco / Alta qualidade).
@@ -263,13 +273,29 @@ def _patch_raw(raw: dict, *, completo: bool) -> bool:
     return changed
 
 
+def _contains_garage(raw: dict) -> bool:
+    for obj in raw.get("objects") or []:
+        if obj.get("__type") in _GARAGE_TYPES:
+            return True
+    return False
+
+
 def patch_file(path: Path, *, completo: bool) -> bool:
     try:
         original_size = path.stat().st_size
     except OSError:
         original_size = 0
 
+    if original_size >= SOFT_GARAGE_MIN:
+        raise RuntimeError(
+            f"garagem intacta: {path.name} {original_size // 1024}KB nao sera regravado"
+        )
+
     raw = load_raw(path)
+    if _contains_garage(raw):
+        raise RuntimeError(
+            f"garagem intacta: {path.name} tem preset/item — nao sera regravado"
+        )
     if not _patch_raw(raw, completo=completo):
         return False
 
@@ -324,11 +350,10 @@ def patch_file(path: Path, *, completo: bool) -> bool:
 
 
 def _select_files(files: list[Path]) -> list[Path]:
-    """Leves (<1.2MB) primeiro. Garagem ate 16MB entra com rollback de tamanho."""
+    """So stub de video (<250KB). Garagem nunca entra no assemble."""
     max_files = 6
     ranked = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
     light: list[Path] = []
-    garage: list[Path] = []
     for f in ranked:
         try:
             sz = f.stat().st_size
@@ -337,17 +362,14 @@ def _select_files(files: list[Path]) -> list[Path]:
         if sz <= 0 or sz > MAX_GARAGE_PATCH:
             print(f"SKIP {f.name} (fora da faixa: {sz // 1024}KB)", flush=True)
             continue
-        if sz > MAX_PATCH_BYTES:
-            print(f"GARAGE {f.name} ({sz // 1024}KB) — video only, rollback se encolher", flush=True)
-            garage.append(f)
-        else:
-            light.append(f)
-    chosen: list[Path] = []
-    for f in light + garage:
-        chosen.append(f)
-        if len(chosen) >= max_files:
-            break
-    return chosen
+        if sz >= SOFT_GARAGE_MIN:
+            print(
+                f"SKIP {f.name} ({sz // 1024}KB) — garagem intacta, sem regravar",
+                flush=True,
+            )
+            continue
+        light.append(f)
+    return light[:max_files]
 
 
 def main(argv: list[str]) -> int:
@@ -375,16 +397,20 @@ def main(argv: list[str]) -> int:
         elif target.is_file() and target.suffix.lower() == ".save":
             all_saves = [target]
         oversized = 0
+        garage_kept = 0
         for f in all_saves:
             try:
-                if f.stat().st_size > MAX_PATCH_BYTES:
-                    oversized += 1
+                sz = f.stat().st_size
             except OSError:
-                pass
-        if oversized > 0 or len(all_saves) == 0:
+                continue
+            if sz >= SOFT_GARAGE_MIN:
+                garage_kept += 1
+            if sz > MAX_PATCH_BYTES:
+                oversized += 1
+        if garage_kept > 0 or oversized > 0 or len(all_saves) == 0:
             print(
-                f"DEFER menu sync: {oversized} save(s) grande(s)/nenhum leve "
-                "(INI autoridade; abra o RL 1x se quiser sync do menu)",
+                f"DEFER menu sync: {garage_kept} save(s) de garagem preservados "
+                "(INI autoridade; stub <250KB e que sincroniza o menu)",
                 flush=True,
             )
             return 0
