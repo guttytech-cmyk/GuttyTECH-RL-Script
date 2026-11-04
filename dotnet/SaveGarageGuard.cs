@@ -18,15 +18,20 @@ internal static class SaveGarageGuard
     };
 
     private static readonly Lock Gate = new();
-    private static readonly Dictionary<string, (long Length, long Ticks, bool Damaged)> Cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, (long Length, long Ticks, bool Damaged, int Loadouts)> Cache = new(StringComparer.OrdinalIgnoreCase);
 
-    public static bool IsReserializeDamage(string path)
+    public static bool IsReserializeDamage(string path) => Inspect(path).Damaged;
+
+    /// <summary>Quantidade de objetos Loadout_TA (presets por time) no save.</summary>
+    public static int LoadoutCount(string path) => Inspect(path).Loadouts;
+
+    private static (bool Damaged, int Loadouts) Inspect(string path)
     {
         try
         {
             var fi = new FileInfo(path);
             if (!fi.Exists || fi.Length < 32)
-                return false;
+                return (false, 0);
 
             long ticks = fi.LastWriteTimeUtc.Ticks;
             lock (Gate)
@@ -34,17 +39,17 @@ internal static class SaveGarageGuard
                 if (Cache.TryGetValue(path, out var hit)
                     && hit.Length == fi.Length
                     && hit.Ticks == ticks)
-                    return hit.Damaged;
+                    return (hit.Damaged, hit.Loadouts);
             }
 
-            bool damaged = LooksDamagedFile(fi.FullName);
+            var r = InspectFile(fi.FullName);
             lock (Gate)
-                Cache[path] = (fi.Length, ticks, damaged);
-            return damaged;
+                Cache[path] = (fi.Length, ticks, r.Damaged, r.Loadouts);
+            return r;
         }
         catch
         {
-            return false;
+            return (false, 0);
         }
     }
 
@@ -69,18 +74,18 @@ internal static class SaveGarageGuard
         return false;
     }
 
-    private static bool LooksDamagedFile(string path)
+    private static (bool Damaged, int Loadouts) InspectFile(string path)
     {
         byte[] file = File.ReadAllBytes(path);
         if (file.Length < 8)
-            return false;
+            return (false, 0);
 
         int encLen = BitConverter.ToInt32(file, 0);
         if (encLen <= 0 || encLen % 16 != 0 || 8 + encLen > file.Length)
-            return false;
+            return (false, 0);
 
         byte[] plain = DecryptEcb(file.AsSpan(8, encLen));
-        return LooksLikeReserialize(plain);
+        return (LooksLikeReserialize(plain), Count(plain, "TAGame.Loadout_TA"u8));
     }
 
     private static byte[] DecryptEcb(ReadOnlySpan<byte> cipher)

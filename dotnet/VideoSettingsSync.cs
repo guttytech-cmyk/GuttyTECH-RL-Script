@@ -537,22 +537,16 @@ internal static class VideoSettingsSync
     {
         if (!EnsureGameClosed(interactive)) return false;
 
-        // Preserva presets ANTES do patch UE3 (pode encolher save de garagem).
         try { SaveRecovery.BackupGaragePresets(iniPath); } catch { }
+        // Repoe slots regravados por versoes antigas ANTES do patch — o que voltar
+        // do backup tambem recebe o menu do modo.
+        try { SaveRecovery.ReinforceGarageAfterVideoSync(iniPath); } catch { }
 
-        string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
-        if (tagame is null) return false;
-
-        string[] saveDirs =
-        {
-            Path.Combine(tagame, "SaveDataEpic", "DBE_Production"),
-            Path.Combine(tagame, "SaveData", "DBE_Production"),
-        };
+        string[] saveDirs = SaveDirs(iniPath);
+        if (saveDirs.Length == 0) return false;
 
         bool anyDir = false;
         bool anyOk = false;
-        bool deferredOnly = false;
-        bool patchedStub = false;
         foreach (string saveDir in saveDirs)
         {
             if (!Directory.Exists(saveDir)) continue;
@@ -560,14 +554,6 @@ internal static class VideoSettingsSync
             string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
             progress?.Invoke(0, 1, tag);
             BackupSaves(saveDir);
-            if (IsGarageOnlySaveDir(saveDir))
-            {
-                AppMeta.Log($"{tag}: garagem preservada — .save nao e regravado.");
-                anyOk = true;
-                deferredOnly = true;
-                continue;
-            }
-            patchedStub = true;
             if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, (cur, tot, detail) =>
                 {
                     progress?.Invoke(cur, tot, string.IsNullOrWhiteSpace(detail) ? tag : $"{tag} · {detail}");
@@ -581,44 +567,47 @@ internal static class VideoSettingsSync
                 AppMeta.Log("Patch parcial/falhou em: " + saveDir);
         }
 
-        // Sempre reforca garagem apos patch — Apply nao deve obrigar CORRIGIR ERROS.
-        try { SaveRecovery.ReinforceGarageAfterVideoSync(iniPath); } catch { }
-
         if (!anyDir)
         {
             AppMeta.Log("Nenhum SaveDataEpic/SaveData encontrado; menu in-game nao sincronizado.");
             return true;
         }
 
-        if (anyOk && deferredOnly && !patchedStub)
-            AppMeta.Log("Sync OK com aviso: conta sem save leve de video (garagem preservada).");
-
         return anyOk;
     }
 
     /// <summary>
-    /// Pasta sem .save leve de video — so garagem/presets (>= SoftGarageMin) ou vazia.
-    /// Nessas contas o patch UE3 e adiado de proposito (evita hang em 2MB+).
+    /// REMOVER: devolve o bloco de video/gameplay/camera do .save ao original
+    /// (sidecar pre-Gutty) ou, sem sidecar, tira as chaves Gutty → padrao do jogo.
+    /// Garagem nao e tocada. RL precisa estar fechado.
     /// </summary>
-    private static bool IsGarageOnlySaveDir(string saveDir)
+    public static bool RevertVideoSave(string iniPath)
     {
-        try
+        if (GetRl().Length > 0)
         {
-            if (!Directory.Exists(saveDir)) return true;
-            var files = Directory.EnumerateFiles(saveDir, "*.save")
-                .Select(f => new FileInfo(f))
-                .Where(f => f.Length > 0)
-                .ToList();
-            if (files.Count == 0) return true;
-            // Qualquer stub de video leve → falha real do patch, nao defer.
-            if (files.Any(f => f.Length < SaveRecovery.SoftGarageMinBytes))
-                return false;
-            return files.All(f => f.Length >= SaveRecovery.SoftGarageMinBytes);
-        }
-        catch
-        {
+            AppMeta.Log("Revert menu .save: RL aberto, abortado.");
             return false;
         }
+        bool ok = true;
+        foreach (string saveDir in SaveDirs(iniPath))
+        {
+            if (!Directory.Exists(saveDir)) continue;
+            BackupSaves(saveDir);
+            if (!SaveVideoPatcher.PatchSaveDirectory(saveDir, "STOCK"))
+                ok = false;
+        }
+        return ok;
+    }
+
+    private static string[] SaveDirs(string iniPath)
+    {
+        string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(iniPath));
+        if (tagame is null) return Array.Empty<string>();
+        return new[]
+        {
+            Path.Combine(tagame, "SaveDataEpic", "DBE_Production"),
+            Path.Combine(tagame, "SaveData", "DBE_Production"),
+        };
     }
 
     private static bool EnsureGameClosed(bool interactive)
@@ -645,41 +634,25 @@ internal static class VideoSettingsSync
         {
             if (!Directory.Exists(saveDir)) return true;
 
-            string dest = Path.Combine(AppMeta.BackupDir, "SaveDataEpic");
-            Directory.CreateDirectory(dest);
+            string dest = SaveRecovery.BackupRoot;
             string ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
 
-            // Leves: video sync (rapido).
+            // Garagem (>= SoftGarageMin) ja vai para Presets/Best em BackupGaragePresets.
             var light = Directory.EnumerateFiles(saveDir, "*.save")
                 .Select(f => new FileInfo(f))
                 .Where(f => f.Length > 0 && f.Length < SaveRecovery.SoftGarageMinBytes)
                 .OrderByDescending(f => f.LastWriteTimeUtc)
                 .Take(8);
 
-            // Pesados: presets/garagem — so copia, sem decrypt.
-            var heavy = Directory.EnumerateFiles(saveDir, "*.save")
-                .Select(f => new FileInfo(f))
-                .Where(f => f.Length >= SaveRecovery.SoftGarageMinBytes && f.Length <= SaveRecovery.GarageMaxBytes)
-                .OrderByDescending(f => f.Length)
-                .ThenByDescending(f => f.LastWriteTimeUtc)
-                .Take(12);
-
             int n = 0;
-            foreach (var fi in light.Concat(heavy).GroupBy(f => f.FullName).Select(g => g.First()))
+            foreach (var fi in light)
             {
-                string backup = Path.Combine(dest, $"{ts}_{fi.Name}");
-                if (!File.Exists(backup))
-                {
-                    fi.CopyTo(backup, false);
+                if (SaveRecovery.ArchiveSave(fi, dest, ts))
                     n++;
-                }
-
-                // Cofre sticky Best — nunca perde o maior save da conta
-                if (fi.Length >= SaveRecovery.SoftGarageMinBytes)
-                    SaveRecovery.UpdateBestVault(fi.Name, fi.FullName, fi.Length);
             }
 
-            AppMeta.Log($"Backup save ({ts}): {n} ficheiro(s) leves+garagem.");
+            if (n > 0)
+                AppMeta.Log($"Backup save ({ts}): {n} arquivo(s) de menu.");
             return true;
         }
         catch (Exception ex)

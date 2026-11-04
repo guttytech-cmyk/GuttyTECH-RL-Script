@@ -99,8 +99,25 @@ internal static class SaveRecovery
         int secondPass = ReinforceLiveAccounts(iniPath) + RestoreBestVaultInto(iniPath);
         if (secondPass > 0) parts.Add($"2o passe={secondPass}");
 
+        // 6) Slots _1/_2/_3 regravados: o RL carrega o mais novo — se sobrar um
+        //    quebrado, o preset continua sumido mesmo com o principal restaurado.
+        int slots = HealDamagedSlots(epicDir) + HealDamagedSlots(steamDir);
+        if (slots > 0) parts.Add($"slots repostos={slots}");
+
+        // 7) Backup traz o menu de video antigo; com modo ativo, alinha ao INI.
+        string? active = ModeDetect.Detect(iniPath)?.ToUpperInvariant();
+        if (active is "COMPLETO" or "CRIADOR")
+        {
+            foreach (string? dir in new[] { epicDir, steamDir })
+            {
+                if (dir is not null && Directory.Exists(dir))
+                    SaveVideoPatcher.PatchSaveDirectory(dir, active);
+            }
+            parts.Add("menu " + active);
+        }
+
         // Cloud isolado nao e preset restaurado. Sem garagem integra, o botao falha.
-        bool ok = epic || steam || reinforced > 0 || secondPass > 0;
+        bool ok = epic || steam || reinforced > 0 || secondPass > 0 || slots > 0;
         summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups de garagem";
         AppMeta.Log("RESTAURAR-PRESETS: " + summary + (ok ? " OK" : " FALHOU"));
         return ok;
@@ -118,8 +135,12 @@ internal static class SaveRecovery
         {
             int n = RestoreCollapsedStubs(iniPath);
             if (n > 0)
-                AppMeta.Log($"Pos-sync video: stub restaurado={n}");
-            return n;
+                AppMeta.Log($"Sync video: stub restaurado={n}");
+            int healed = HealDamagedSlots(SaveDirFromIni(iniPath, epic: true))
+                         + HealDamagedSlots(SaveDirFromIni(iniPath, epic: false));
+            if (healed > 0)
+                AppMeta.Log($"Sync video: slots regravados repostos={healed}");
+            return n + healed;
         }
         catch (Exception ex)
         {
@@ -148,7 +169,7 @@ internal static class SaveRecovery
                     continue;
                 if (best.Length < SoftGarageMinBytes)
                     continue;
-                if (SafeCopy(best.FullName, livePath, overwrite: true))
+                if (CopyToLive(best.FullName, livePath))
                 {
                     n++;
                     AppMeta.Log($"Stub restaurado: {live.Name} {live.Length / 1024}KB -> {best.Length / 1024}KB");
@@ -162,7 +183,12 @@ internal static class SaveRecovery
     public static int BackupGaragePresets(string? iniPath)
     {
         if (iniPath is null) return 0;
-        try { SeedBestVaultFromArchives(); } catch { }
+        bool seeded = false;
+        try { SeedBestVaultFromArchives(); seeded = true; } catch { }
+        if (seeded)
+        {
+            try { PruneArchivesOnce(); } catch { }
+        }
         int n = 0;
         n += BackupGarageFromDir(SaveDirFromIni(iniPath, epic: true));
         n += BackupGarageFromDir(SaveDirFromIni(iniPath, epic: false));
@@ -199,19 +225,8 @@ internal static class SaveRecovery
             int n = 0;
             foreach (var fi in heavy)
             {
-                string name = $"{ts}_{fi.Name}";
-                string destA = Path.Combine(BackupRoot, name);
-                string destB = Path.Combine(PresetsRoot, name);
-                if (!File.Exists(destA))
-                {
-                    SafeCopy(fi.FullName, destA, overwrite: false);
+                if (ArchiveSave(fi, PresetsRoot, ts))
                     n++;
-                }
-
-                if (!File.Exists(destB))
-                {
-                    try { SafeCopy(fi.FullName, destB, overwrite: false); } catch { }
-                }
 
                 // Cofre sticky: so sobe, nunca desce.
                 if (UpdateBestVault(fi.Name, fi.FullName, fi.Length))
@@ -398,10 +413,13 @@ internal static class SaveRecovery
             int restored = 0;
             long bytes = 0;
             int garageHits = 0;
+            int keptIntact = 0;
             string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
 
             foreach (var g in groups)
             {
+                if (!AccountFitsDir(g.Key, saveDir))
+                    continue;
                 FileInfo? pick = preferGarage
                     ? PickGaragePreferred(g)
                     : FirstIntact(g, preferNewest);
@@ -422,7 +440,19 @@ internal static class SaveRecovery
                 }
 
                 string dest = Path.Combine(saveDir, g.Key);
-                if (!SafeCopy(pick.FullName, dest, overwrite: true))
+                // Live integro e do mesmo porte: um backup mais velho so traria
+                // inventario/presets antigos por cima dos atuais.
+                if (preferGarage && File.Exists(dest))
+                {
+                    var cur = new FileInfo(dest);
+                    if (LiveHoldsUp(cur, pick))
+                    {
+                        keptIntact++;
+                        AppMeta.Log($"Save live integro mantido: {g.Key} ({cur.Length / 1024}KB, {tag})");
+                        continue;
+                    }
+                }
+                if (!CopyToLive(pick.FullName, dest))
                     continue;
 
                 restored++;
@@ -432,9 +462,11 @@ internal static class SaveRecovery
             }
 
             if (restored > 0)
-                parts?.Add($"{tag}:{restored} ficheiros ({bytes / 1024}KB, {garageHits} garagem)");
+                parts?.Add($"{tag}:{restored} arquivos ({bytes / 1024}KB, {garageHits} garagem)");
+            if (keptIntact > 0)
+                parts?.Add($"{tag}:{keptIntact} integro(s) mantido(s)");
 
-            return preferGarage ? garageHits > 0 : restored > 0;
+            return preferGarage ? garageHits > 0 || keptIntact > 0 : restored > 0;
         }
         catch (Exception ex)
         {
@@ -475,14 +507,10 @@ internal static class SaveRecovery
                     continue;
                 if (best.Length < SoftGarageMinBytes)
                     continue;
-                bool liveDamaged = live.Length >= SoftGarageMinBytes
-                    && SaveGarageGuard.IsReserializeDamage(live.FullName);
-                // Save quebrado sai mesmo se for maior. Save integro menor que o Best
-                // so e coberto no RESTAURAR explicito, nunca no sync de video.
-                if (!liveDamaged && live.Exists && live.Length >= best.Length)
+                if (LiveHoldsUp(live, best))
                     continue;
 
-                if (SafeCopy(best.FullName, livePath, overwrite: true))
+                if (CopyToLive(best.FullName, livePath))
                 {
                     n++;
                     AppMeta.Log($"Reforco conta live: {name} {live.Length / 1024}KB -> {best.Length / 1024}KB");
@@ -493,14 +521,12 @@ internal static class SaveRecovery
             foreach (var kv in groups)
             {
                 if (kv.Value.Length < SoftGarageMinBytes) continue;
+                if (!AccountFitsDir(kv.Key, saveDir)) continue;
                 string dest = Path.Combine(saveDir, kv.Key);
-                if (File.Exists(dest))
-                {
-                    long cur = new FileInfo(dest).Length;
-                    if (cur >= kv.Value.Length) continue;
-                }
+                if (File.Exists(dest) && LiveHoldsUp(new FileInfo(dest), kv.Value))
+                    continue;
 
-                if (SafeCopy(kv.Value.FullName, dest, overwrite: true))
+                if (CopyToLive(kv.Value.FullName, dest))
                 {
                     n++;
                     AppMeta.Log($"Injetado save ausente/fraco: {kv.Key} ({kv.Value.Length / 1024}KB)");
@@ -541,13 +567,11 @@ internal static class SaveRecovery
                         AppMeta.Log($"Best ignorado na restauracao (regravacao): {fi.Name}");
                         continue;
                     }
+                    if (!AccountFitsDir(fi.Name, dir)) continue;
                     string dest = Path.Combine(dir, fi.Name);
-                    bool missing = !File.Exists(dest);
-                    bool smaller = !missing && new FileInfo(dest).Length < fi.Length;
-                    bool destDamaged = !missing
-                        && new FileInfo(dest).Length >= SoftGarageMinBytes
-                        && SaveGarageGuard.IsReserializeDamage(dest);
-                    if ((missing || smaller || destDamaged) && SafeCopy(best, dest, overwrite: true))
+                    if (File.Exists(dest) && LiveHoldsUp(new FileInfo(dest), fi))
+                        continue;
+                    if (CopyToLive(best, dest))
                         n++;
                 }
             }
@@ -579,18 +603,23 @@ internal static class SaveRecovery
 
     private static FileInfo? PickGaragePreferred(IGrouping<string, (string Orig, FileInfo File)> g)
     {
-        // Maior save de garagem integro. Best vale primeiro. Save regravado nao entra.
-        foreach (var fi in g.Where(x => x.File.Length >= SoftGarageMinBytes && x.File.Length <= GarageMaxBytes && !LooksCorruptHeader(x.File))
-            .OrderByDescending(x => IsBestVaultPath(x.File.FullName) ? 1 : 0)
-            .ThenByDescending(x => x.File.Length)
-            .ThenByDescending(x => x.File.LastWriteTimeUtc)
-            .Select(x => x.File))
-        {
-            if (!SaveGarageGuard.IsReserializeDamage(fi.FullName))
-                return fi;
-        }
-
-        return null;
+        // So copias integras. Entre as de porte parecido com a maior (>=85%), vence a
+        // com mais presets e depois a mais recente — o maior absoluto pode ser de meses
+        // atras e devolver inventario velho.
+        var intact = g.Select(x => x.File)
+            .Where(f => f.Length >= SoftGarageMinBytes && f.Length <= GarageMaxBytes
+                        && !LooksCorruptHeader(f)
+                        && !SaveGarageGuard.IsReserializeDamage(f.FullName))
+            .ToList();
+        if (intact.Count == 0)
+            return null;
+        long floor = intact.Max(f => f.Length) * 85 / 100;
+        return intact
+            .Where(f => f.Length >= floor)
+            .OrderByDescending(f => SaveGarageGuard.LoadoutCount(f.FullName))
+            .ThenByDescending(f => f.LastWriteTimeUtc)
+            .ThenByDescending(f => IsBestVaultPath(f.FullName) ? 1 : 0)
+            .First();
     }
 
     private static bool IsBestVaultPath(string path) =>
@@ -630,6 +659,192 @@ internal static class SaveRecovery
         return all
             .GroupBy(x => x.Orig, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    /// <summary>
+    /// Copia para a pasta live do jogo com mtime = agora. File.Copy herda o mtime
+    /// do backup; o RL/Epic cloud preferem o slot/copia mais novo e ignoravam o restauro.
+    /// </summary>
+    private static bool CopyToLive(string source, string dest)
+    {
+        if (!SafeCopy(source, dest, overwrite: true)) return false;
+        try { File.SetLastWriteTimeUtc(dest, DateTime.UtcNow); } catch { }
+        return true;
+    }
+
+    /// <summary>Live integro, do mesmo porte e com pelo menos os mesmos presets do backup.</summary>
+    private static bool LiveHoldsUp(FileInfo live, FileInfo backup) =>
+        live.Exists
+        && live.Length >= SoftGarageMinBytes
+        && live.Length >= backup.Length * 85 / 100
+        && !LooksCorruptHeader(live)
+        && !SaveGarageGuard.IsReserializeDamage(live.FullName)
+        && SaveGarageGuard.LoadoutCount(live.FullName) >= SaveGarageGuard.LoadoutCount(backup.FullName);
+
+    private static readonly Regex SlotSuffix = new(@"_\d+$", RegexOptions.Compiled);
+    private static readonly Regex EpicId = new(@"^[0-9a-f]{32}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex SteamId = new(@"^\d{17}$", RegexOptions.Compiled);
+
+    /// <summary>"abc_2.save" → "abc". Slots _1/_2/_3 sao a mesma conta.</summary>
+    internal static string AccountKey(string fileName) =>
+        SlotSuffix.Replace(Path.GetFileNameWithoutExtension(fileName), "");
+
+    /// <summary>Id Epic (32 hex) so em SaveDataEpic; SteamID64 so em SaveData.</summary>
+    internal static bool AccountFitsDir(string fileName, string saveDir)
+    {
+        string id = AccountKey(fileName);
+        bool epicDir = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase);
+        if (EpicId.IsMatch(id)) return epicDir;
+        if (SteamId.IsMatch(id)) return !epicDir;
+        return true;
+    }
+
+    /// <summary>
+    /// Slot regravado (preset/tinta quebrados) recebe a copia integra da mesma conta:
+    /// primeiro um slot live integro, senao o melhor backup.
+    /// </summary>
+    private static int HealDamagedSlots(string? saveDir, Dictionary<string, FileInfo>? backups = null)
+    {
+        if (saveDir is null || !Directory.Exists(saveDir)) return 0;
+        int n = 0;
+        try
+        {
+            var live = Directory.EnumerateFiles(saveDir, "*.save")
+                .Select(f => new FileInfo(f))
+                .Where(f => f.Exists && f.Length >= SoftGarageMinBytes && f.Length <= GarageMaxBytes)
+                .GroupBy(f => AccountKey(f.Name), StringComparer.OrdinalIgnoreCase);
+            foreach (var acct in live)
+            {
+                var damaged = acct.Where(f => SaveGarageGuard.IsReserializeDamage(f.FullName)).ToList();
+                if (damaged.Count == 0) continue;
+                FileInfo? source = acct
+                    .Where(f => !damaged.Contains(f) && !LooksCorruptHeader(f))
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
+                if (source is null)
+                {
+                    backups ??= IntactGarageBackups();
+                    source = backups
+                        .Where(kv => string.Equals(AccountKey(kv.Key), acct.Key, StringComparison.OrdinalIgnoreCase))
+                        .Select(kv => kv.Value)
+                        .OrderByDescending(f => f.LastWriteTimeUtc)
+                        .FirstOrDefault();
+                }
+                if (source is null)
+                {
+                    AppMeta.Log($"Slot regravado sem copia integra: {acct.Key} ({damaged.Count})");
+                    continue;
+                }
+                foreach (var d in damaged)
+                {
+                    if (CopyToLive(source.FullName, d.FullName))
+                    {
+                        n++;
+                        AppMeta.Log($"Slot regravado reposto: {d.Name} <- {source.Name} ({source.Length / 1024}KB)");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("HealDamagedSlots: " + ex.Message);
+        }
+        return n;
+    }
+
+    /// <summary>
+    /// Arquiva so se o conteudo mudou desde o ultimo backup da mesma conta e poda
+    /// o historico (8 mais recentes + 2 maiores). Antes cada fecho do RL duplicava
+    /// todos os saves — GBs em poucas semanas.
+    /// </summary>
+    internal static bool ArchiveSave(FileInfo src, string root, string ts)
+    {
+        try
+        {
+            Directory.CreateDirectory(root);
+            var history = Directory.EnumerateFiles(root, "*_" + src.Name)
+                .Select(f => new FileInfo(f))
+                .Where(f => BackupName.Match(f.Name) is { Success: true } m
+                            && string.Equals(m.Groups[1].Value, src.Name, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(f => f.Name, StringComparer.Ordinal)
+                .ToList();
+            var last = history.FirstOrDefault();
+            if (last is not null && last.Length == src.Length && SameBytes(last.FullName, src.FullName))
+                return false;
+
+            string dest = Path.Combine(root, $"{ts}_{src.Name}");
+            if (File.Exists(dest) || !SafeCopy(src.FullName, dest, overwrite: false))
+                return false;
+
+            history.Insert(0, new FileInfo(dest));
+            var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var f in history.Take(8)) keep.Add(f.FullName);
+            foreach (var f in history.OrderByDescending(f => f.Length).Take(2)) keep.Add(f.FullName);
+            foreach (var f in history.Where(f => !keep.Contains(f.FullName)))
+            {
+                try { f.Delete(); } catch { }
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log($"ArchiveSave ({src.Name}): {ex.Message}");
+            return false;
+        }
+    }
+
+    private static int _pruned;
+
+    /// <summary>
+    /// Poda o historico herdado das versoes antigas (uma vez por processo, depois
+    /// do Seed do Best). Best e Quarantine nao entram.
+    /// </summary>
+    private static void PruneArchivesOnce()
+    {
+        if (Interlocked.Exchange(ref _pruned, 1) == 1) return;
+        long freed = 0;
+        int removed = 0;
+        foreach (string root in new[] { BackupRoot, PresetsRoot })
+        {
+            if (!Directory.Exists(root)) continue;
+            var groups = Directory.EnumerateFiles(root, "*.save", SearchOption.TopDirectoryOnly)
+                .Select(f => new FileInfo(f))
+                .Select(f => (File: f, M: BackupName.Match(f.Name)))
+                .Where(x => x.M.Success)
+                .GroupBy(x => x.M.Groups[1].Value, StringComparer.OrdinalIgnoreCase);
+            foreach (var g in groups)
+            {
+                var files = g.Select(x => x.File).OrderByDescending(f => f.Name, StringComparer.Ordinal).ToList();
+                if (files.Count <= 13) continue;
+                var keep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var f in files.Take(10)) keep.Add(f.FullName);
+                foreach (var f in files.OrderByDescending(f => f.Length).Take(3)) keep.Add(f.FullName);
+                foreach (var f in files.Where(f => !keep.Contains(f.FullName)))
+                {
+                    try
+                    {
+                        long len = f.Length;
+                        f.Delete();
+                        freed += len;
+                        removed++;
+                    }
+                    catch { }
+                }
+            }
+        }
+        if (removed > 0)
+            AppMeta.Log($"Backups antigos podados: {removed} arquivo(s), {freed / (1024 * 1024)} MB liberados.");
+    }
+
+    private static bool SameBytes(string a, string b)
+    {
+        try
+        {
+            byte[] x = File.ReadAllBytes(a);
+            byte[] y = File.ReadAllBytes(b);
+            return x.AsSpan().SequenceEqual(y);
+        }
+        catch { return false; }
     }
 
     private static bool SafeCopy(string source, string dest, bool overwrite)

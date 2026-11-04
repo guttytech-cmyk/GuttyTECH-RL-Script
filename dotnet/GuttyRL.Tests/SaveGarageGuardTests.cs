@@ -75,6 +75,31 @@ public class SaveGarageGuardTests
         }
     }
 
+    [Fact]
+    public void Conta_loadouts_sem_confundir_com_loadoutset()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "gutty-guard-" + Guid.NewGuid().ToString("N") + ".save");
+        try
+        {
+            byte[] plain = Encoding.ASCII.GetBytes(
+                "TAGame.LoadoutSet_TA TAGame.Loadout_TA TAGame.Loadout_TA TAGame.Loadout_TA ObjectProperty");
+            byte[] enc = Encrypt(Pad16(plain));
+            using (var fs = File.Create(path))
+            {
+                fs.Write(BitConverter.GetBytes(enc.Length));
+                fs.Write(BitConverter.GetBytes(0));
+                fs.Write(enc);
+            }
+
+            Assert.Equal(3, SaveGarageGuard.LoadoutCount(path));
+            Assert.False(SaveGarageGuard.IsReserializeDamage(path));
+        }
+        finally
+        {
+            try { File.Delete(path); } catch { }
+        }
+    }
+
     private static byte[] Pad16(byte[] data)
     {
         int len = (data.Length + 15) & ~15;

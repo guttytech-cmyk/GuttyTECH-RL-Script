@@ -3,6 +3,17 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.25] — 2026-11-04
+### Corrigido
+- Causa raiz de "não aplica", preset sumindo e cor do carro mudando: o codec antigo regravava o save com o tamanho dos campos errado (bool e enum). O jogo descartava o bloco inteiro e voltava para o padrão — menu em Alta qualidade/60 FPS, preset solto e tinta na cor do time.
+- Novo patch cirúrgico do `.save`: só os blocos de vídeo, gameplay e câmera mudam, no formato nativo do jogo. Garagem, presets, tinta e inventário ficam byte a byte iguais (conferido antes e depois de gravar). Vale para contas com garagem e para o save Steam, que antes nunca sincronizava.
+- Saves leves já regravados por versões antigas são consertados no próximo apply.
+- REMOVER agora também devolve o menu de vídeo do save ao original. Antes só o INI voltava e o jogo reaplicava o modo no boot seguinte.
+- RESTAURAR PRESETS repõe também os slots `_1`/`_2`/`_3` quebrados, grava com a data de agora (o cloud não passa por cima), não cobre um save íntegro e atual com backup velho e escolhe a cópia com mais presets. Conta Epic vai só para a pasta Epic, Steam só para a Steam.
+- Depois de restaurar, o menu de vídeo é alinhado ao modo ativo.
+### Melhorado
+- Backups só são criados quando o save mudou, e o histórico por conta é podado (8 mais recentes + 2 maiores). Antes cada fecho do jogo duplicava todos os saves e a pasta chegava a vários GB.
+
 ## [v25.0.24] — 2026-11-03
 ### Corrigido
 - O sync de vídeo não regrava mais o save da garagem. A regravação apagava o vínculo do preset e a tinta, e na partida o carro entrava com a cor do time.

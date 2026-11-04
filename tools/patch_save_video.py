@@ -1,9 +1,14 @@
-"""Patch Rocket League Epic/Steam .save video settings for GUTTYTECH (menu sync)."""
+"""Sincroniza o menu de video do Rocket League no .save (Epic/Steam).
+
+Edicao cirurgica (save_surgical): so os objetos VideoSettingsSavePC_TA,
+GameplaySettingsSave_TA e ProfileCameraSave_TA mudam. Garagem, presets,
+tinta e inventario ficam byte a byte iguais — verificado antes de gravar.
+"""
 from __future__ import annotations
 
 import argparse
+import json
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -11,375 +16,311 @@ _TOOLS_DIR = Path(__file__).resolve().parent
 if str(_TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(_TOOLS_DIR))
 
-import nixwrap.save_file._file_io as _fio
-from save_codec import serialize_property_stream as _codec_serialize
-
-_fio.serialize_property_stream = _codec_serialize
-from nixwrap.save_file import load_raw  # noqa: E402
-from nixwrap.save_file._file_io import assemble_savedata  # noqa: E402
+from save_surgical import (  # noqa: E402
+    OBJHEADER,
+    PropEditor,
+    SaveFormatError,
+    build_plain,
+    decrypt_file,
+    encrypt_plain,
+    load,
+    parse_plain,
+)
 
 UNCAPPED_MAX_FPS = 10000
-# Alinhado com SaveRecovery.SoftGarageMinBytes — abaixo disso e stub de video;
-# acima e garagem/presets (nao pode encolher no assemble).
-SOFT_GARAGE_MIN = 250_000
-MAX_PATCH_BYTES = 1_200_000
-# Acima disto o arquivo nem e candidato. Entre SOFT_GARAGE_MIN e este teto
-# tambem NAO se regrava: o codec nixwrap troca ObjectProperty/ByteProperty
-# por Int/Str. O jogo perde o vinculo do preset e a tinta (cor de time).
-# Rollback de 10% nao pega isso — um save de 2.5MB sai 3% menor e "valido".
-MAX_GARAGE_PATCH = 16_000_000
+MAX_SAVE_BYTES = 16_000_000
+MAX_FILES = 12
 
-_GARAGE_TYPES = {
-    "TAGame.Loadout_TA",
-    "TAGame.LoadoutSet_TA",
-    "TAGame.OnlineProduct_TA",
-    "TAGame.ProductAttribute_Painted_TA",
-    "TAGame.ProductsSave_TA",
-}
+VIDEO_T = "TAGame.VideoSettingsSavePC_TA"
+GAMEPLAY_T = "TAGame.GameplaySettingsSave_TA"
+CAMERA_T = "TAGame.ProfileCameraSave_TA"
+TARGET_TYPES = (VIDEO_T, GAMEPLAY_T, CAMERA_T)
 
-# Valores FName/Str que o cliente Epic ACEITA (UI PT: Desempenho / Alto desempenho).
-# HighPerformance em Particle/Render quebra o menu (branco / Alta qualidade).
-# ParticleDetail=Low TAMBEM quebra (dropdown vazio → menu cai em Alta qualidade / 60 FPS).
-# TextureDetail=TexturesLow = "Alto desempenho" / High Performance no menu.
+# Valores que o cliente aceita (UI PT: Desempenho / Alto desempenho).
+# HighPerformance em Particle/Render e ParticleDetail=Low derrubam o menu
+# para Alta qualidade / 60 FPS.
 COMPLETO_OPTIONS = [
-    {"Id": "RenderQuality", "Value": "Performance"},
-    {"Id": "RenderDetail", "Value": "Performance"},
-    {"Id": "TextureDetail", "Value": "TexturesLow"},
-    {"Id": "ParticleDetail", "Value": "Performance"},
-    {"Id": "WorldDetail", "Value": "Performance"},
-    {"Id": "AntiAlias", "Value": "0"},
+    ("RenderQuality", "Performance"),
+    ("RenderDetail", "Performance"),
+    ("TextureDetail", "TexturesLow"),
+    ("ParticleDetail", "Performance"),
+    ("WorldDetail", "Performance"),
+    ("AntiAlias", "0"),
 ]
 
-# CRIADOR: limpa potato do COMPLETO. Sem RenderQuality → UI cai em Alta qualidade.
-# TexturesHigher = visual bom.
-# RenderDetail=Custom FAZ o menu cair em Alta qualidade / 60 FPS — usar Quality.
+# Sem RenderQuality → UI fica em Alta qualidade. RenderDetail=Custom quebra o menu.
 CRIADOR_OPTIONS = [
-    {"Id": "RenderDetail", "Value": "Quality"},
-    {"Id": "TextureDetail", "Value": "TexturesHigher"},
-    {"Id": "ParticleDetail", "Value": "Performance"},
-    {"Id": "WorldDetail", "Value": "Quality"},
-    {"Id": "AntiAlias", "Value": "0"},
+    ("RenderDetail", "Quality"),
+    ("TextureDetail", "TexturesHigher"),
+    ("ParticleDetail", "Performance"),
+    ("WorldDetail", "Quality"),
+    ("AntiAlias", "0"),
 ]
 
-COMPLETO_IDS = {o["Id"] for o in COMPLETO_OPTIONS}
-CRIADOR_IDS = {o["Id"] for o in CRIADOR_OPTIONS}
-
-# Flags do menu Video (BakkesMod VideoSettings + saves reais).
-VIDEO_FLAGS_COMMON = (
+VIDEO_BOOLS_COMMON = (
     ("bShowLightShafts", False),
     ("bShowWeatherFX", False),
     ("bShowLensFlares", False),
     ("bUncappedFramerate", True),
     ("bVsync", False),
-    ("MaxFPS", UNCAPPED_MAX_FPS),
+)
+VIDEO_BOOLS_COMPLETO = (("bTranslucentArenaShaders", False),)
+
+GUTTY_VIDEO_KEYS = (
+    "VideoOptions",
+    "MaxFPS",
+    "bShowLightShafts",
+    "bShowWeatherFX",
+    "bShowLensFlares",
+    "bUncappedFramerate",
+    "bVsync",
+    "bTranslucentArenaShaders",
 )
 
-# So COMPLETO: High Quality Shaders off.
-VIDEO_FLAGS_COMPLETO = (
-    ("bTranslucentArenaShaders", False),
-)
+EFFECT_ENUM = "EEffectsIntensity"
 
 
-def _sanitize_options(options: list[dict] | None) -> list[dict]:
-    """Remove entradas corrompidas (bug antigo: Id='Id', Value='Value')."""
-    clean: list[dict] = []
-    for opt in options or []:
-        oid = opt.get("Id")
-        val = opt.get("Value")
-        if not isinstance(oid, str) or not isinstance(val, str):
-            continue
-        if oid in ("", "Id") or val in ("", "Value"):
-            continue
-        clean.append({"Id": oid, "Value": val})
-    return clean
-
-
-def _option_ids(options: list[dict] | None) -> set[str]:
-    return {o["Id"] for o in _sanitize_options(options)}
-
-
-def _options_equal(a: list[dict], b: list[dict]) -> bool:
-    return [(o.get("Id"), o.get("Value")) for o in a] == [(o.get("Id"), o.get("Value")) for o in b]
-
-
-def _set_flag(obj: dict, key: str, val) -> bool:
-    if obj.get(key) != val:
-        obj[key] = val
+def looks_gutty(video: PropEditor) -> bool:
+    opts = video.video_options()
+    if opts in (COMPLETO_OPTIONS, CRIADOR_OPTIONS):
         return True
-    return False
+    mfps = video.get("MaxFPS")
+    return mfps is not None and mfps.value == UNCAPPED_MAX_FPS
 
 
-def _flags_ok(obj: dict, *, completo: bool) -> bool:
-    """Flags criticas do menu. Ausencia de flag=False e OK (jogo por vezes omite);
-    so falha se estiver explicitamente no valor errado."""
-    for key, val in VIDEO_FLAGS_COMMON:
-        got = obj.get(key)
-        if key == "MaxFPS":
-            # Unlimited no menu: 10000 (nosso) ou qualquer >= 250
-            if got is None:
-                return False
-            try:
-                if int(got) < 250:
-                    return False
-            except (TypeError, ValueError):
-                return False
-            continue
-        if val is True:
-            if got is not True:
-                return False
-        else:
-            # desejado False: None/ausente/False OK; True e regressao
-            if got is True:
-                return False
-    if completo:
-        for key, val in VIDEO_FLAGS_COMPLETO:
-            got = obj.get(key)
-            if val is False and got is True:
-                return False
-            if val is True and got is not True and key in obj:
-                return False
-    return True
+def _edit_video(ed: PropEditor, mode: str) -> None:
+    ed.set_video_options(COMPLETO_OPTIONS if mode == "completo" else CRIADOR_OPTIONS)
+    for k, v in VIDEO_BOOLS_COMMON:
+        ed.set_bool(k, v)
+    if mode == "completo":
+        for k, v in VIDEO_BOOLS_COMPLETO:
+            ed.set_bool(k, v)
+    ed.set_int("MaxFPS", UNCAPPED_MAX_FPS)
 
 
-def _completo_options_ok(obj: dict) -> bool:
-    """True so se VideoOptions esta completo e flags criticas batem.
-
-    O RL grava VideoOptions 'sujo' (so campos alterados). Lista incompleta faz o
-    cliente rejeitar o bloco inteiro → Alta qualidade / 60 FPS / particula vazia.
-    """
-    current = _sanitize_options(obj.get("VideoOptions"))
-    if not _options_equal(current, COMPLETO_OPTIONS):
-        return False
-    if not COMPLETO_IDS.issubset(_option_ids(current)):
-        return False
-    return _flags_ok(obj, completo=True)
+def _edit_gameplay(ed: PropEditor, mode: str) -> None:
+    if mode == "completo":
+        ed.set_enum("EffectIntensity", EFFECT_ENUM, "EI_Low")
 
 
-def _criador_options_ok(obj: dict) -> bool:
-    current = _sanitize_options(obj.get("VideoOptions"))
-    if not _options_equal(current, CRIADOR_OPTIONS):
-        return False
-    if not CRIADOR_IDS.issubset(_option_ids(current)):
-        return False
-    return _flags_ok(obj, completo=False)
+def _edit_camera(ed: PropEditor, mode: str) -> None:
+    if mode == "completo":
+        ed.set_bool("bUseBallIndicator", True)
 
 
-def _looks_like_completo_options(obj: dict) -> bool:
-    """Detecta VideoOptions potato do COMPLETO ainda no save (troca de modo)."""
-    ids = {o.get("Id"): o.get("Value") for o in _sanitize_options(obj.get("VideoOptions"))}
-    return ids.get("RenderQuality") == "Performance" or ids.get("TextureDetail") == "TexturesLow"
+_EDITORS = {VIDEO_T: _edit_video, GAMEPLAY_T: _edit_gameplay, CAMERA_T: _edit_camera}
+
+ROOT = -1
 
 
-def _is_sparse_or_broken(obj: dict, *, completo: bool) -> bool:
-    """VideoOptions parcial / None / flags em falta — precisa regravar sempre."""
-    opts = obj.get("VideoOptions")
-    if opts is None:
-        return True
-    current = _sanitize_options(opts)
-    if len(current) == 0:
-        return True
-    needed = COMPLETO_IDS if completo else CRIADOR_IDS
-    if not needed.issubset(_option_ids(current)):
-        return True
-    return not _flags_ok(obj, completo=completo)
+def _keys(sf, t: str) -> list[int]:
+    """Indices dos objetos do tipo. Save Steam guarda o video no stream raiz (ROOT)."""
+    idx = sf.index_of(t)
+    if idx or t != VIDEO_T:
+        return idx
+    if sf.root[:4] == OBJHEADER:
+        try:
+            if PropEditor(sf.root[4:]).get("VideoOptions") is not None:
+                return [ROOT]
+        except SaveFormatError:
+            pass
+    return []
 
 
-def _stamp_runtime_flags(obj: dict, *, completo: bool) -> None:
-    """Reestampa flags do menu que o engine so aplica apos toggle in-game.
-
-    Unlimited / shafts / weather / vsync / shaders podem aparecer certos no menu
-    e nao no runtime ate o jogador ligar/desligar. Sempre regrava no disco.
-    """
-    for key, val in VIDEO_FLAGS_COMMON:
-        obj[key] = val
-    obj["MaxFPS"] = int(UNCAPPED_MAX_FPS)
-    obj["bUncappedFramerate"] = True
-    obj["bVsync"] = False
-    if completo:
-        for key, val in VIDEO_FLAGS_COMPLETO:
-            obj[key] = val
+def _get(sf, k: int) -> bytes:
+    return sf.root[4:] if k == ROOT else sf.objects[k]
 
 
-def _force_video_profile(obj: dict, *, completo: bool) -> None:
-    # Preserva janela/resolucao — o botao APLICAR do modo de exibicao no RL
-    # reescreve VideoOptions para Alta qualidade; nao queremos resetar WindowMode.
-    window = obj.get("WindowMode")
-    resolution = obj.get("Resolution")
-
-    if completo:
-        obj["VideoOptions"] = [dict(x) for x in COMPLETO_OPTIONS]
+def _set(sf, k: int, blob: bytes) -> None:
+    if k == ROOT:
+        sf.root = OBJHEADER + blob
     else:
-        obj["VideoOptions"] = [dict(x) for x in CRIADOR_OPTIONS]
-
-    _stamp_runtime_flags(obj, completo=completo)
-
-    if window is not None:
-        obj["WindowMode"] = window
-    if isinstance(resolution, str) and resolution:
-        obj["Resolution"] = resolution
+        sf.objects[k] = blob
 
 
-def _patch_video_flags(obj: dict, *, completo: bool) -> bool:
-    # Regrava se errado/esparso/vazio OU se RenderDetail=Custom (APLICAR em
-    # Sem bordas deixa Custom e o menu explode em Alta qualidade / 60 FPS).
-    # Mesmo com perfil OK: SEMPRE reestampa FPS/efeitos (visual stale).
-    ids = {o.get("Id"): o.get("Value") for o in _sanitize_options(obj.get("VideoOptions"))}
-    if ids.get("RenderDetail") == "Custom":
-        _force_video_profile(obj, completo=completo)
-        return True
+# ------------------------------------------------------------ sidecar (stock)
 
-    need_profile = False
-    if completo:
-        need_profile = not _completo_options_ok(obj)
-    else:
-        need_profile = not (
-            _criador_options_ok(obj) and not _looks_like_completo_options(obj)
-        )
-
-    if need_profile:
-        _force_video_profile(obj, completo=completo)
-    else:
-        _stamp_runtime_flags(obj, completo=completo)
-    return True
+def _sidecar_path(sidecar_dir: Path | None, save: Path) -> Path | None:
+    if sidecar_dir is None:
+        return None
+    return sidecar_dir / f"{save.stem}.settings.json"
 
 
-def _patch_gameplay(obj: dict, *, completo: bool) -> bool:
-    if not completo:
-        return False
-    changed = False
-    if obj.get("EffectIntensity") != "EI_Low":
-        obj["EffectIntensity"] = "EI_Low"
-        changed = True
-    return changed
-
-
-def _patch_camera(obj: dict) -> bool:
-    if obj.get("bUseBallIndicator") is True:
-        return False
-    obj["bUseBallIndicator"] = True
-    return True
-
-
-def _patch_raw(raw: dict, *, completo: bool) -> bool:
-    changed = False
-    for obj in raw.get("objects", []):
-        t = obj.get("__type")
-        if t == "TAGame.VideoSettingsSavePC_TA":
-            changed |= _patch_video_flags(obj, completo=completo)
-        elif t == "TAGame.GameplaySettingsSave_TA":
-            changed |= _patch_gameplay(obj, completo=completo)
-        elif t == "TAGame.ProfileCameraSave_TA" and completo:
-            changed |= _patch_camera(obj)
-    return changed
-
-
-def _contains_garage(raw: dict) -> bool:
-    for obj in raw.get("objects") or []:
-        if obj.get("__type") in _GARAGE_TYPES:
-            return True
-    return False
-
-
-def patch_file(path: Path, *, completo: bool) -> bool:
+def _write_sidecar(path: Path | None, sf) -> None:
+    """Guarda os blocos originais (pre-Gutty) uma unica vez."""
+    if path is None or path.exists():
+        return
+    vids = _keys(sf, VIDEO_T)
+    if not vids:
+        return
     try:
-        original_size = path.stat().st_size
-    except OSError:
-        original_size = 0
+        if looks_gutty(PropEditor(_get(sf, vids[0]))):
+            return
+    except SaveFormatError:
+        return
+    blobs = {t: [_get(sf, k).hex() for k in _keys(sf, t)] for t in TARGET_TYPES}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(blobs), encoding="utf-8")
+    os.replace(tmp, path)
 
-    if original_size >= SOFT_GARAGE_MIN:
-        raise RuntimeError(
-            f"garagem intacta: {path.name} {original_size // 1024}KB nao sera regravado"
-        )
 
-    raw = load_raw(path)
-    if _contains_garage(raw):
-        raise RuntimeError(
-            f"garagem intacta: {path.name} tem preset/item — nao sera regravado"
-        )
-    if not _patch_raw(raw, completo=completo):
-        return False
+def _read_sidecar(path: Path | None) -> dict[str, list[bytes]] | None:
+    if path is None or not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return {t: [bytes.fromhex(h) for h in data.get(t, [])] for t in TARGET_TYPES}
+    except (OSError, ValueError):
+        return None
 
-    backup = path.with_suffix(path.suffix + ".guttybak")
+
+GUTTY_KEYS = {
+    VIDEO_T: GUTTY_VIDEO_KEYS,
+    GAMEPLAY_T: ("EffectIntensity",),
+    CAMERA_T: ("bUseBallIndicator",),
+}
+
+
+def _stock(sf, sidecar: dict[str, list[bytes]] | None) -> str:
+    vids = _keys(sf, VIDEO_T)
+    if sidecar and sidecar.get(VIDEO_T):
+        # So as chaves que o Gutty mexe voltam ao valor pre-Gutty; o que o
+        # jogador mudou depois (camera, FOV, resolucao) fica.
+        for t in TARGET_TYPES:
+            keys = _keys(sf, t)
+            orig = sidecar.get(t) or []
+            if len(keys) != len(orig):
+                continue
+            for k, blob in zip(keys, orig):
+                cur = PropEditor(_get(sf, k))
+                was = PropEditor(blob)
+                for name in GUTTY_KEYS[t]:
+                    p = was.get(name)
+                    if p is None:
+                        cur.remove(name)
+                    else:
+                        cur.put(p)
+                _set(sf, k, cur.build())
+        return "original"
+    changed = False
+    for k in vids:
+        ed = PropEditor(_get(sf, k))
+        if not looks_gutty(ed):
+            continue
+        for key in GUTTY_VIDEO_KEYS:
+            ed.remove(key)
+        _set(sf, k, ed.build())
+        changed = True
+        for g in sf.index_of(GAMEPLAY_T):
+            ged = PropEditor(sf.objects[g])
+            eff = ged.get("EffectIntensity")
+            if eff is not None and eff.value == "EI_Low":
+                ged.remove("EffectIntensity")
+                sf.objects[g] = ged.build()
+    return "padrao" if changed else ""
+
+
+# ------------------------------------------------------------------- patch
+
+def _verify(orig_sf, new_plain: bytes, mode: str, root_target: bool) -> None:
+    nsf = parse_plain(new_plain)
+    if nsf.types != orig_sf.types or nsf.head != orig_sf.head:
+        raise SaveFormatError("tabela de objetos mudou")
+    if root_target:
+        PropEditor(nsf.root[4:])
+    elif nsf.root != orig_sf.root:
+        raise SaveFormatError("stream raiz mudou — abortado")
+    for i, (t, _) in enumerate(orig_sf.types):
+        if t in TARGET_TYPES:
+            PropEditor(nsf.objects[i])
+            continue
+        if nsf.objects[i] != orig_sf.objects[i]:
+            raise SaveFormatError(f"objeto {t} mudou — abortado")
+    if mode in ("completo", "criador"):
+        want = COMPLETO_OPTIONS if mode == "completo" else CRIADOR_OPTIONS
+        for k in _keys(nsf, VIDEO_T):
+            if PropEditor(_get(nsf, k)).video_options() != want:
+                raise SaveFormatError("VideoOptions nao persistiu")
+
+
+def patch_file(path: Path, mode: str, sidecar_dir: Path | None = None) -> str:
+    """Retorna 'ok', 'same' ou levanta erro. Nunca deixa save pela metade."""
+    raw = path.read_bytes()
+    sf, plain = load(raw)
+    vids = _keys(sf, VIDEO_T)
+    if not vids:
+        raise SaveFormatError("sem bloco de video")
+    root_target = ROOT in vids
+
+    import copy
+    orig = copy.copy(sf)
+    orig.objects = list(sf.objects)
+
+    side = _sidecar_path(sidecar_dir, path)
+    if mode == "stock":
+        what = _stock(sf, _read_sidecar(side))
+        if not what:
+            return "same"
+    else:
+        _write_sidecar(side, sf)
+        for t in TARGET_TYPES:
+            for k in _keys(sf, t):
+                ed = PropEditor(_get(sf, k))
+                _EDITORS[t](ed, mode)
+                _set(sf, k, ed.build())
+
+    new_plain = build_plain(sf)
+    if new_plain == plain:
+        return "same"
+    _verify(orig, new_plain, mode, root_target)
+    out = encrypt_plain(new_plain)
+    if decrypt_file(out)[: len(new_plain)] != new_plain:
+        raise SaveFormatError("cifra nao confere")
+
     tmp = path.with_suffix(path.suffix + ".guttytmp")
     try:
-        shutil.copy2(path, backup)
-    except OSError:
-        backup = None
-
-    try:
-        assemble_savedata(raw, tmp)
-        # Valida em memoria (evita 2o load_raw — o mais lento do pipeline).
-        if completo:
-            for obj in raw.get("objects", []):
-                if obj.get("__type") == "TAGame.VideoSettingsSavePC_TA":
-                    if not _completo_options_ok(obj):
-                        raise RuntimeError(f"patch nao persistiu VideoOptions completos em {path.name}")
-        try:
-            new_size = tmp.stat().st_size
-        except OSError:
-            new_size = 0
-        # Nunca deixar garagem/presets virarem stub de video.
-        if original_size >= SOFT_GARAGE_MIN:
-            if new_size < SOFT_GARAGE_MIN or (
-                original_size > 0 and new_size < int(original_size * 0.90)
-            ):
-                raise RuntimeError(
-                    f"garage preservada: {path.name} {original_size // 1024}KB -> {new_size // 1024}KB"
-                )
+        with open(tmp, "wb") as f:
+            f.write(out)
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(tmp, path)
-    except Exception:
-        # Rollback atomico — nunca deixar save a meio.
+    finally:
         try:
             if tmp.exists():
                 tmp.unlink()
         except OSError:
             pass
-        if backup is not None and backup.exists():
-            try:
-                os.replace(backup, path)
-            except OSError:
-                pass
-        raise
-    finally:
-        if backup is not None and backup.exists():
-            try:
-                backup.unlink()
-            except OSError:
-                pass
-    return True
+    if path.read_bytes() != out:
+        path.write_bytes(raw)
+        raise SaveFormatError("leitura pos-gravacao divergiu — original restaurado")
+    return "ok"
 
 
 def _select_files(files: list[Path]) -> list[Path]:
-    """So stub de video (<250KB). Garagem nunca entra no assemble."""
-    max_files = 6
-    ranked = sorted(files, key=lambda p: p.stat().st_mtime, reverse=True)
-    light: list[Path] = []
-    for f in ranked:
+    ranked = []
+    for f in files:
         try:
-            sz = f.stat().st_size
+            st = f.stat()
         except OSError:
             continue
-        if sz <= 0 or sz > MAX_GARAGE_PATCH:
-            print(f"SKIP {f.name} (fora da faixa: {sz // 1024}KB)", flush=True)
+        if st.st_size <= 0 or st.st_size > MAX_SAVE_BYTES:
+            print(f"SKIP {f.name} (fora da faixa: {st.st_size // 1024}KB)", flush=True)
             continue
-        if sz >= SOFT_GARAGE_MIN:
-            print(
-                f"SKIP {f.name} ({sz // 1024}KB) — garagem intacta, sem regravar",
-                flush=True,
-            )
-            continue
-        light.append(f)
-    return light[:max_files]
+        ranked.append((st.st_mtime, f))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return [f for _, f in ranked[:MAX_FILES]]
 
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("completo", "criador"), default="completo")
+    parser.add_argument("--mode", choices=("completo", "criador", "stock"), default="completo")
+    parser.add_argument("--sidecar", default=None)
     parser.add_argument("target")
     args = parser.parse_args(argv[1:])
 
-    completo = args.mode == "completo"
     target = Path(args.target)
+    sidecar_dir = Path(args.sidecar) if args.sidecar else None
     if target.is_file() and target.suffix.lower() == ".save":
         files = [target]
     elif target.is_dir():
@@ -389,55 +330,24 @@ def main(argv: list[str]) -> int:
         return 2
 
     if not files:
-        # Conta so com garagem (>MAX_PATCH) ou pasta vazia: NAO e falha do otimizador.
-        # INI + Force sao a fonte de verdade; menu in-game sincroniza quando houver save leve.
-        all_saves: list[Path] = []
-        if target.is_dir():
-            all_saves = list(target.glob("*.save"))
-        elif target.is_file() and target.suffix.lower() == ".save":
-            all_saves = [target]
-        oversized = 0
-        garage_kept = 0
-        for f in all_saves:
-            try:
-                sz = f.stat().st_size
-            except OSError:
-                continue
-            if sz >= SOFT_GARAGE_MIN:
-                garage_kept += 1
-            if sz > MAX_PATCH_BYTES:
-                oversized += 1
-        if garage_kept > 0 or oversized > 0 or len(all_saves) == 0:
-            print(
-                f"DEFER menu sync: {garage_kept} save(s) de garagem preservados "
-                "(INI autoridade; stub <250KB e que sincroniza o menu)",
-                flush=True,
-            )
-            return 0
-        print("nenhum .save elegivel (recentes <1.2MB)", file=sys.stderr)
-        return 1
+        print("nenhum .save na pasta", flush=True)
+        return 0
 
     errors = 0
-    patched = 0
+    done = 0
     total = len(files)
     for i, f in enumerate(files, 1):
+        print(f"BAR {i} {total} {int(i * 100 / total)} {f.name}", flush=True)
         try:
-            pct = int(i * 100 / total)
-            print(f"BAR {i} {total} {pct} {f.name}", flush=True)
-            if patch_file(f, completo=completo):
-                print(f"OK {f.name}", flush=True)
-                patched += 1
-            else:
-                print(f"SKIP {f.name} (ja sincronizado)", flush=True)
-                patched += 1
-        except Exception as ex:
+            r = patch_file(f, args.mode, sidecar_dir)
+            print(f"{'OK' if r == 'ok' else 'SKIP'} {f.name}{'' if r == 'ok' else ' (ja sincronizado)'}", flush=True)
+            done += 1
+        except Exception as ex:  # noqa: BLE001
             print(f"SKIP {f.name}: {ex}", file=sys.stderr, flush=True)
             errors += 1
     print(f"BAR {total} {total} 100 done", flush=True)
-    # Pasta so com .save lixo/corrompido (ex. Steam stub) nao deve falhar o heal Epic.
-    if patched == 0 and errors > 0:
+    if done == 0 and errors > 0:
         print(f"WARN: {errors} save(s) invalidos ignorados", file=sys.stderr, flush=True)
-        return 0
     return 0
 
 

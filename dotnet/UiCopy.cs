@@ -215,7 +215,7 @@ internal static class UiCopy
         Add("op.generic", "EXECUTANDO OPERAÇÃO", "RUNNING OPERATION");
 
         Add("confirm.removeTitle", "REMOVER OTIMIZAÇÃO DO SISTEMA?", "REMOVE SYSTEM OPTIMIZATION?");
-        Add("confirm.removeBody", "Para o watcher automático, restaura o INI stock/original, limpa o cache Epic e remove marcas Gutty. Presets e garagem ficam no cofre. Não apaga a pasta de backups.", "Stops the automatic watcher, restores the stock/original INI, clears the Epic cache, and removes Gutty marks. Presets and the garage stay in the vault. Does not delete the backup folder.");
+        Add("confirm.removeBody", "Para o watcher automático, restaura o INI stock/original, devolve o menu de vídeo do save ao original, limpa o cache Epic e remove marcas Gutty. Presets e garagem não são tocados. Não apaga a pasta de backups.", "Stops the automatic watcher, restores the stock/original INI, returns the save's video menu to the original, clears the Epic cache, and removes Gutty marks. Presets and the garage are not touched. Does not delete the backup folder.");
         Add("confirm.removeAction", "REMOVER DO SISTEMA", "REMOVE FROM SYSTEM");
         Add("confirm.bootTitle", "JOGO NÃO ABRE — RECUPERAR BOOT?", "GAME WILL NOT OPEN — RECOVER BOOT?");
         Add("confirm.bootBody", "Fecha o RL, remove o otimizador (INI stock), limpa boot-killers, põe saves suspeitos em quarentena e repara Easy Anti-Cheat (erro 30005). A garagem fica no Best — depois use RESTAURAR PRESETS. Só reaplique COMPLETO/CRIADOR depois do jogo abrir.", "Closes RL, removes the optimizer (stock INI), clears boot-killers, quarantines suspicious saves, and repairs Easy Anti-Cheat (error 30005). The garage stays in Best — then use RESTORE PRESETS. Reapply COMPLETO/CRIADOR only after the game opens.");
@@ -294,7 +294,7 @@ internal static class UiCopy
         Add("res.okCriadorAgain", "Perfil visual reaplicado. INI + watcher OK (menu de vídeo sincroniza quando houver save leve).", "Visual profile reapplied. INI + watcher OK (the video menu syncs when a light save exists).");
         Add("res.okCriadorFresh", "Performance forte com visual competitivo. INI gravado e backup preservado.", "Strong performance with competitive visuals. INI written and backup kept.");
         Add("res.okRemoveTitle", "OTIMIZAÇÃO REMOVIDA DO SISTEMA", "OPTIMIZATION REMOVED FROM THE SYSTEM");
-        Add("res.okRemoveBody", "Watcher parado, INI stock, cache Epic limpo. Presets/garagem intactos. Se colou flags em Steam/Epic, remova-as manualmente.", "Watcher stopped, stock INI, Epic cache cleared. Presets/garage intact. If you pasted flags into Steam/Epic, remove them yourself.");
+        Add("res.okRemoveBody", "Watcher parado, INI stock, menu de vídeo do save original, cache Epic limpo. Presets/garagem intactos. Se colou flags em Steam/Epic, remova-as manualmente.", "Watcher stopped, stock INI, save video menu back to original, Epic cache cleared. Presets/garage intact. If you pasted flags into Steam/Epic, remove them yourself.");
         Add("res.okPermTitle", "ACESSO RESTABELECIDO", "ACCESS RESTORED");
         Add("res.okPermYes", "A pasta do jogo está gravável novamente.", "The game folder is writable again.");
         Add("res.okPermMaybe", "O reparo terminou, mas o Windows ainda pode exigir uma exceção no Defender.", "The repair finished, but Windows may still require a Defender exception.");

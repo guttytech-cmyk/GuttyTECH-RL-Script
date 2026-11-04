@@ -22,14 +22,22 @@ internal static class SaveVideoPatcher
         }
 
         string scriptPath = Path.Combine(toolsDir, "patch_save_video.py");
-        string modeArg = mode.Equals("CRIADOR", StringComparison.OrdinalIgnoreCase) ? "criador" : "completo";
+        string modeArg = mode.ToUpperInvariant() switch
+        {
+            "CRIADOR" => "criador",
+            "STOCK" => "stock",
+            _ => "completo",
+        };
+        string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
+        string sidecarDir = Path.Combine(AppMeta.BackupDir, "VideoMenu", tag);
 
         try
         {
+            Directory.CreateDirectory(sidecarDir);
             var psi = new ProcessStartInfo
             {
                 FileName = pythonExe,
-                Arguments = $"\"{scriptPath}\" --mode {modeArg} \"{saveDir}\"",
+                Arguments = $"\"{scriptPath}\" --mode {modeArg} --sidecar \"{sidecarDir}\" \"{saveDir}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

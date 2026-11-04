@@ -63,6 +63,7 @@ function Ensure-Tools {
     New-Item -ItemType Directory -Force -Path $ToolsDir | Out-Null
     Copy-Item -Force (Join-Path $Root 'tools\patch_save_video.py') (Join-Path $ToolsDir 'patch_save_video.py')
     Copy-Item -Force (Join-Path $Root 'tools\save_codec.py') (Join-Path $ToolsDir 'save_codec.py')
+    Copy-Item -Force (Join-Path $Root 'tools\save_surgical.py') (Join-Path $ToolsDir 'save_surgical.py')
 }
 
 function Build-Bundle {
@@ -93,6 +94,7 @@ $inputs = @(
     $Wheel,
     (Join-Path $Root 'tools\patch_save_video.py'),
     (Join-Path $Root 'tools\save_codec.py'),
+    (Join-Path $Root 'tools\save_surgical.py'),
     (Join-Path $PSScriptRoot 'build_embed_bundle.ps1')
 )
 $latest = ($inputs | ForEach-Object { (Get-Item $_).LastWriteTimeUtc.Ticks } | Measure-Object -Maximum).Maximum

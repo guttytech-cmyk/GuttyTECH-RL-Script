@@ -19,7 +19,8 @@ internal static class EmbeddedRuntime
 
         try
         {
-            if (!Directory.Exists(RuntimeRoot) || !File.Exists(StampPath))
+            if (!Directory.Exists(RuntimeRoot) || !File.Exists(StampPath)
+                || !File.Exists(Path.Combine(RuntimeRoot, "tools", "save_surgical.py")))
                 ExtractBundle();
 
             pythonExe = Path.Combine(RuntimeRoot, "py311", "python.exe");

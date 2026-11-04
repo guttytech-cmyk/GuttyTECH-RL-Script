@@ -891,6 +891,7 @@ internal static class Program
                 "Fecha o Rocket League se estiver aberto",
                 "Preserva presets/garagem no cofre Best",
                 "Restaura INI stock/original + boot-safe",
+                "Devolve o menu de video do .save ao original (garagem intacta)",
                 "Limpa cache Epic (RLSettingsData) e runtime do watcher",
                 "Presets e backups Gutty ficam — so o otimizador ativo sai",
             }, Ui.MAmber);
@@ -991,6 +992,13 @@ internal static class Program
             ErrorRepair.ForceBootSafeIni(_cfg!);
         }
         report.Add(iniOk ? "INI stock OK" : "INI FALHOU");
+
+        // 5b) Menu de video do .save — sem isto o jogo reaplica o modo batata do
+        //     save no proximo boot e o INI stock nao "volta".
+        bool menuOk = interactive
+            ? Ui.StepAnimated("Desfazendo menu de video no .save", () => VideoSettingsSync.RevertVideoSave(_cfg!))
+            : VideoSettingsSync.RevertVideoSave(_cfg!);
+        report.Add(menuOk ? "menu .save revertido" : "menu .save parcial");
 
         // 6) Cache Epic — evita menu/FPS otimizado a lutar com INI stock
         bool purgeOk;
