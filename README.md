@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/guttytech-cmyk/guttytech-cmyk/main/.github/brand/rl.svg" width="100%" alt="GuttyTECH RL Optimizer" />
+<img src=".github/banner.svg" width="100%" alt="GuttyTECH RL Optimizer" />
 
 <img src="dotnet/Assets/gutty-avatar.png" width="96" height="96" alt="GuttyTECH" />
 

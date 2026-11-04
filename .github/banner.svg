@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="GuttyTECH RL OPTIMIZER">
+  <rect width="1280" height="320" fill="#0A0A0A"/>
+  <rect width="10" height="320" fill="#E50A0A"/>
+  <rect y="316" width="1280" height="4" fill="#E50A0A"/>
+  <text x="1080" y="280" fill="#E50A0A" fill-opacity="0.14" font-family="Georgia, 'Times New Roman', serif" font-size="340">&#937;</text>
+  <rect x="64" y="52" width="46" height="46" fill="#E50A0A"/>
+  <text x="76" y="85" fill="#0A0A0A" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">G</text>
+  <text x="126" y="84" fill="#E50A0A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="5">GUTTYTECH</text>
+  <text x="64" y="176" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">RL OPTIMIZER</text>
+  <text x="64" y="222" fill="#C8C8C8" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="22">Config do Rocket League. Sem mexer no Windows.</text>
+  <text x="64" y="284" fill="#E50A0A" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="14" letter-spacing="3.5">GUTTYTECH.COM</text>
+</svg>
