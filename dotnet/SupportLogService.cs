@@ -136,7 +136,7 @@ internal static class SupportLogService
         var sb = new StringBuilder();
         sb.AppendLine("GUTTYTECH RL OPTIMIZER — PACOTE DE SUPORTE");
         sb.AppendLine("Manda este ZIP INTEIRO pro Gutty (chat / Discord / WhatsApp / email).");
-        sb.AppendLine("Nao precisas de abrir nem editar nada — so anexar o ficheiro.");
+        sb.AppendLine("Nao precisa abrir nem editar nada — so anexar o arquivo.");
         sb.AppendLine();
         sb.AppendLine("Gerado: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
         sb.AppendLine("App: " + AppMeta.Version);
@@ -161,7 +161,7 @@ internal static class SupportLogService
         foreach (string line in diagLines)
             sb.AppendLine(line);
         sb.AppendLine();
-        sb.AppendLine("=== FICHEIROS NESTE ZIP ===");
+        sb.AppendLine("=== ARQUIVOS NESTE ZIP ===");
         foreach (string name in included.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x))
             sb.AppendLine("- " + name);
 
@@ -174,9 +174,9 @@ internal static class SupportLogService
             "COMO MANDAR PRO GUTTY" + Environment.NewLine
             + "====================" + Environment.NewLine
             + Environment.NewLine
-            + "1) Este ficheiro .zip ja esta no Desktop." + Environment.NewLine
+            + "1) Este arquivo .zip ja esta no Desktop." + Environment.NewLine
             + "2) Anexa o ZIP completo na conversa com o Gutty (Cursor chat, Discord, WhatsApp ou email)." + Environment.NewLine
-            + "3) Nao precisas de extrair, editar nem mandar ficheiros soltos." + Environment.NewLine
+            + "3) Nao precisa extrair, editar nem mandar arquivos soltos." + Environment.NewLine
             + "4) Se o chat recusar o tamanho, usa WeTransfer/Google Drive e manda o link." + Environment.NewLine
             + Environment.NewLine
             + "O que o Gutty ve neste pacote:" + Environment.NewLine

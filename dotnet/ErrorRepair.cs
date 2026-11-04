@@ -219,7 +219,7 @@ internal static class ErrorRepair
             Ui.MiniBannerIfTall(Ui.MAmber);
             Ui.TitleBar("DIAGNOSTICO", Ui.MAmber);
             Ui.Gap();
-            Ui.PanelTop(issues ? "PROBLEMAS DETETADOS" : "ESTADO OK");
+            Ui.PanelTop(issues ? "PROBLEMAS DETECTADOS" : "ESTADO OK");
             foreach (string l in lines)
                 Ui.PanelLine(Ui.C(l, l.Contains("!!") || l.Contains("BLOQUE") || l.Contains("AUSENTE") || l.Contains("ABERTO") || l.Contains("ACAO")
                     ? Ui.Amber : Ui.Gray));
@@ -439,7 +439,7 @@ internal static class ErrorRepair
                 {
                     "O Windows marcou o servico EAC para apagar (erro 1072).",
                     "Reinicie o PC e abra o jogo — na maioria dos casos resolve.",
-                    "Se continuar: Epic → Verificar ficheiros → abra de novo.",
+                    "Se continuar: Epic → Verificar arquivos → abra de novo.",
                     detail,
                 });
             }
@@ -448,7 +448,7 @@ internal static class ErrorRepair
                 Ui.CompletionMessage(Ui.MAmber, "EAC PARCIAL", new[]
                 {
                     detail,
-                    "Reinicie o PC. Se falhar: Verificar ficheiros na Epic/Steam.",
+                    "Reinicie o PC. Se falhar: Verificar arquivos na Epic/Steam.",
                 });
             }
         }

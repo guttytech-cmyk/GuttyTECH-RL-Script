@@ -246,7 +246,7 @@ internal static class VideoSettingsSync
             {
                 if (!IsModeStillActive(iniPath, mode))
                 {
-                    AppMeta.Log("WATCH: modo removido/trocado — a sair.");
+                    AppMeta.Log("WATCH: modo removido/trocado — saindo.");
                     return 0;
                 }
 
@@ -257,7 +257,7 @@ internal static class VideoSettingsSync
                     if (!StillCurrentWatcher()) return 0;
                     if (!IsModeStillActive(iniPath, mode))
                     {
-                        AppMeta.Log("WATCH: modo removido enquanto aguardava — a sair.");
+                        AppMeta.Log("WATCH: modo removido enquanto aguardava — saindo.");
                         return 0;
                     }
 
@@ -279,7 +279,7 @@ internal static class VideoSettingsSync
 
                 idleTicks = 0;
                 session++;
-                AppMeta.Log($"WATCH: RL detetado (sessao {session}) — a aguardar fecho...");
+                AppMeta.Log($"WATCH: RL detectado (sessao {session}) — aguardando fechar...");
                 // Nao escrever no INI com o jogo aberto: o RL regrava no exit e
                 // mid-session write so gera corrida (historico: attrib +r = boot hang).
                 // So observa. Se varias chaves sairem do contrato, o fecho repos.
@@ -305,7 +305,7 @@ internal static class VideoSettingsSync
                 if (driftSeen >= 3)
                     AppMeta.Log($"WATCH: sessao {session} saiu com {driftSeen} chaves fora — repondo {mode}.");
                 else
-                    AppMeta.Log($"WATCH: sessao {session} fechou — a reparar INI+save...");
+                    AppMeta.Log($"WATCH: sessao {session} fechou — reparando INI+save...");
 
                 if (RlBuildStamp.TryDetectUpdate(out string buildOnClose))
                     AppMeta.Log($"WATCH: build mudou durante a sessao ({buildOnClose}).");
@@ -390,7 +390,7 @@ internal static class VideoSettingsSync
                 var drift = DescribeModeDrift(after, mode);
                 if (drift.Count == 0)
                     return ok;
-                AppMeta.Log("WATCH: drift pos-heal, a repetir — "
+                AppMeta.Log("WATCH: drift pos-heal, repetindo — "
                             + string.Join("; ", drift.Take(3)));
                 Thread.Sleep(1500);
             }
@@ -441,7 +441,7 @@ internal static class VideoSettingsSync
             var drift = DescribeModeDrift(text, mode);
             if (drift.Count > 0)
             {
-                AppMeta.Log("INI drift detetado: "
+                AppMeta.Log("INI drift detectado: "
                             + string.Join("; ", drift.Take(5)));
             }
 

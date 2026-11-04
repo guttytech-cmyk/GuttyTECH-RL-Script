@@ -1299,7 +1299,7 @@ internal static class SaveRecovery
         if (cloudDirs > 0)
             lines.Add($"Steam Cloud remote: {cloudDirs} pasta(s) userdata\\252950 — risco de conflito");
         else
-            lines.Add("Steam Cloud remote: nao detetado / vazio");
+            lines.Add("Steam Cloud remote: nao detectado / vazio");
 
         return lines;
     }
@@ -1413,7 +1413,7 @@ internal static class SaveRecovery
                     }
                 }
 
-                AppMeta.Log($"Steam Cloud remote quarentenado: {remote} ({files.Count} ficheiros)");
+                AppMeta.Log($"Steam Cloud remote quarentenado: {remote} ({files.Count} arquivos)");
             }
         }
         catch (Exception ex)
@@ -1490,7 +1490,7 @@ internal static class SaveRecovery
                 "     Rank/itens ONLINE nao se perdem. Tutorial as vezes aparece — normal." + Environment.NewLine +
                 "   → DISABLE AUTOSAVE tambem entra, mas pode ir a tutorial OU ao menu" + Environment.NewLine +
                 "     (depende se a conta ja tinha tutorial feito no servidor)." + Environment.NewLine +
-                "   → RETRY nao resolve se o ficheiro esta partido — ignora." + Environment.NewLine +
+                "   → RETRY nao resolve se o arquivo esta quebrado — ignore." + Environment.NewLine +
                 "4) Fecha o RL > no Gutty: RESTAURAR PRESETS" + Environment.NewLine +
                 "5) Abre OFFLINE 1x, confirma garagem, so depois reativa Steam Cloud" + Environment.NewLine +
                 Environment.NewLine +

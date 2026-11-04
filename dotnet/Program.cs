@@ -1176,7 +1176,7 @@ internal static class Program
             }, Ui.MAmber);
             Ui.Gap();
             Ui.PanelTop("BACKUPS DISPONIVEIS");
-            Ui.PanelLine(Ui.C($"Ficheiros: {bakFiles}  |  Garagem(>=250KB): {bakGarage}  |  {bakBytes / 1024} KB", Ui.Gray));
+            Ui.PanelLine(Ui.C($"Arquivos: {bakFiles}  |  Garagem(>=250KB): {bakGarage}  |  {bakBytes / 1024} KB", Ui.Gray));
             Ui.PanelBottom();
             if (bakFiles == 0)
             {
@@ -1184,7 +1184,7 @@ internal static class Program
                 {
                     "Nao ha saves em GuttyTECH\\RL-Optimizer-v22\\Backups",
                     "Sem backup local nao da para recuperar presets.",
-                    "Epic Launcher -> Biblioteca -> RL -> Verificar ficheiros.",
+                    "Epic Launcher -> Biblioteca -> RL -> Verificar arquivos.",
                 });
                 return 1;
             }
@@ -1229,7 +1229,7 @@ internal static class Program
                 {
                     "Nenhum save de garagem recuperavel nos backups.",
                     "Pasta: GuttyTECH\\RL-Optimizer-v22\\Backups\\Presets\\Best",
-                    "Epic -> Verificar ficheiros do Rocket League.",
+                    "Epic -> Verificar arquivos do Rocket League.",
                 });
         }
         Log(ok ? $"RESTAURAR-PRESETS OK: {summary}" : "RESTAURAR-PRESETS: falhou.");

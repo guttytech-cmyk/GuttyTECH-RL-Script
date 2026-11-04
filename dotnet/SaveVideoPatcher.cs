@@ -70,10 +70,10 @@ internal static class SaveVideoPatcher
                 }
             }
 
-            if (!p.WaitForExit(90_000))
+            if (!p.WaitForExit(180_000))
             {
                 try { p.Kill(entireProcessTree: true); } catch { }
-                AppMeta.Log("Save patch timeout (90s).");
+                AppMeta.Log("Save patch timeout (180s).");
                 return false;
             }
 
