@@ -1,24 +1,24 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&height=180&color=0:0A0A0A,100:1A0505&text=&section=header&reversal=false" width="100%" alt="" />
+<img src="https://raw.githubusercontent.com/guttytech-cmyk/guttytech-cmyk/main/.github/brand/rl.svg" width="100%" alt="GuttyTECH RL Optimizer" />
 
 <img src="dotnet/Assets/gutty-avatar.png" width="96" height="96" alt="GuttyTECH" />
 
 # GUTTYTECH · RL OPTIMIZER
-### v25.0.5 — competitivo · WPF · single-file
+### v25.0.25 — competitivo · WPF · single-file
 
 Otimiza o Rocket League no nível de config: **INI + menu de vídeo + watcher**.  
 Sem mexer no Windows. Seguro com Easy Anti-Cheat.
 
 <br/>
 
-[![Download](https://img.shields.io/badge/⬇_DOWNLOAD_v25.0.5-E50A0A?style=for-the-badge&labelColor=0A0A0A)](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script/releases/latest)
+[![Download](https://img.shields.io/badge/download-v25.0.25-E50A0A?style=for-the-badge&labelColor=0A0A0A)](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script/releases/latest)
 [![Website](https://img.shields.io/badge/guttytech.com-121212?style=for-the-badge&logo=googlechrome&logoColor=E50A0A)](https://guttytech.com)
 [![Discord](https://img.shields.io/badge/Comunidade-121212?style=for-the-badge&logo=discord&logoColor=E50A0A)](https://guttytech.com/comunidade)
 
 <br/>
 
-![version](https://img.shields.io/badge/version-v25.0.5-E50A0A?style=flat-square&labelColor=0A0A0A)
+![version](https://img.shields.io/badge/version-v25.0.25-E50A0A?style=flat-square&labelColor=0A0A0A)
 ![windows](https://img.shields.io/badge/windows-10_·_11-0078D4?style=flat-square&logo=windows&logoColor=white&labelColor=0A0A0A)
 ![dotnet](https://img.shields.io/badge/.NET_9-WPF_single--file-512BD4?style=flat-square&logo=dotnet&logoColor=white&labelColor=0A0A0A)
 ![eac](https://img.shields.io/badge/Easy_Anti--Cheat-safe-00C853?style=flat-square&labelColor=0A0A0A)
@@ -182,6 +182,7 @@ A **v25** entrega a camada INI + save + watcher desses ganhos — sem tocar no S
 ## Changelog
 
 ```diff
++ v25.0.25 sync de vídeo sem regravar a garagem · presets · REMOVER devolve o menu
 + v25.0.5  detecção modo/admin · recuperação · clipboard elevado · ZIP suporte
 + v25.0.1  EAC 30005 · Completo/Criador FPS · watcher
 + v25.0.0  UI WPF · motion · startup robusto
@@ -194,8 +195,6 @@ A **v25** entrega a camada INI + save + watcher desses ganhos — sem tocar no S
 ---
 
 <div align="center">
-
-<img src="https://capsule-render.vercel.app/api?type=waving&color=E50A0A&height=100&section=footer&text=GUTTYTECH&fontSize=28&fontColor=0A0A0A&fontAlignY=65" width="100%" alt="GuttyTECH" />
 
 **[Baixar latest](https://github.com/guttytech-cmyk/GuttyTECH-RL-Script/releases/latest)** · **[guttytech.com](https://guttytech.com)** · **[DESCRICAO.md](DESCRICAO.md)**
 
