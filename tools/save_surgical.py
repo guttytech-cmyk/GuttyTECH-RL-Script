@@ -156,6 +156,11 @@ def enc_int(name: str, v: int) -> bytes:
     return _tag(name, "IntProperty", 4) + struct.pack("<i", int(v))
 
 
+def enc_object(name: str, value: int) -> bytes:
+    """ObjectProperty nativo: 4 bytes com o indice do objeto."""
+    return _tag(name, "ObjectProperty", 4) + struct.pack("<i", int(value))
+
+
 def enc_byte_none(name: str, value: int) -> bytes:
     """ByteProperty com enum None. Size nativo é só o byte do valor."""
     return (
@@ -176,14 +181,50 @@ def enc_qword(name: str, value: int) -> bytes:
     )
 
 
-_BYTE_FIX = {"TeamColorID", "Team"}
+_BYTE_FIX = {"TeamColorID", "CustomColorID", "Team"}
 _QWORD_FIX = {"UpperBits", "LowerBits"}
+# No save integro estes nomes sao ObjectProperty. O codec gravou IntProperty
+# com o mesmo indice de 4 bytes. Medido em 83cddf..._1.save contra o roundtrip.
+_OBJECT_FIX = {"EquippedLoadoutSet", "GameTags", "CrossplayConfig"}
 
 
-def repair_stream(blob: bytes) -> bytes:
-    """Devolve Int que o codec antigo gravou no lugar de Byte/QWord."""
-    props, tail = parse_props(blob)
-    return b"".join(_repair_prop(p) for p in props) + write_str("None") + tail
+def _parse_for_repair(blob: bytes, legacy: bool | None) -> tuple[list[Prop], bytes]:
+    """Le o stream no modo em que foi gravado. Tenta o outro se sobrar lixo."""
+    order = (False, True) if legacy is None else (legacy, not legacy)
+    first: tuple[list[Prop], bytes] | None = None
+    for flag in order:
+        try:
+            props, tail = parse_props(blob, flag)
+        except (SaveFormatError, struct.error, IndexError):
+            continue
+        if tail == b"":
+            return props, tail
+        if first is None:
+            first = (props, tail)
+    if first is not None:
+        return first
+    raise SaveFormatError("stream de reparo ilegivel")
+
+
+def repair_stream(blob: bytes, legacy: bool | None = None) -> bytes:
+    """Devolve Int que o codec antigo gravou no lugar de Byte/QWord.
+
+    Struct binaria (Vector etc.) volta intacta. Size regravado e sempre o
+    nativo (so o corpo): o size legado inclui o nome e o jogo come o campo seguinte.
+    """
+    try:
+        props, tail = _parse_for_repair(blob, legacy)
+    except SaveFormatError:
+        return blob
+    if tail != b"":
+        return blob
+    return b"".join(_repair_prop(p) for p in props) + write_str("None")
+
+
+def _emit_struct(prop_name: str, struct_name: str, body: bytes) -> bytes:
+    # Nativo: size = len(corpo). Legado: size = nome + corpo.
+    # Gravar o legado corrompe o campo que vem depois. O reparo sempre emite o nativo.
+    return _tag(prop_name, "StructProperty", len(body)) + write_str(struct_name) + body
 
 
 def _repair_prop(p: Prop) -> bytes:
@@ -201,15 +242,32 @@ def _repair_prop(p: Prop) -> bytes:
         and p.value >= 0
     ):
         return enc_qword(p.name, p.value)
+    if (
+        p.name in _OBJECT_FIX
+        and p.tag == "IntProperty"
+        and isinstance(p.value, int)
+    ):
+        return enc_object(p.name, p.value)
     if p.tag == "StructProperty" and p.struct_body is not None and p.struct_name:
-        body = repair_stream(p.struct_body)
+        body = repair_stream(p.struct_body, legacy=p.legacy)
         if body != p.struct_body:
-            return _tag(p.name, "StructProperty", len(body)) + write_str(p.struct_name) + body
+            return _emit_struct(p.name, p.struct_name, body)
     if p.tag == "ArrayProperty":
         fixed = _repair_array(p)
         if fixed is not None:
             return fixed
     return p.raw
+
+
+def _parse_element(buf: bytes, legacy: bool) -> tuple[list[Prop], int] | None:
+    """Elemento de array: tenta o modo do pai e o outro. Devolve (props, bytes consumidos)."""
+    for flag in (legacy, not legacy):
+        try:
+            props, tail = parse_props(buf, flag)
+        except (SaveFormatError, struct.error, IndexError):
+            continue
+        return props, len(buf) - len(tail)
+    return None
 
 
 def _repair_array(p: Prop) -> bytes | None:
@@ -229,11 +287,10 @@ def _repair_array(p: Prop) -> bytes | None:
     for _ in range(count):
         if off >= len(raw):
             return None
-        try:
-            props, tail = parse_props(raw[off:])
-        except SaveFormatError:
+        parsed = _parse_element(raw[off:], p.legacy)
+        if parsed is None:
             return None
-        consumed = len(raw[off:]) - len(tail)
+        props, consumed = parsed
         new = b"".join(_repair_prop(x) for x in props) + write_str("None")
         if new != raw[off:off + consumed]:
             changed = True
@@ -245,7 +302,36 @@ def _repair_array(p: Prop) -> bytes | None:
     return _tag(p.name, "ArrayProperty", len(payload)) + payload
 
 
+def _restore_codec_hex(blob: bytes) -> bytes | None:
+    """O codec antigo, ao falhar num acento, guardou o objeto em __raw_hex.
+
+    E o caso dos Loadouts (ObjectProperty) do LoadoutSet: nao viraram Int,
+    sumiram dentro do hex. Decodificar devolve o objeto original.
+    """
+    try:
+        props, tail = parse_object(blob)
+    except SaveFormatError:
+        return None
+    if tail != b"":
+        return None
+    hexprop = next((p for p in props if p.name == "__raw_hex" and isinstance(p.value, str)), None)
+    if hexprop is None:
+        return None
+    try:
+        raw = bytes.fromhex(hexprop.value)
+    except ValueError:
+        return None
+    try:
+        parse_object(raw)
+    except SaveFormatError:
+        return None
+    return raw
+
+
 def repair_object(blob: bytes) -> bytes:
+    restored = _restore_codec_hex(blob)
+    if restored is not None and restored != blob:
+        return repair_object(restored)
     try:
         props, tail = parse_object(blob)
     except SaveFormatError:

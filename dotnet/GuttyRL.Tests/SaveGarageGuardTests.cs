@@ -45,6 +45,38 @@ public class SaveGarageGuardTests
     }
 
     [Fact]
+    public void Save_reparado_nao_e_dano_mesmo_sem_object_property()
+    {
+        // objectProps==0 continuaria true na regra antiga e o Heal cobriria o repair.
+        byte[] plain = Encoding.ASCII.GetBytes(
+            "TAGame.OnlineProduct_TA TAGame.LoadoutSet_TA " +
+            "TeamColorID ByteProperty CustomColorID ByteProperty " +
+            "LowerBits QWordProperty UpperBits QWordProperty " +
+            "TAGame.ProductAttribute_Painted_TA TAGame.ProductAttribute_Painted_TA " +
+            "TAGame.ProductAttribute_Painted_TA TAGame.ProductAttribute_Painted_TA " +
+            "TAGame.ProductAttribute_Painted_TA TAGame.ProductAttribute_Painted_TA " +
+            "TAGame.ProductAttribute_Painted_TA TAGame.ProductAttribute_Painted_TA " +
+            "TAGame.ProductAttribute_Painted_TA TAGame.ProductAttribute_Painted_TA");
+        Assert.False(SaveGarageGuard.LooksLikeReserialize(plain));
+    }
+
+    [Fact]
+    public void TeamColorID_ainda_int_continua_dano()
+    {
+        byte[] plain = Encoding.ASCII.GetBytes(
+            "TAGame.OnlineProduct_TA ObjectProperty TeamColorID IntProperty LowerBits QWordProperty");
+        Assert.True(SaveGarageGuard.LooksLikeReserialize(plain));
+    }
+
+    [Fact]
+    public void LowerBits_ainda_int_continua_dano()
+    {
+        byte[] plain = Encoding.ASCII.GetBytes(
+            "TAGame.LoadoutSet_TA ObjectProperty TeamColorID ByteProperty LowerBits IntProperty");
+        Assert.True(SaveGarageGuard.LooksLikeReserialize(plain));
+    }
+
+    [Fact]
     public void Stub_de_video_nao_e_garagem_quebrada()
     {
         byte[] plain = Encoding.ASCII.GetBytes("TAGame.VideoSettingsSavePC_TA StrProperty MaxFPS");

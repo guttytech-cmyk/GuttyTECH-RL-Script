@@ -38,7 +38,9 @@ internal static class IniAudit
 
     private static readonly Rule[] CompletoRules =
     {
-        new("SystemSettings*", "DetailMode", "^[12]$", "DetailMode deve ser 0"),
+        new("SystemSettings*", "DetailMode", "^(?!2$).*$", "DetailMode deve ser 2"),
+        new("SystemSettings*", "FloatingPointRenderTargets", "^(?i)false$", "HDR desligado (laranja muda na partida)"),
+        new("SystemSettings*", "bAllowHighQualityMaterials", "^(?i)false$", "materiais da pintura desligados"),
         new("SystemSettings*", "bAllowLightShafts", "^(?i)true$", "raios de luz ligados"),
         new("SystemSettings*", "MobileEnableMSAA", "^(?i)true$", "MSAA mobile ligado"),
         new("SystemSettings*", "AllowImageReflections", "^(?i)true$", "reflexos ligados"),
@@ -79,6 +81,9 @@ internal static class IniAudit
         new("SystemSettings*", "MobileFog", "^(?i)true$", "pos-force MobileFog"),
         new("SystemSettings", "ScreenPercentage", "^(?!100(\\.0+)?$).*$", "pos-force ScreenPercentage"),
         new("SystemSettings*", "TEXTUREGROUP_*", "MaxLODSize=(?!2(?:,|\\)))", "textura acima de 2x2"),
+        new("SystemSettings*", "DetailMode", "^(?!2$).*$", "pos-force DetailMode != 2"),
+        new("SystemSettings*", "FloatingPointRenderTargets", "^(?i)false$", "pos-force HDR desligado"),
+        new("SystemSettings*", "bAllowHighQualityMaterials", "^(?i)false$", "pos-force materiais da pintura desligados"),
         new("SystemSettings*", "MaxShadowResolution", "^(?!1$).*$", "shadow map acima de 1x1"),
         new("SystemSettings*", "MaxFilterBlurSampleCount", "^(?!1$).*$", "BlurSamples deve ficar em 1 (0 crasha)"),
         new("SystemSettings*", "DynamicLights", "^(?i)true$", "luzes dinamicas ligadas"),
@@ -117,6 +122,8 @@ internal static class IniAudit
                 if (rule.SectionLike != null && !SectionMatch(section, rule.SectionLike)) continue;
                 if (!key.Equals(rule.KeyLike, StringComparison.OrdinalIgnoreCase)
                     && !WildcardMatch(key, rule.KeyLike)) continue;
+                if (rule.KeyLike.StartsWith("TEXTUREGROUP_", StringComparison.OrdinalIgnoreCase)
+                    && IsCarOrLutGroup(key)) continue;
                 if (Regex.IsMatch(val, rule.ForbiddenPattern))
                 {
                     Console.WriteLine($"[X] {name} [{section}] {key}={val} ({rule.Message})");
@@ -179,6 +186,11 @@ internal static class IniAudit
         }
         return 0;
     }
+
+    private static bool IsCarOrLutGroup(string key) =>
+        key.StartsWith("TEXTUREGROUP_Vehicle", StringComparison.OrdinalIgnoreCase)
+        || key.StartsWith("TEXTUREGROUP_Character", StringComparison.OrdinalIgnoreCase)
+        || key.Equals("TEXTUREGROUP_ColorLookupTable", StringComparison.OrdinalIgnoreCase);
 
     private static bool SectionMatch(string section, string pattern) =>
         pattern.EndsWith('*')

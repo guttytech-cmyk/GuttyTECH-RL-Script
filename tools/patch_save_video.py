@@ -287,6 +287,35 @@ def _repair(sf) -> bool:
     return changed
 
 
+def _commit(path: Path, out: bytes, raw: bytes) -> None:
+    """Grava o save e devolve o mtime de antes.
+
+    Sem isso o loop grava o slot velho por ultimo e o RL passa a carrega-lo.
+    """
+    orig_stat = path.stat()
+    tmp = path.with_suffix(path.suffix + ".guttytmp")
+    try:
+        with open(tmp, "wb") as f:
+            f.write(out)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+        os.utime(path, (orig_stat.st_atime, orig_stat.st_mtime))
+    finally:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+    if path.read_bytes() != out:
+        path.write_bytes(raw)
+        try:
+            os.utime(path, (orig_stat.st_atime, orig_stat.st_mtime))
+        except OSError:
+            pass
+        raise SaveFormatError("leitura pos-gravacao divergiu — original restaurado")
+
+
 def patch_file(path: Path, mode: str, sidecar_dir: Path | None = None) -> str:
     """Retorna 'ok', 'same' ou levanta erro. Nunca deixa save pela metade."""
     raw = path.read_bytes()
@@ -300,22 +329,7 @@ def patch_file(path: Path, mode: str, sidecar_dir: Path | None = None) -> str:
         out = encrypt_plain(new_plain)
         if decrypt_file(out)[: len(new_plain)] != new_plain:
             raise SaveFormatError("cifra nao confere")
-        tmp = path.with_suffix(path.suffix + ".guttytmp")
-        try:
-            with open(tmp, "wb") as f:
-                f.write(out)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, path)
-        finally:
-            try:
-                if tmp.exists():
-                    tmp.unlink()
-            except OSError:
-                pass
-        if path.read_bytes() != out:
-            path.write_bytes(raw)
-            raise SaveFormatError("leitura pos-gravacao divergiu — original restaurado")
+        _commit(path, out, raw)
         return "ok"
 
     vids = _keys(sf, VIDEO_T)
@@ -347,23 +361,7 @@ def patch_file(path: Path, mode: str, sidecar_dir: Path | None = None) -> str:
     out = encrypt_plain(new_plain)
     if decrypt_file(out)[: len(new_plain)] != new_plain:
         raise SaveFormatError("cifra nao confere")
-
-    tmp = path.with_suffix(path.suffix + ".guttytmp")
-    try:
-        with open(tmp, "wb") as f:
-            f.write(out)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, path)
-    finally:
-        try:
-            if tmp.exists():
-                tmp.unlink()
-        except OSError:
-            pass
-    if path.read_bytes() != out:
-        path.write_bytes(raw)
-        raise SaveFormatError("leitura pos-gravacao divergiu — original restaurado")
+    _commit(path, out, raw)
     return "ok"
 
 
@@ -401,7 +399,7 @@ def main(argv: list[str]) -> int:
 
     if not files:
         print("nenhum .save na pasta", flush=True)
-        return 0
+        return 1
 
     errors = 0
     done = 0

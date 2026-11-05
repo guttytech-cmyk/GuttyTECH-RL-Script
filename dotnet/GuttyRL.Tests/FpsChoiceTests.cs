@@ -9,6 +9,9 @@ public class FpsChoiceTests
     [InlineData("false", "360.000000", 360)]
     [InlineData("False", "144", 144)]
     [InlineData("False", "240.0", 240)]
+    [InlineData("True", "360", 360)]
+    [InlineData("True", "144", 144)]
+    [InlineData("True", "240.0", 240)]
     public void Limite_do_menu_e_respeitado(string uncapped, string custom, int esperado)
     {
         Assert.True(FpsChoice.IsUserCap(uncapped, custom, out int cap));
@@ -16,7 +19,7 @@ public class FpsChoiceTests
     }
 
     [Theory]
-    [InlineData("True", "360")]
+    [InlineData("True", "0")]
     [InlineData("False", "0")]
     [InlineData("False", "60")]
     [InlineData("False", "10000")]

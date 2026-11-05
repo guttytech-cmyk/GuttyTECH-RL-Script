@@ -17,11 +17,13 @@ internal static class FpsChoice
         cap = 0;
         if (string.IsNullOrWhiteSpace(customFps))
             return false;
-        if (uncapped is not null && uncapped.Equals("True", StringComparison.OrdinalIgnoreCase))
-            return false;
         if (!double.TryParse(customFps.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
             return false;
         int n = (int)Math.Round(v);
+        // O template injeta UncappedFramerate=True com CustomFPS=0.
+        // 144/240/360 escrito no INI e limite do jogador, mesmo se Uncapped ainda estiver True.
+        if (n == 0 && uncapped is not null && uncapped.Equals("True", StringComparison.OrdinalIgnoreCase))
+            return false;
         if (n < MinCap || n > MaxCap)
             return false;
         cap = n;

@@ -15,7 +15,7 @@ DynamicLights=False
 DynamicShadows=False
 LightEnvironmentShadows=False
 CompositeDynamicLights=False
-SHSecondaryLighting=False
+SHSecondaryLighting=True
 DirectionalLightmaps=False
 MotionBlur=False
 MotionBlurPause=False
@@ -33,7 +33,7 @@ SpeedTreeFronds=False
 OnlyStreamInTextures=False
 LensFlares=False
 FogVolumes=False
-FloatingPointRenderTargets=False
+FloatingPointRenderTargets=True
 OneFrameThreadLag=True
 WaitForGPU=False
 UseVsync=False
@@ -56,12 +56,12 @@ AllowImageReflections=False
 AllowImageReflectionShadowing=False
 bAllowSeparateTranslucency=False
 bAllowPostprocessMLAA=False
-bAllowHighQualityMaterials=False
+bAllowHighQualityMaterials=True
 bUseTranslucentArenaShaders=False
 MaxFilterBlurSampleCount=1
 SkeletalMeshLODBias=0
 ParticleLODBias=100
-DetailMode=0
+DetailMode=2
 MaxDrawDistanceScale=0
 ShadowFilterQualityBias=0
 MaxAnisotropy=0
@@ -288,13 +288,13 @@ ResY=720
 BasedOn=SystemSettings
 bAllowWholeSceneDominantShadows=True
 bAllowLightShafts=False
-DetailMode=0
+DetailMode=2
 
 [SystemSettingsMobile]
 BasedOn=SystemSettings
 Fullscreen=True
 DirectionalLightmaps=False
-SHSecondaryLighting=False
+SHSecondaryLighting=True
 StaticDecals=False
 DynamicDecals=False
 UnbatchedDecals=False
@@ -306,7 +306,7 @@ Bloom=False
 Distortion=False
 FilteredDistortion=False
 DropParticleDistortion=False
-FloatingPointRenderTargets=False
+FloatingPointRenderTargets=True
 MaxAnisotropy=0
 bAllowLightShafts=False
 MobileModShadows=False
@@ -407,7 +407,7 @@ bMobileUsingHighResolutionTiming=False
 [SystemSettingsIPhone3GS]
 BasedOn=SystemSettingsMobileTextureBias
 LensFlares=False
-DetailMode=0
+DetailMode=2
 MobileEnableMSAA=False
 MobileMaxMemory=100
 bMobileUsingHighResolutionTiming=False
@@ -683,7 +683,7 @@ TEXTUREGROUP_ColorLookupTable=(MinLODSize=1,MaxLODSize=16,LODBias=15)
 
 [SystemSettingsProfileDetailLow]
 BasedOn=SystemSettings
-DetailMode=0
+DetailMode=2
 AmbientOcclusion=False
 DepthOfField=False
 Bloom=False
@@ -693,7 +693,7 @@ MotionBlur=False
 
 [SystemSettingsProfileDetailHigh]
 BasedOn=SystemSettings
-DetailMode=0
+DetailMode=2
 AmbientOcclusion=False
 DepthOfField=False
 Bloom=False

@@ -68,7 +68,14 @@ internal static class SaveRecovery
             AppMeta.Log("Relocate OneDrive: " + ex.Message);
         }
 
-        // 0) Promove backups antigos grandes para o cofre Best (pcs que ja tinham historico)
+        // 0) Os saves grandes do Maycon/Goag foram parar em Quarantine/Presets
+        //    marcados como regravacao. Repara o tipo da cor e do id ANTES de
+        //    escolher o maior, senao o detector descarta a garagem de verdade.
+        string? epicDir = SaveDirFromIni(iniPath, epic: true);
+        string? steamDir = SaveDirFromIni(iniPath, epic: false);
+        RepairBeforeRestore(epicDir, steamDir);
+
+        // Promove backups antigos grandes para o cofre Best (pcs que ja tinham historico)
         int seeded = SeedBestVaultFromArchives();
         if (seeded > 0) parts.Add($"best herdado={seeded}");
 
@@ -78,8 +85,6 @@ internal static class SaveRecovery
 
         // 2) Restaura Epic. Steam so se a pasta JA existir — nao criar SaveData
         //    (recriava OneDrive e misturava contas Epic em pasta Steam vazia).
-        string? epicDir = SaveDirFromIni(iniPath, epic: true);
-        string? steamDir = SaveDirFromIni(iniPath, epic: false);
         bool epic = RestoreInto(epicDir, preferNewest: true, preferGarage: true, parts, createIfMissing: true);
         bool steam = Directory.Exists(steamDir)
             && RestoreInto(steamDir, preferNewest: true, preferGarage: true, parts, createIfMissing: false);
@@ -124,9 +129,9 @@ internal static class SaveRecovery
     }
 
     /// <summary>
-    /// Apos sync de video: so devolve o Best se a conta live virou stub
-    /// (&lt; SoftGarageMin). Nao cobre uma garagem saudavel so porque o Best
-    /// e maior, e nao recria slot que o jogo ja apagou.
+    /// Apos sync de video: so devolve o Best se a conta live encolheu para stub
+    /// (&lt; SoftGarageMin). Nao roda HealDamagedSlots em garagem grande: o jogador
+    /// acabou de trocar carro/cor e o watcher nao pode cobrir isso com backup.
     /// </summary>
     public static int ReinforceGarageAfterVideoSync(string? iniPath)
     {
@@ -136,17 +141,49 @@ internal static class SaveRecovery
             int n = RestoreCollapsedStubs(iniPath);
             if (n > 0)
                 AppMeta.Log($"Sync video: stub restaurado={n}");
-            int healed = HealDamagedSlots(SaveDirFromIni(iniPath, epic: true))
-                         + HealDamagedSlots(SaveDirFromIni(iniPath, epic: false));
-            if (healed > 0)
-                AppMeta.Log($"Sync video: slots regravados repostos={healed}");
-            return n + healed;
+            return n;
         }
         catch (Exception ex)
         {
             AppMeta.Log("ReinforceGarageAfterVideoSync: " + ex.Message);
             return 0;
         }
+    }
+
+    /// <summary>
+    /// REPAIR nos backups e no live antes de escolher qual garagem restaurar.
+    /// Cada pasta entra uma vez. Subpastas de Quarantine entram tambem.
+    /// </summary>
+    private static void RepairBeforeRestore(string? epicDir, string? steamDir)
+    {
+        if (Process.GetProcessesByName("RocketLeague").Length > 0)
+        {
+            AppMeta.Log("REPAIR presets: RL aberto, backups ficam como estao.");
+            return;
+        }
+
+        var dirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string? root in new[]
+        {
+            BestRoot,
+            PresetsRoot,
+            Path.Combine(AppMeta.BackupDir, "Quarantine"),
+            epicDir,
+            steamDir,
+        })
+        {
+            if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
+                continue;
+            foreach (string file in Directory.EnumerateFiles(root, "*.save", SearchOption.AllDirectories))
+            {
+                string? dir = Path.GetDirectoryName(file);
+                if (!string.IsNullOrEmpty(dir))
+                    dirs.Add(dir);
+            }
+        }
+
+        foreach (string dir in dirs)
+            SaveVideoPatcher.PatchSaveDirectory(dir, "REPAIR");
     }
 
     /// <summary>Copia o Best por cima apenas de .save que encolheram abaixo do stub.</summary>
@@ -713,14 +750,23 @@ internal static class SaveRecovery
         return true;
     }
 
-    /// <summary>Live integro, do mesmo porte e com pelo menos os mesmos presets do backup.</summary>
-    private static bool LiveHoldsUp(FileInfo live, FileInfo backup) =>
-        live.Exists
-        && live.Length >= SoftGarageMinBytes
-        && live.Length >= backup.Length * 85 / 100
-        && !LooksCorruptHeader(live)
-        && !SaveGarageGuard.IsReserializeDamage(live.FullName)
-        && SaveGarageGuard.LoadoutCount(live.FullName) >= SaveGarageGuard.LoadoutCount(backup.FullName);
+    /// <summary>
+    /// Live integro e do mesmo porte. Se o live e mais novo e ainda tem preset,
+    /// o jogador pode ter apagado um no jogo: o backup antigo nao cobre.
+    /// </summary>
+    private static bool LiveHoldsUp(FileInfo live, FileInfo backup)
+    {
+        if (!live.Exists
+            || live.Length < SoftGarageMinBytes
+            || live.Length < backup.Length * 85 / 100
+            || LooksCorruptHeader(live)
+            || SaveGarageGuard.IsReserializeDamage(live.FullName))
+            return false;
+        int liveLoads = SaveGarageGuard.LoadoutCount(live.FullName);
+        if (live.LastWriteTimeUtc >= backup.LastWriteTimeUtc && liveLoads > 0)
+            return true;
+        return liveLoads >= SaveGarageGuard.LoadoutCount(backup.FullName);
+    }
 
     private static readonly Regex SlotSuffix = new(@"_\d+$", RegexOptions.Compiled);
     private static readonly Regex EpicId = new(@"^[0-9a-f]{32}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);

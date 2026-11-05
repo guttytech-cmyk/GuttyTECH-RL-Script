@@ -91,7 +91,8 @@ internal static class CompletoForce
         // NAO baixar para 0 — crash KERNELBASE. 1 = aprovado (era 2).
         ["MaxFilterBlurSampleCount"] = "1",
         ["FullEffectIntensity"] = "False",
-        ["bAllowHighQualityMaterials"] = "False",
+        // True: o shader da pintura e do acabamento. False deixa o laranja amarronzado.
+        ["bAllowHighQualityMaterials"] = "True",
         ["bUseTranslucentArenaShaders"] = "False",
         ["bAllowDownsampledTranslucency"] = "False",
         ["UseHighQualityBloom"] = "False",
@@ -104,7 +105,7 @@ internal static class CompletoForce
         ["DynamicShadows"] = "False",
         ["LightEnvironmentShadows"] = "False",
         ["CompositeDynamicLights"] = "False",
-        ["SHSecondaryLighting"] = "False",
+        ["SHSecondaryLighting"] = "True",
         ["DirectionalLightmaps"] = "False",
         ["MotionBlur"] = "False",
         ["MotionBlurPause"] = "False",
@@ -125,7 +126,8 @@ internal static class CompletoForce
         ["AllowImageReflectionShadowing"] = "False",
         ["AllowApexCloth"] = "False",
         ["bAllowSeparateTranslucency"] = "False",
-        ["FloatingPointRenderTargets"] = "False",
+        // False desliga o buffer HDR/sRGB na arena e o laranja vira amarelo/marrom na partida.
+        ["FloatingPointRenderTargets"] = "True",
         ["HighPrecisionGBuffers"] = "False",
         ["MobileEnableMSAA"] = "False",
         ["MobileModShadows"] = "False",
@@ -337,6 +339,9 @@ internal static class CompletoForce
 
         Expect("SkeletalMeshLODBias", "0");
         Expect("DetailMode", "2");
+        Expect("FloatingPointRenderTargets", "True");
+        Expect("bAllowHighQualityMaterials", "True");
+        Expect("SHSecondaryLighting", "True");
 
         return drift;
     }

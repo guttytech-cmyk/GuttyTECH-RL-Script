@@ -3,6 +3,18 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.30] — 2026-11-05
+### Corrigido
+- O conserto da cor era desfeito na hora: o detector ainda marcava o save reparado como quebrado e o app copiava outro arquivo por cima.
+- RESTAURAR PRESETS repara a cor e o id do carro nos backups (inclusive na quarentena) antes de escolher a garagem.
+- O watcher não cobre mais uma garagem grande no fecho do jogo. Só recupera save que encolheu para stub.
+- Pasta de save vazia não conta mais como menu revertido.
+- COMPLETO mantém o buffer de cor e o material da pintura, para o laranja não mudar dentro da partida.
+- O patch do save não muda a data do arquivo, para o jogo não passar a abrir o slot velho.
+- O vínculo do preset (ObjectProperty) volta para o formato do jogo. Era isso que deixava o Fennec cair no Octane.
+- Um teto de FPS escrito no INI (144, 240, 360) vale mesmo se Uncapped ainda estiver True. O template, com CustomFPS=0, continua ilimitado.
+- Se o jogador apagou um preset, o backup antigo não cobre o save mais novo.
+
 ## [v25.0.29] — 2026-11-05
 ### Corrigido
 - A cor e o Octane travado estão no save, não no detalhe do INI. A versão antiga gravou a cor como número inteiro e cortou o id do item. O jogo não lê isso, ignora o Fennec e mostra outro Octane. O app agora regrava só esses campos no formato original, com o jogo fechado.

@@ -65,6 +65,20 @@ internal static class SaveGarageGuard
         if (!hasGarage)
             return false;
 
+        // O repair troca TeamColorID/CustomColorID Int→Byte e LowerBits/UpperBits Int→QWord.
+        // Nao recria ObjectProperty. Tratar objectProps==0 como dano depois do repair
+        // faz o Heal copiar outro arquivo por cima do save que acabou de ser consertado.
+        bool sawColor = false, colorOk = true;
+        bool sawId = false, idOk = true;
+        ScanType(plain, "TeamColorID"u8, TypeKind.Byte, ref sawColor, ref colorOk);
+        ScanType(plain, "CustomColorID"u8, TypeKind.Byte, ref sawColor, ref colorOk);
+        ScanType(plain, "LowerBits"u8, TypeKind.QWord, ref sawId, ref idOk);
+        ScanType(plain, "UpperBits"u8, TypeKind.QWord, ref sawId, ref idOk);
+        if (!colorOk || !idOk)
+            return true;
+        if (sawColor && colorOk && sawId && idOk)
+            return false;
+
         // Roundtrip do codec: os nomes das classes ficam, os tipos UE3 somem.
         // O arquivo medido ficou com ByteProperty=3 (nao zero) e ObjectProperty=0.
         if ((products > 0 || loadouts > 0) && objectProps == 0)
@@ -72,6 +86,51 @@ internal static class SaveGarageGuard
         if (painted >= 8 && byteProps * 8 < painted)
             return true;
         return false;
+    }
+
+    private enum TypeKind { Int, Byte, QWord }
+
+    /// <summary>
+    /// O nome e o tipo nao ficam colados: no meio tem o tamanho da string (4 bytes).
+    /// Olha so a janela curta depois do nome, e usa o tipo mais proximo.
+    /// </summary>
+    private static void ScanType(
+        ReadOnlySpan<byte> plain,
+        ReadOnlySpan<byte> name,
+        TypeKind good,
+        ref bool saw,
+        ref bool allGood)
+    {
+        int from = 0;
+        while (from <= plain.Length - name.Length)
+        {
+            int found = plain[from..].IndexOf(name);
+            if (found < 0)
+                break;
+            int start = from + found + name.Length;
+            int end = Math.Min(plain.Length, start + 40);
+            TypeKind? kind = NearestKind(plain[start..end]);
+            if (kind is not null)
+            {
+                saw = true;
+                if (kind != good)
+                    allGood = false;
+            }
+            from = start;
+        }
+    }
+
+    private static TypeKind? NearestKind(ReadOnlySpan<byte> window)
+    {
+        int iInt = window.IndexOf("IntProperty"u8);
+        int iByte = window.IndexOf("ByteProperty"u8);
+        int iQ = window.IndexOf("QWordProperty"u8);
+        int best = int.MaxValue;
+        TypeKind? kind = null;
+        if (iInt >= 0 && iInt < best) { best = iInt; kind = TypeKind.Int; }
+        if (iByte >= 0 && iByte < best) { best = iByte; kind = TypeKind.Byte; }
+        if (iQ >= 0 && iQ < best) kind = TypeKind.QWord;
+        return kind;
     }
 
     private static (bool Damaged, int Loadouts) InspectFile(string path)
