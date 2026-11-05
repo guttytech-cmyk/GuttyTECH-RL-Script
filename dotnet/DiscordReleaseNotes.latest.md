@@ -1,9 +1,8 @@
-GUTTYTECH RL Optimizer v25.0.27
+GUTTYTECH RL Optimizer v25.0.28
 
-A cor continuava errada porque o reparo de boot tirava o save da pasta. O jogo criava um arquivo novo, sem a tinta.
+O Octane feio não era só a textura. O modo ainda forçava o detalhe do carro no mínimo, e o Fennec sumia.
 
-- Com o jogo fechado, o app devolve a cópia que ainda tem a cor.
-- Cópia regravada pela versão antiga fica de fora. Ela é que apagou a tinta.
-- Feche o Rocket League, abra este exe e clique em RESTAURAR PRESETS.
+- O detalhe do carro volta ao normal. Mapa e pitch continuam baixos.
+- Feche o Rocket League, abra este exe e aplique o COMPLETO de novo.
 
 Roda como administrador. Só trocar o arquivo.

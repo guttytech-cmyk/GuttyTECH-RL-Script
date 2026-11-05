@@ -72,7 +72,8 @@ internal static class CompletoForce
 
     private static readonly Dictionary<string, string> Keys = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["DetailMode"] = "0",
+        // 0 esconde a malha do Fennec e o jogo mostra o Octane. 2 é o detalhe normal do carro.
+        ["DetailMode"] = "2",
         ["ParticleLODBias"] = "100",
         ["SkeletalMeshLODBias"] = "0",
         ["MaxDrawDistanceScale"] = "0",
@@ -335,6 +336,7 @@ internal static class CompletoForce
         }
 
         Expect("SkeletalMeshLODBias", "0");
+        Expect("DetailMode", "2");
 
         return drift;
     }

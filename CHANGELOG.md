@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.28] — 2026-11-05
+### Corrigido
+- O Octane feio continuava depois de soltar a malha e a textura do carro. O COMPLETO ainda gravava DetailMode=0, e o jogo esconde o Fennec. Agora o detalhe do carro fica em 2. O mapa continua baixo.
+
 ## [v25.0.27] — 2026-11-05
 ### Corrigido
 - Recuperar o boot esvaziava a pasta do save e o jogo criava um perfil novo, sem a cor. Agora a cópia íntegra volta para a pasta antes de abrir o jogo. Save regravado continua de fora.
