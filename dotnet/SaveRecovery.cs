@@ -193,6 +193,14 @@ internal static class SaveRecovery
                 AppMeta.Log("Tinta: RL aberto, o save regravado fica para quando fechar.");
                 return 0;
             }
+            // A v25.0.22 gravou a cor como Int e o id do carro cortado.
+            // O jogo lê Byte/QWord e cai no Octane. Conserta o arquivo no lugar.
+            foreach (bool epic in new[] { true, false })
+            {
+                string? dir = SaveDirFromIni(iniPath, epic);
+                if (dir is not null && Directory.Exists(dir))
+                    SaveVideoPatcher.PatchSaveDirectory(dir, "REPAIR");
+            }
             int n = HealDamagedSlots(SaveDirFromIni(iniPath, epic: true))
                     + HealDamagedSlots(SaveDirFromIni(iniPath, epic: false));
             n += RestoreMissingIntact(SaveDirFromIni(iniPath, epic: true));

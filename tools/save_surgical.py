@@ -156,6 +156,103 @@ def enc_int(name: str, v: int) -> bytes:
     return _tag(name, "IntProperty", 4) + struct.pack("<i", int(v))
 
 
+def enc_byte_none(name: str, value: int) -> bytes:
+    """ByteProperty com enum None. Size nativo é só o byte do valor."""
+    return (
+        write_str(name)
+        + write_str("ByteProperty")
+        + struct.pack("<ii", 1, 0)
+        + write_str("None")
+        + bytes([value & 0xFF])
+    )
+
+
+def enc_qword(name: str, value: int) -> bytes:
+    return (
+        write_str(name)
+        + write_str("QWordProperty")
+        + struct.pack("<ii", 8, 0)
+        + struct.pack("<Q", value & 0xFFFFFFFFFFFFFFFF)
+    )
+
+
+_BYTE_FIX = {"TeamColorID", "Team"}
+_QWORD_FIX = {"UpperBits", "LowerBits"}
+
+
+def repair_stream(blob: bytes) -> bytes:
+    """Devolve Int que o codec antigo gravou no lugar de Byte/QWord."""
+    props, tail = parse_props(blob)
+    return b"".join(_repair_prop(p) for p in props) + write_str("None") + tail
+
+
+def _repair_prop(p: Prop) -> bytes:
+    if (
+        p.name in _BYTE_FIX
+        and p.tag == "IntProperty"
+        and isinstance(p.value, int)
+        and 0 <= p.value <= 255
+    ):
+        return enc_byte_none(p.name, p.value)
+    if (
+        p.name in _QWORD_FIX
+        and p.tag == "IntProperty"
+        and isinstance(p.value, int)
+        and p.value >= 0
+    ):
+        return enc_qword(p.name, p.value)
+    if p.tag == "StructProperty" and p.struct_body is not None and p.struct_name:
+        body = repair_stream(p.struct_body)
+        if body != p.struct_body:
+            return _tag(p.name, "StructProperty", len(body)) + write_str(p.struct_name) + body
+    if p.tag == "ArrayProperty":
+        fixed = _repair_array(p)
+        if fixed is not None:
+            return fixed
+    return p.raw
+
+
+def _repair_array(p: Prop) -> bytes | None:
+    raw = p.raw
+    off = 0
+    _, off = read_str(raw, off)
+    _, off = read_str(raw, off)
+    off += 8
+    if off + 4 > len(raw):
+        return None
+    count = struct.unpack_from("<i", raw, off)[0]
+    off += 4
+    if count < 0 or count > 100_000:
+        return None
+    elems: list[bytes] = []
+    changed = False
+    for _ in range(count):
+        if off >= len(raw):
+            return None
+        try:
+            props, tail = parse_props(raw[off:])
+        except SaveFormatError:
+            return None
+        consumed = len(raw[off:]) - len(tail)
+        new = b"".join(_repair_prop(x) for x in props) + write_str("None")
+        if new != raw[off:off + consumed]:
+            changed = True
+        elems.append(new)
+        off += consumed
+    if not changed:
+        return None
+    payload = struct.pack("<i", count) + b"".join(elems)
+    return _tag(p.name, "ArrayProperty", len(payload)) + payload
+
+
+def repair_object(blob: bytes) -> bytes:
+    try:
+        props, tail = parse_object(blob)
+    except SaveFormatError:
+        return blob
+    return b"".join(_repair_prop(p) for p in props) + write_str("None") + tail
+
+
 def enc_byte_enum(name: str, enum: str, v: str) -> bytes:
     val = write_str(v)
     return write_str(name) + write_str("ByteProperty") + struct.pack("<ii", len(val), 0) + write_str(enum) + val

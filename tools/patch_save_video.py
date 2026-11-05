@@ -19,6 +19,7 @@ if str(_TOOLS_DIR) not in sys.path:
 from save_surgical import (  # noqa: E402
     OBJHEADER,
     PropEditor,
+    repair_object,
     SaveFormatError,
     build_plain,
     decrypt_file,
@@ -271,10 +272,52 @@ def _verify(orig_sf, new_plain: bytes, mode: str, root_target: bool) -> None:
                 raise SaveFormatError("VideoOptions nao persistiu")
 
 
+def _repair(sf) -> bool:
+    changed = False
+    for i, blob in enumerate(sf.objects):
+        fixed = repair_object(blob)
+        if fixed != blob:
+            sf.objects[i] = fixed
+            changed = True
+    if sf.root[:4] == OBJHEADER:
+        fixed = repair_object(sf.root[4:])
+        if fixed != sf.root[4:]:
+            sf.root = OBJHEADER + fixed
+            changed = True
+    return changed
+
+
 def patch_file(path: Path, mode: str, sidecar_dir: Path | None = None) -> str:
     """Retorna 'ok', 'same' ou levanta erro. Nunca deixa save pela metade."""
     raw = path.read_bytes()
     sf, plain = load(raw)
+    if mode == "repair":
+        if not _repair(sf):
+            return "same"
+        new_plain = build_plain(sf)
+        if parse_plain(new_plain).types != sf.types:
+            raise SaveFormatError("reparo mudou a tabela de objetos")
+        out = encrypt_plain(new_plain)
+        if decrypt_file(out)[: len(new_plain)] != new_plain:
+            raise SaveFormatError("cifra nao confere")
+        tmp = path.with_suffix(path.suffix + ".guttytmp")
+        try:
+            with open(tmp, "wb") as f:
+                f.write(out)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, path)
+        finally:
+            try:
+                if tmp.exists():
+                    tmp.unlink()
+            except OSError:
+                pass
+        if path.read_bytes() != out:
+            path.write_bytes(raw)
+            raise SaveFormatError("leitura pos-gravacao divergiu — original restaurado")
+        return "ok"
+
     vids = _keys(sf, VIDEO_T)
     if not vids:
         raise SaveFormatError("sem bloco de video")
@@ -341,7 +384,7 @@ def _select_files(files: list[Path]) -> list[Path]:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("completo", "criador", "stock"), default="completo")
+    parser.add_argument("--mode", choices=("completo", "criador", "stock", "repair"), default="completo")
     parser.add_argument("--sidecar", default=None)
     parser.add_argument("target")
     args = parser.parse_args(argv[1:])

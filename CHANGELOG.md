@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.29] — 2026-11-05
+### Corrigido
+- A cor e o Octane travado estão no save, não no detalhe do INI. A versão antiga gravou a cor como número inteiro e cortou o id do item. O jogo não lê isso, ignora o Fennec e mostra outro Octane. O app agora regrava só esses campos no formato original, com o jogo fechado.
+
 ## [v25.0.28] — 2026-11-05
 ### Corrigido
 - O Octane feio continuava depois de soltar a malha e a textura do carro. O COMPLETO ainda gravava DetailMode=0, e o jogo esconde o Fennec. Agora o detalhe do carro fica em 2. O mapa continua baixo.

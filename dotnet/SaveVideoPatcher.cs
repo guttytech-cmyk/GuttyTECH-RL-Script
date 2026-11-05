@@ -26,6 +26,7 @@ internal static class SaveVideoPatcher
         {
             "CRIADOR" => "criador",
             "STOCK" => "stock",
+            "REPAIR" => "repair",
             _ => "completo",
         };
         string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
