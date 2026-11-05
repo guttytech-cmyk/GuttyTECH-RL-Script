@@ -3,6 +3,11 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.27] — 2026-11-05
+### Corrigido
+- Recuperar o boot esvaziava a pasta do save e o jogo criava um perfil novo, sem a cor. Agora a cópia íntegra volta para a pasta antes de abrir o jogo. Save regravado continua de fora.
+- A busca da cópia boa não enche mais o log com um aviso por arquivo.
+
 ## [v25.0.26] — 2026-11-05
 ### Corrigido
 - O limite de FPS escolhido no menu (120 a 960, inclusive 360) fica. O modo continua ilimitado quando o jogo volta para 60.

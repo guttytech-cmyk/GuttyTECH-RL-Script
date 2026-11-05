@@ -195,8 +195,12 @@ internal static class SaveRecovery
             }
             int n = HealDamagedSlots(SaveDirFromIni(iniPath, epic: true))
                     + HealDamagedSlots(SaveDirFromIni(iniPath, epic: false));
+            n += RestoreMissingIntact(SaveDirFromIni(iniPath, epic: true));
+            n += RestoreMissingIntact(SaveDirFromIni(iniPath, epic: false));
             if (n > 0)
                 AppMeta.Log($"Tinta: {n} save(s) regravados trocados pela copia integra.");
+            else
+                AppMeta.Log("Tinta: nenhuma copia integra melhor que o save atual.");
             return n;
         }
         catch (Exception ex)
@@ -361,11 +365,12 @@ internal static class SaveRecovery
                         continue;
                 }
 
+                int damaged = 0;
                 foreach (var fi in ranked)
                 {
                     if (SaveGarageGuard.IsReserializeDamage(fi.FullName))
                     {
-                        AppMeta.Log($"Arquivo ignorado (regravacao quebra preset): {fi.Name}");
+                        damaged++;
                         continue;
                     }
 
@@ -373,6 +378,8 @@ internal static class SaveRecovery
                         n++;
                     break;
                 }
+                if (damaged > 0)
+                    AppMeta.Log($"Backups regravados ignorados: {kv.Key} ({damaged}).");
             }
             if (n > 0) AppMeta.Log($"Best vault herdado de arquivos: {n}.");
         }
@@ -778,6 +785,33 @@ internal static class SaveRecovery
         return n;
     }
 
+    /// <summary>Pasta esvaziada pela limpeza: devolve so a copia que ainda tem tinta.</summary>
+    private static int RestoreMissingIntact(string? saveDir)
+    {
+        if (saveDir is null || !Directory.Exists(saveDir)) return 0;
+        int n = 0;
+        try
+        {
+            foreach (var kv in IntactGarageBackups())
+            {
+                if (!AccountFitsDir(kv.Key, saveDir)) continue;
+                if (SaveGarageGuard.IsReserializeDamage(kv.Value.FullName)) continue;
+                string dest = Path.Combine(saveDir, kv.Key);
+                if (File.Exists(dest)) continue;
+                if (CopyToLive(kv.Value.FullName, dest))
+                {
+                    n++;
+                    AppMeta.Log($"Garagem devolvida: {kv.Key} ({kv.Value.Length / 1024}KB)");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("RestoreMissingIntact: " + ex.Message);
+        }
+        return n;
+    }
+
     /// <summary>
     /// Arquiva so se o conteudo mudou desde o ultimo backup da mesma conta e poda
     /// o historico (8 mais recentes + 2 maiores). Antes cada fecho do RL duplicava
@@ -1015,7 +1049,10 @@ internal static class SaveRecovery
 
         bool purge = PurgeRlSettingsData();
         int cloudQ = QuarantineSteamCloudRemote();
-        AppMeta.Log($"UNBREAK-SAVES: epicQ={epicQ} steamQ={steamQ} purge={purge} steamCloud={cloudQ}");
+        // A limpeza esvazia a pasta. Sem devolver a copia integra, o jogo cria
+        // um save novo e a cor/preset somem. Save regravado nao volta.
+        int back = RestorePaintIfDamaged(iniPath);
+        AppMeta.Log($"UNBREAK-SAVES: epicQ={epicQ} steamQ={steamQ} purge={purge} steamCloud={cloudQ} devolvidos={back}");
         return epicQ && steamQ && purge;
     }
 
