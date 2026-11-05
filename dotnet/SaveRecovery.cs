@@ -179,7 +179,33 @@ internal static class SaveRecovery
         return n;
     }
 
-    /// <summary>Copia saves de garagem (grandes) — so file copy, sem decrypt.</summary>
+    /// <summary>
+    /// Save regravado pela v25.0.22 perde a tinta. Com o jogo fechado, troca o
+    /// arquivo live pela copia integra. REMOVER sozinho nao fazia isso.
+    /// </summary>
+    public static int RestorePaintIfDamaged(string? iniPath)
+    {
+        if (iniPath is null) return 0;
+        try
+        {
+            if (Process.GetProcessesByName("RocketLeague").Length > 0)
+            {
+                AppMeta.Log("Tinta: RL aberto, o save regravado fica para quando fechar.");
+                return 0;
+            }
+            int n = HealDamagedSlots(SaveDirFromIni(iniPath, epic: true))
+                    + HealDamagedSlots(SaveDirFromIni(iniPath, epic: false));
+            if (n > 0)
+                AppMeta.Log($"Tinta: {n} save(s) regravados trocados pela copia integra.");
+            return n;
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("RestorePaintIfDamaged: " + ex.Message);
+            return 0;
+        }
+    }
+
     public static int BackupGaragePresets(string? iniPath)
     {
         if (iniPath is null) return 0;
@@ -1289,7 +1315,7 @@ internal static class SaveRecovery
             else if (tiny > 0 && garage == 0)
                 lines.Add($"  !! {tag}: so stubs — Steam Cloud pode estar a esmagar a garagem");
             else if (garage > 0 && tiny == 0)
-                lines.Add($"  !! {tag}: so garagem (>=250KB) — sync de menu adiado (INI e autoridade; abra o RL 1x p/ criar save leve)");
+                lines.Add($"  {tag}: {garage} save(s) de garagem — o menu de video entra no .save, preset nao e regravado");
         }
 
         Score("Steam", steam);

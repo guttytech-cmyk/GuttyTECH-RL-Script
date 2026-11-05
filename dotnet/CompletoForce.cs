@@ -11,6 +11,31 @@ internal static class CompletoForce
     private const string PotatoTextureGroup =
         "(MinLODSize=1,MaxLODSize=2,LODBias=100,MinMagFilter=Point,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)";
 
+    // Carro fica legível. LOD 2 + bias 100 derruba a malha e o jogo mostra o Octane padrão.
+    private const string CarTextureGroup =
+        "(MinLODSize=1,MaxLODSize=1024,LODBias=0,MinMagFilter=Aniso,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)";
+
+    // A tabela de cor em 2x2 faz laranja sair como outra cor.
+    private const string ColorLutGroup =
+        "(MinLODSize=1,MaxLODSize=512,LODBias=0,MinMagFilter=Linear,MipFilter=Point,MipGenSettings=TMGS_SimpleAverage)";
+
+    private static readonly HashSet<string> CarGroups = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "TEXTUREGROUP_Character",
+        "TEXTUREGROUP_CharacterNormalMap",
+        "TEXTUREGROUP_CharacterSpecular",
+        "TEXTUREGROUP_Vehicle",
+        "TEXTUREGROUP_VehicleNormalMap",
+        "TEXTUREGROUP_VehicleSpecular",
+    };
+
+    private static string TextureFor(string group)
+    {
+        if (group.Equals("TEXTUREGROUP_ColorLookupTable", StringComparison.OrdinalIgnoreCase))
+            return ColorLutGroup;
+        return CarGroups.Contains(group) ? CarTextureGroup : PotatoTextureGroup;
+    }
+
     private static readonly string[] TextureGroups =
     {
         "TEXTUREGROUP_World",
@@ -49,7 +74,7 @@ internal static class CompletoForce
     {
         ["DetailMode"] = "0",
         ["ParticleLODBias"] = "100",
-        ["SkeletalMeshLODBias"] = "100",
+        ["SkeletalMeshLODBias"] = "0",
         ["MaxDrawDistanceScale"] = "0",
         ["FoliageDrawRadiusMultiplier"] = "0.000000",
         ["StaticDecals"] = "False",
@@ -188,7 +213,7 @@ internal static class CompletoForce
             if (pendingTextureGroups is not null)
             {
                 foreach (string group in pendingTextureGroups)
-                    sb.Append(group).Append('=').Append(PotatoTextureGroup).Append("\r\n");
+                    sb.Append(group).Append('=').Append(TextureFor(group)).Append("\r\n");
                 pendingTextureGroups.Clear();
             }
         }
@@ -235,7 +260,7 @@ internal static class CompletoForce
             {
                 if (!managedSeen.Add(key))
                     continue;
-                sb.Append(key).Append('=').Append(PotatoTextureGroup).Append("\r\n");
+                sb.Append(key).Append('=').Append(TextureFor(key)).Append("\r\n");
                 pendingTextureGroups?.Remove(key);
                 continue;
             }
@@ -284,9 +309,12 @@ internal static class CompletoForce
         Expect("UnbatchedDecals", "True");
         Expect("DecalCullDistanceScale", "1.000000");
         Expect("bEnableForegroundShadowsOnWorld", "True");
-        Expect("UncappedFramerate", "True");
+        if (!FpsChoice.TryRead(iniText, out _))
+            Expect("UncappedFramerate", "True");
         Expect("bAllowLightShafts", "False");
         Expect("MobileNormalMapping", "False");
+        Expect("ParticleLODBias", "100");
+        Expect("bUseTranslucentArenaShaders", "False");
 
         if (!main.TryGetValue("ApexLODResourceBudget", out string? apex)
             || !apex.StartsWith("0", StringComparison.Ordinal))
@@ -294,22 +322,31 @@ internal static class CompletoForce
             drift.Add($"ApexLODResourceBudget={apex ?? "(ausente)"} (esperado 0)");
         }
 
-        foreach (string tg in new[]
-                 {
-                     "TEXTUREGROUP_World", "TEXTUREGROUP_Vehicle", "TEXTUREGROUP_Pitch",
-                     "TEXTUREGROUP_Character", "TEXTUREGROUP_UI",
-                 })
+        foreach (string tg in new[] { "TEXTUREGROUP_World", "TEXTUREGROUP_Pitch", "TEXTUREGROUP_UI" })
         {
-            if (!main.TryGetValue(tg, out string? val)
-                || val.IndexOf("MaxLODSize=2", StringComparison.OrdinalIgnoreCase) < 0
-                || val.IndexOf("LODBias=100", StringComparison.OrdinalIgnoreCase) < 0)
-            {
+            if (!main.TryGetValue(tg, out string? val) || !IsPotatoGroup(val))
                 drift.Add($"{tg} afrouxado ({val ?? "ausente"})");
-            }
         }
+
+        foreach (string tg in new[] { "TEXTUREGROUP_Vehicle", "TEXTUREGROUP_Character", "TEXTUREGROUP_ColorLookupTable" })
+        {
+            if (!main.TryGetValue(tg, out string? val) || IsCrushedCarGroup(val))
+                drift.Add($"{tg} cor ou malha do carro ({val ?? "ausente"})");
+        }
+
+        Expect("SkeletalMeshLODBias", "0");
 
         return drift;
     }
+
+    // "MaxLODSize=2" tambem casa com 256 e 2048. A virgula prende o valor exato.
+    private static bool IsPotatoGroup(string val) =>
+        val.Contains("MaxLODSize=2,", StringComparison.OrdinalIgnoreCase)
+        && val.Contains("LODBias=100", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCrushedCarGroup(string val) =>
+        val.Contains("MaxLODSize=2,", StringComparison.OrdinalIgnoreCase)
+        || val.Contains("LODBias=100", StringComparison.OrdinalIgnoreCase);
 
     private static Dictionary<string, string> ReadMainSystemSettings(string iniText)
     {

@@ -62,14 +62,14 @@ internal static class UiCopy
         Add("opt.title", "OTIMIZAÇÃO", "OPTIMIZE");
         Add("opt.sub", "Escolha o modo. Resolução, borda e backups ficam intactos — o resto é guerra.", "Pick a mode. Resolution, borderless, and backups stay — the rest is war.");
         Add("opt.completoSub", "Ranked. Throughput máximo. PC fraco ou sede de FPS.", "Ranked. Maximum throughput. Weak PC or you just want FPS.");
-        Add("opt.b1", "▸ Bola, pitch, carros, banners e mapas: clamp até 2×2", "▸ Ball, pitch, cars, banners, and maps: clamped to 2×2");
+        Add("opt.b1", "▸ Mapas e pitch em 2×2. O carro fica legível", "▸ Maps and pitch at 2×2. The car stays readable");
         Add("opt.b2", "▸ Sombras, decals, folhagem, APEX e pós: OFF; partículas no mínimo", "▸ Shadows, decals, foliage, APEX, and post: OFF; particles at minimum");
         Add("opt.b3", "▸ Tessellation mínima + draw distance e LOD no limite", "▸ Minimum tessellation + draw distance and LOD pushed to the limit");
-        Add("opt.b4", "▸ FPS ilimitado + VSync off + menu sincronizado", "▸ Uncapped FPS + VSync off + video menu synced");
+        Add("opt.b4", "▸ FPS ilimitado por padrão. Limite do jogo (ex.: 360) fica. VSync off", "▸ Uncapped FPS by default. An in-game cap (e.g. 360) stays. VSync off");
         Add("opt.creatorSub", "Clipes, stream e gravação sem parecer batata total.", "Clips, streams, and recording without going full potato.");
         Add("opt.c1", "▸ Mantém leitura visual pra câmera não ficar feia", "▸ Keeps the picture readable so the camera does not look ugly");
         Add("opt.c2", "▸ Texturas e mundo mais altos — ainda empurra FPS", "▸ Higher textures and world detail — still pushes FPS");
-        Add("opt.c3", "▸ FPS uncapped com perfil estável pra gravação", "▸ Uncapped FPS with a stable profile for recording");
+        Add("opt.c3", "▸ FPS ilimitado por padrão. Limite do jogo (ex.: 360) fica", "▸ Uncapped FPS by default. An in-game cap (e.g. 360) stays");
         Add("opt.c4", "▸ Ideal pra conteúdo competitivo sem sacrificar a imagem", "▸ Built for competitive content without killing the image");
         Add("proto.title", "PROTOCOLO AUTOMÁTICO", "AUTOMATIC PROTOCOL");
         Add("proto.backup", "Backup", "Backup");

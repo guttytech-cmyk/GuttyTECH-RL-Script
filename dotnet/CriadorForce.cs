@@ -204,7 +204,8 @@ internal static class CriadorForce
             }
         }
 
-        Expect("UncappedFramerate", "True");
+        if (!FpsChoice.TryRead(iniText, out _))
+            Expect("UncappedFramerate", "True");
         Expect("UseVsync", "False");
         Expect("bSmoothFrameRate", "False");
         Expect("MaxFilterBlurSampleCount", "1");

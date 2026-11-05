@@ -495,6 +495,8 @@ internal static class Program
             AppMeta.Log($"GUI INI: {_cfg}");
             // Snapshot preventivo: se a garagem ainda esta grande, guarda no Best agora
             try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
+            if (GetRl().Length == 0)
+                try { SaveRecovery.RestorePaintIfDamaged(_cfg); } catch { }
 
             // A GUI usa Dispatch(interactive:false), portanto o watcher antigo nunca
             // arrancava. O RL regravava o SystemSettings principal (LOD 128, shaders
@@ -713,6 +715,14 @@ internal static class Program
         // IMPORTANTE: ler resolucao/borda ANTES do restore.
         // Se ler depois, volta ao Fullscreen do backup original e perde Sem bordas.
         var disp = File.Exists(_cfg!) ? ReadDisplay(_cfg!) : DefaultDisplay();
+        // Limite posto no menu (ex.: 360) sobrevive ao apply. 60 é o padrão do jogo.
+        int? fpsCap = null;
+        try
+        {
+            if (File.Exists(_cfg!) && FpsChoice.TryRead(File.ReadAllText(_cfg!), out int chosen))
+                fpsCap = chosen;
+        }
+        catch { }
 
         bool UnlockCfg() { try { File.SetAttributes(_cfg!, FileAttributes.Normal); } catch { } return true; }
 
@@ -746,6 +756,11 @@ internal static class Program
         content = ApplySectionOverrides(content, pacing);
         var locked = ReadSectionOverridesFromText(template, VideoLockedKeys, textureGroups: false);
         content = ApplySectionOverrides(content, locked);
+        if (fpsCap is int cap)
+        {
+            content = FpsChoice.Stamp(content, cap);
+            Log($"Limite de FPS do jogador mantido: {cap}.");
+        }
 
         if (interactive)
         {
@@ -965,6 +980,8 @@ internal static class Program
         else
             snapped = SaveRecovery.BackupGaragePresets(_cfg);
         if (snapped > 0) report.Add($"presets={snapped}");
+        int paint = SaveRecovery.RestorePaintIfDamaged(_cfg);
+        if (paint > 0) report.Add($"tinta restaurada={paint}");
 
         // 5) Unlock + backup + stock INI
         bool iniOk;

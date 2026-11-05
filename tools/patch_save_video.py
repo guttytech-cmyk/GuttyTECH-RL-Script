@@ -88,14 +88,41 @@ def looks_gutty(video: PropEditor) -> bool:
     return mfps is not None and mfps.value == UNCAPPED_MAX_FPS
 
 
+# Limite escolhido no menu (120, 144, 240, 360...). 60 ou menos é o padrão
+# do jogo, que o modo levanta. 10000 é o nosso ilimitado.
+USER_CAP_MIN = 120
+USER_CAP_MAX = 960
+
+
+def _user_cap(ed: PropEditor) -> int | None:
+    fps = ed.get("MaxFPS")
+    if fps is None or not isinstance(fps.value, int):
+        return None
+    v = int(fps.value)
+    if v < USER_CAP_MIN or v > USER_CAP_MAX:
+        return None
+    flag = ed.get("bUncappedFramerate")
+    if flag is not None and flag.value is True:
+        return None
+    return v
+
+
 def _edit_video(ed: PropEditor, mode: str) -> None:
+    cap = _user_cap(ed)
     ed.set_video_options(COMPLETO_OPTIONS if mode == "completo" else CRIADOR_OPTIONS)
     for k, v in VIDEO_BOOLS_COMMON:
+        if k == "bUncappedFramerate":
+            continue
         ed.set_bool(k, v)
     if mode == "completo":
         for k, v in VIDEO_BOOLS_COMPLETO:
             ed.set_bool(k, v)
-    ed.set_int("MaxFPS", UNCAPPED_MAX_FPS)
+    if cap is not None:
+        ed.set_bool("bUncappedFramerate", False)
+        ed.set_int("MaxFPS", cap)
+    else:
+        ed.set_bool("bUncappedFramerate", True)
+        ed.set_int("MaxFPS", UNCAPPED_MAX_FPS)
 
 
 def _edit_gameplay(ed: PropEditor, mode: str) -> None:

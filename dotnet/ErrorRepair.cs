@@ -85,9 +85,13 @@ internal static class ErrorRepair
                 lines.Add("  OK boot-safe (OnlyStream/WaitForGPU)");
             }
 
+            if (FpsChoice.TryRead(text, out int cap))
+                lines.Add($"  OK limite de FPS escolhido no jogo: {cap}");
+
             if (mode == "COMPLETO")
             {
-                Check("UncappedFramerate", "True");
+                if (!FpsChoice.TryRead(text, out _))
+                    Check("UncappedFramerate", "True");
                 Check("bAllowLightShafts", "False");
                 Check("bUseTranslucentArenaShaders", "False");
                 Check("ParticleLODBias", "100");
@@ -103,10 +107,13 @@ internal static class ErrorRepair
             }
             else if (mode == "CRIADOR")
             {
-                Check("UncappedFramerate", "True");
+                if (!FpsChoice.TryRead(text, out _))
+                {
+                    Check("UncappedFramerate", "True");
+                    Check("CustomFPS", "0", critical: false);
+                }
                 Check("UseVsync", "False");
                 Check("bSmoothFrameRate", "False");
-                Check("CustomFPS", "0", critical: false);
                 Check("MaxFilterBlurSampleCount", "1");
                 Check("OnlyStreamInTextures", "False");
                 Check("WaitForGPU", "False");

@@ -3,6 +3,17 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.26] — 2026-11-05
+### Corrigido
+- O limite de FPS escolhido no menu (120 a 960, inclusive 360) fica. O modo continua ilimitado quando o jogo volta para 60.
+- O carro não vira mais o Octane padrão. A malha não é mais empurrada para o último LOD, e a textura do carro fica em 1024.
+- A tabela de cor não vai mais para 2×2. Laranja escolhido deixava de ser laranja.
+- Save regravado pela v25.0.22 perde a tinta. Com o jogo fechado, abrir o app ou REMOVER troca esse arquivo pela cópia íntegra.
+- Com o jogo aberto, se o Rocket League reescrever textura, partícula ou shader, o app repõe o INI na hora, sem travar o arquivo.
+- Atualizar o app não deixa o watcher da versão antiga vivo. Esse processo regravava o save e o reforço desfazia o menu.
+### Melhorado
+- O diagnóstico não diz mais que o menu foi adiado em conta que só tem garagem.
+
 ## [v25.0.25] — 2026-11-04
 ### Corrigido
 - Causa raiz de "não aplica", preset sumindo e cor do carro mudando: o codec antigo regravava o save com o tamanho dos campos errado (bool e enum). O jogo descartava o bloco inteiro e voltava para o padrão — menu em Alta qualidade/60 FPS, preset solto e tinta na cor do time.

@@ -39,8 +39,8 @@ internal static class VideoSettingsSync
             string? exe = Environment.ProcessPath;
             if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) return;
 
-            // Se ja ha watcher vivo do mesmo modo, nao matar/reiniciar (evita buraco
-            // de protecao enquanto o RL esta aberto).
+            // So reaproveita watcher da MESMA versao. Um processo velho (ex.: 25.0.23)
+            // continuava regravando o save e o reforco desfazia o menu.
             if (IsHealthyWatcherRunning(mode))
             {
                 AppMeta.Log($"Watcher {mode} ja ativo — reuse.");
@@ -86,6 +86,9 @@ internal static class VideoSettingsSync
                 return false;
             if (lines.Length > 1
                 && !lines[1].Trim().Equals(mode, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (lines.Length < 3
+                || !lines[2].Trim().Equals(AppMeta.Version, StringComparison.OrdinalIgnoreCase))
                 return false;
             using var p = Process.GetProcessById(pid);
             return !p.HasExited
@@ -213,7 +216,8 @@ internal static class VideoSettingsSync
         try
         {
             Directory.CreateDirectory(AppMeta.GuttyDir);
-            File.WriteAllText(WatcherLockPath, pid + Environment.NewLine + mode + Environment.NewLine);
+            File.WriteAllText(WatcherLockPath,
+                pid + Environment.NewLine + mode + Environment.NewLine + AppMeta.Version + Environment.NewLine);
         }
         catch { }
     }
@@ -280,11 +284,13 @@ internal static class VideoSettingsSync
                 idleTicks = 0;
                 session++;
                 AppMeta.Log($"WATCH: RL detectado (sessao {session}) — aguardando fechar...");
-                // Nao escrever no INI com o jogo aberto: o RL regrava no exit e
-                // mid-session write so gera corrida (historico: attrib +r = boot hang).
-                // So observa. Se varias chaves sairem do contrato, o fecho repos.
+                // O jogo reescreve textura/particula/shader cerca de 1 min depois de abrir.
+                // Sem arquivo travado (attrib +r ja impediu o boot). No maximo 2 repos
+                // por sessao, depois que a reescrita do jogo estabiliza.
                 int watchTicks = 0;
                 int driftSeen = 0;
+                int driftStreak = 0;
+                int reclampAttempts = 0;
                 while (GetRl().Length > 0)
                 {
                     if (!StillCurrentWatcher()) return 0;
@@ -292,8 +298,21 @@ internal static class VideoSettingsSync
                     if (watchTicks % 5 == 0)
                     {
                         int n = SampleSessionDrift(iniPath, mode);
-                        if (n >= 3 && driftSeen < 3)
-                            AppMeta.Log($"WATCH: {n} chaves fora do {mode} durante a sessao — repor no fecho.");
+                        if (n >= 3)
+                        {
+                            driftStreak++;
+                            if (driftSeen < 3)
+                                AppMeta.Log($"WATCH: {n} chaves fora do {mode} durante a sessao.");
+                            if (driftStreak >= 2 && reclampAttempts < 2)
+                            {
+                                reclampAttempts++;
+                                AppMeta.Log($"WATCH: repondo o INI com o jogo aberto ({n} chaves).");
+                                ReclampIni(iniPath, mode);
+                                driftStreak = 0;
+                            }
+                        }
+                        else
+                            driftStreak = 0;
                         driftSeen = Math.Max(driftSeen, n);
                     }
                     Thread.Sleep(2000);
@@ -438,6 +457,7 @@ internal static class VideoSettingsSync
             try { File.SetAttributes(iniPath, FileAttributes.Normal); } catch { }
 
             string text = File.ReadAllText(iniPath);
+            bool userCap = FpsChoice.TryRead(text, out int cap);
             var drift = DescribeModeDrift(text, mode);
             if (drift.Count > 0)
             {
@@ -466,6 +486,11 @@ internal static class VideoSettingsSync
             }
 
             forced = EnsureModeLine(forced, mode);
+            if (userCap)
+            {
+                forced = FpsChoice.Stamp(forced, cap);
+                AppMeta.Log($"Limite de FPS do jogador mantido: {cap}.");
+            }
 
             // Skip write se ja esta no contrato (menos thrash / menos antivirus).
             if (string.Equals(NormalizeIni(text), NormalizeIni(forced), StringComparison.Ordinal))
@@ -489,7 +514,10 @@ internal static class VideoSettingsSync
                 string retry = mode.Equals("COMPLETO", StringComparison.OrdinalIgnoreCase)
                     ? CompletoForce.Apply(verify)
                     : CriadorForce.Apply(verify);
-                File.WriteAllText(iniPath, EnsureModeLine(retry, mode));
+                retry = EnsureModeLine(retry, mode);
+                if (userCap)
+                    retry = FpsChoice.Stamp(retry, cap);
+                File.WriteAllText(iniPath, retry);
                 ErrorRepair.ForceBootSafeIni(iniPath);
                 verify = File.ReadAllText(iniPath);
                 if (DescribeModeDrift(verify, mode).Count > 0)

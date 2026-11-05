@@ -28,6 +28,7 @@
     <Compile Include="..\RlPathPolicy.cs" Link="RlPathPolicy.cs" />
     <Compile Include="..\RlBuildStamp.cs" Link="RlBuildStamp.cs" />
     <Compile Include="..\SaveGarageGuard.cs" Link="SaveGarageGuard.cs" />
+    <Compile Include="..\FpsChoice.cs" Link="FpsChoice.cs" />
   </ItemGroup>
 
 </Project>

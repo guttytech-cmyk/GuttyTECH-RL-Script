@@ -92,7 +92,7 @@ internal static class ModeDetect
         if (Eq(main, "DynamicShadows", "False")) score++;
         if (Eq(main, "DynamicLights", "False")) score++;
         if (Eq(main, "MaxShadowResolution", "1")) score++;
-        if (Eq(main, "UncappedFramerate", "True")) score++;
+        if (Eq(main, "UncappedFramerate", "True") || UserCapped(main)) score++;
         if (Eq(main, "MaxFilterBlurSampleCount", "1") || Eq(main, "MaxFilterBlurSampleCount", "2")) score++;
         if (Eq(main, "bAllowLightShafts", "False")) score++;
 
@@ -110,7 +110,7 @@ internal static class ModeDetect
     /// <summary>CRIADOR: FPS cuts sem potato de sombra/textura.</summary>
     private static bool LooksLikeCriador(Dictionary<string, string> main, string fullText)
     {
-        if (!Eq(main, "UncappedFramerate", "True")) return false;
+        if (!Eq(main, "UncappedFramerate", "True") && !UserCapped(main)) return false;
         if (!(Eq(main, "MaxFilterBlurSampleCount", "1") || Eq(main, "MaxFilterBlurSampleCount", "2"))) return false;
         if (!Eq(main, "UseVsync", "False")) return false;
 
@@ -133,6 +133,13 @@ internal static class ModeDetect
         if (Eq(main, "bSmoothFrameRate", "False")) score++;
 
         return score >= 3;
+    }
+
+    private static bool UserCapped(Dictionary<string, string> main)
+    {
+        main.TryGetValue("UncappedFramerate", out string? u);
+        main.TryGetValue("CustomFPS", out string? c);
+        return FpsChoice.IsUserCap(u, c, out _);
     }
 
     private static bool Eq(Dictionary<string, string> map, string key, string expected) =>
