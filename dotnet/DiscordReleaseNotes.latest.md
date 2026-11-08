@@ -1,12 +1,14 @@
-GUTTYTECH RL Optimizer v25.0.30
+GUTTYTECH RL Optimizer v25.0.31
 
-A cor mudava na partida e o Fennec voltava para o Octane porque o conserto do save era desfeito logo em seguida.
+O carro bugado voltava porque o app regravava o save e o watcher colocava o backup antigo de novo. Esta versão não mexe mais no arquivo do jogo.
 
-- O app repara a cor, o id do carro e o vínculo do preset. Não troca esse arquivo por outro.
-- A data do save fica a mesma, para o jogo não abrir o slot velho.
-- RESTAURAR PRESETS olha também os backups grandes que tinham sido separados.
-- O laranja não perde o buffer de cor dentro da partida.
-- Um teto de FPS escrito no INI (144, 240, 360) continua valendo.
-- Feche o Rocket League, abra este exe e clique em RESTAURAR PRESETS. Confira o carro antes de ligar a nuvem.
+- A otimização fica só no INI.
+- Na primeira abertura, o save local é esvaziado uma vez. O Rocket League cria um arquivo novo. Os itens da conta continuam no servidor.
+- RESTAURAR PRESETS faz a mesma limpeza de novo, se precisar.
 
-Roda como administrador. Só trocar o arquivo.
+Quando abrir o jogo:
+
+1. Se a Epic mostrar Conflito de Nuvem, escolha MAIS RECENTE / ARQUIVO LOCAL (Carregar para a Nuvem).
+2. Se o carro puxar o visual antigo, na Garagem use EXCLUIR PREDEFINIÇÃO ou RANDOMIZAR e crie uma Predefinição Nova (+).
+
+Feche o Rocket League antes. Roda como administrador. Só trocar o arquivo.

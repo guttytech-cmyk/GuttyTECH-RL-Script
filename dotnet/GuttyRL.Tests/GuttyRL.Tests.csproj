@@ -29,6 +29,7 @@
     <Compile Include="..\RlBuildStamp.cs" Link="RlBuildStamp.cs" />
     <Compile Include="..\SaveGarageGuard.cs" Link="SaveGarageGuard.cs" />
     <Compile Include="..\FpsChoice.cs" Link="FpsChoice.cs" />
+    <Compile Include="..\ProcessGuard.cs" Link="ProcessGuard.cs" />
     <Compile Include="..\IniAudit.cs" Link="IniAudit.cs" />
     <Compile Include="..\IniHygiene.cs" Link="IniHygiene.cs" />
     <Compile Include="..\CompletoForce.cs" Link="CompletoForce.cs" />

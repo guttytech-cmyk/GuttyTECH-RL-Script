@@ -47,86 +47,201 @@ internal static class SaveRecovery
         return RestoreInto(dir, preferNewest, preferGarage: preferNewest, createIfMissing: false);
     }
 
-    /// <summary>RESTAURAR PRESETS: prioriza saves grandes (garagem) de todos os backups.</summary>
+    public const string CleanSaveTagName = "v25_0_31_clean_save.tag";
+
+    /// <summary>Uma vez na v25.0.31. O watcher não chama isto.</summary>
+    public static void MigrateCleanSaveOnce(string iniPath)
+    {
+        string tag = Path.Combine(AppMeta.GuttyDir, CleanSaveTagName);
+        if (File.Exists(tag)) return;
+        AppMeta.Log("Migracao v25.0.31: esvaziando o save local contaminado.");
+        if (CleanGarageReset(iniPath, out string summary, reapplyMode: true))
+        {
+            try
+            {
+                Directory.CreateDirectory(AppMeta.GuttyDir);
+                File.WriteAllText(tag, AppMeta.Version + Environment.NewLine + summary);
+            }
+            catch { }
+            AppMeta.Log("Migracao v25.0.31 OK: " + summary);
+        }
+        else
+            AppMeta.Log("Migracao v25.0.31 incompleta: " + summary);
+    }
+
+    /// <summary>RESTAURAR PRESETS: esvazia o save local. O jogo cria um .save novo da Psyonix.</summary>
     public static bool RestoreLatestBackup(string iniPath) =>
         RestorePresets(iniPath, out _);
 
     public static bool RestorePresets(string iniPath, out string summary)
     {
-        var parts = new List<string>();
         try
         {
             string relocated = RlPathResolver.RelocateOffOneDriveIfNeeded(iniPath);
             if (!string.Equals(relocated, iniPath, StringComparison.OrdinalIgnoreCase))
-            {
-                parts.Add("migrado para fora do OneDrive");
                 iniPath = relocated;
-            }
         }
         catch (Exception ex)
         {
             AppMeta.Log("Relocate OneDrive: " + ex.Message);
         }
 
-        // 0) Os saves grandes do Maycon/Goag foram parar em Quarantine/Presets
-        //    marcados como regravacao. Repara o tipo da cor e do id ANTES de
-        //    escolher o maior, senao o detector descarta a garagem de verdade.
-        string? epicDir = SaveDirFromIni(iniPath, epic: true);
-        string? steamDir = SaveDirFromIni(iniPath, epic: false);
-        RepairBeforeRestore(epicDir, steamDir);
-
-        // Promove backups antigos grandes para o cofre Best (pcs que ja tinham historico)
-        int seeded = SeedBestVaultFromArchives();
-        if (seeded > 0) parts.Add($"best herdado={seeded}");
-
-        // 1) Snapshot do que ainda esta live (pode ser a unica copia grande)
-        int snapped = SnapshotLiveGarage(iniPath);
-        if (snapped > 0) parts.Add($"snapshot live={snapped}");
-
-        // 2) Restaura Epic. Steam so se a pasta JA existir — nao criar SaveData
-        //    (recriava OneDrive e misturava contas Epic em pasta Steam vazia).
-        bool epic = RestoreInto(epicDir, preferNewest: true, preferGarage: true, parts, createIfMissing: true);
-        bool steam = Directory.Exists(steamDir)
-            && RestoreInto(steamDir, preferNewest: true, preferGarage: true, parts, createIfMissing: false);
-
-        // 3) Reforca contas live pequeninas com o Best sticky da mesma conta
-        int reinforced = ReinforceLiveAccounts(iniPath);
-        if (reinforced > 0) parts.Add($"reforco contas={reinforced}");
-
-        // 4) Limpa cache Epic (cloud costuma regravar o menu) + Steam Cloud remote
-        bool purge = PurgeRlSettingsData();
-        if (purge) parts.Add("cache limpo");
-        int cloud = QuarantineSteamCloudRemote();
-        if (cloud > 0) parts.Add($"Steam Cloud remote={cloud}");
-
-        // 5) 2o passe — cloud/Defender por vezes reescreve nos primeiros ms
-        Thread.Sleep(700);
-        int secondPass = ReinforceLiveAccounts(iniPath) + RestoreBestVaultInto(iniPath);
-        if (secondPass > 0) parts.Add($"2o passe={secondPass}");
-
-        // 6) Slots _1/_2/_3 regravados: o RL carrega o mais novo — se sobrar um
-        //    quebrado, o preset continua sumido mesmo com o principal restaurado.
-        int slots = HealDamagedSlots(epicDir) + HealDamagedSlots(steamDir);
-        if (slots > 0) parts.Add($"slots repostos={slots}");
-
-        // 7) Backup traz o menu de video antigo; com modo ativo, alinha ao INI.
-        string? active = ModeDetect.Detect(iniPath)?.ToUpperInvariant();
-        if (active is "COMPLETO" or "CRIADOR")
+        bool ok = CleanGarageReset(iniPath, out summary, reapplyMode: true);
+        if (ok)
         {
-            foreach (string? dir in new[] { epicDir, steamDir })
+            try
             {
-                if (dir is not null && Directory.Exists(dir))
-                    SaveVideoPatcher.PatchSaveDirectory(dir, active);
+                Directory.CreateDirectory(AppMeta.GuttyDir);
+                File.WriteAllText(
+                    Path.Combine(AppMeta.GuttyDir, CleanSaveTagName),
+                    AppMeta.Version + Environment.NewLine + summary);
             }
-            parts.Add("menu " + active);
+            catch { }
         }
-
-        // Cloud isolado nao e preset restaurado. Sem garagem integra, o botao falha.
-        bool ok = epic || steam || reinforced > 0 || secondPass > 0 || slots > 0;
-        summary = parts.Count > 0 ? string.Join("; ", parts) : "sem backups de garagem";
         AppMeta.Log("RESTAURAR-PRESETS: " + summary + (ok ? " OK" : " FALHOU"));
         return ok;
     }
+
+    /// <summary>
+    /// Backups .23–.30 estão contaminados. Vão para Deprecated e o DBE_Production fica vazio.
+    /// </summary>
+    public static bool CleanGarageReset(string iniPath, out string summary, bool reapplyMode)
+    {
+        var parts = new List<string>();
+        foreach (var p in Process.GetProcessesByName("RocketLeague"))
+        {
+            try { p.Kill(entireProcessTree: true); }
+            catch { try { p.Kill(); } catch { } }
+        }
+        for (int i = 0; i < 10 && Process.GetProcessesByName("RocketLeague").Length > 0; i++)
+            Thread.Sleep(300);
+        if (Process.GetProcessesByName("RocketLeague").Length > 0)
+        {
+            summary = "Rocket League ainda esta aberto. Feche o jogo e tente de novo.";
+            return false;
+        }
+        parts.Add("RL fechado");
+
+        try { VideoSettingsSync.StopExistingWatchers(); parts.Add("watcher parado"); }
+        catch (Exception ex) { AppMeta.Log("Stop watcher no reset: " + ex.Message); }
+
+        string deprecated = Path.Combine(AppMeta.BackupDir, "Deprecated_Pre25_0_31");
+        RetireDirectory(PresetsRoot, deprecated, "Presets");
+        RetireDirectory(BackupRoot, deprecated, "SaveDataEpic");
+        parts.Add("backups antigos aposentados");
+
+        string quarantine = Path.Combine(
+            AppMeta.BackupDir,
+            "Quarantine_CleanReset_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+        int moved = 0;
+        int stuck = 0;
+        foreach (string dir in EnumerateProductionDirs(iniPath))
+        {
+            foreach (string file in Directory.GetFiles(dir, "*.save*"))
+            {
+                try
+                {
+                    Directory.CreateDirectory(quarantine);
+                    string dest = Path.Combine(quarantine, Path.GetFileName(file));
+                    if (File.Exists(dest))
+                        dest = Path.Combine(quarantine, Path.GetFileName(dir) + "_" + Path.GetFileName(file));
+                    File.SetAttributes(file, FileAttributes.Normal);
+                    File.Move(file, dest);
+                    moved++;
+                }
+                catch (Exception ex)
+                {
+                    stuck++;
+                    AppMeta.Log("Save preso " + file + ": " + ex.Message);
+                }
+            }
+            try
+            {
+                string? tagame = Path.GetDirectoryName(Path.GetDirectoryName(dir));
+                if (tagame is not null)
+                {
+                    string cache = Path.Combine(tagame, "Cache");
+                    if (Directory.Exists(cache))
+                    {
+                        foreach (string f in Directory.EnumerateFiles(cache, "*", SearchOption.AllDirectories))
+                        {
+                            try { File.SetAttributes(f, FileAttributes.Normal); File.Delete(f); } catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+        try { PurgeRlSettingsData(); } catch { }
+        parts.Add($"saves locais movidos={moved}");
+        if (stuck > 0)
+        {
+            summary = string.Join("; ", parts) + $"; {stuck} save(s) preso(s) — feche o jogo e tente de novo";
+            return false;
+        }
+        parts.Add("DBE_Production vazia");
+
+        if (reapplyMode)
+        {
+            string? mode = ModeDetect.Detect(iniPath);
+            if (mode is "COMPLETO" or "CRIADOR" && File.Exists(iniPath))
+            {
+                bool iniOk = VideoSettingsSync.ReclampIni(iniPath, mode);
+                parts.Add(iniOk ? "INI " + mode : "INI parcial");
+            }
+        }
+
+        summary = string.Join("; ", parts);
+        return true;
+    }
+
+    private static void RetireDirectory(string source, string destParent, string name)
+    {
+        if (!Directory.Exists(source)) return;
+        try
+        {
+            Directory.CreateDirectory(destParent);
+            string dest = Path.Combine(destParent, name);
+            if (Directory.Exists(dest))
+                dest = Path.Combine(destParent, name + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+            Directory.Move(source, dest);
+            AppMeta.Log("Aposentado: " + source + " -> " + dest);
+        }
+        catch (Exception ex)
+        {
+            AppMeta.Log("Nao aposentei " + source + ": " + ex.Message);
+        }
+    }
+
+    private static IEnumerable<string> EnumerateProductionDirs(string iniPath)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Add(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path)) return;
+            set.Add(Path.GetFullPath(path));
+        }
+
+        Add(SaveDirFromIni(iniPath, epic: true));
+        Add(SaveDirFromIni(iniPath, epic: false));
+
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string[] docs =
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Path.Combine(profile, "Documents"),
+            Path.Combine(profile, "Documentos"),
+            Path.Combine(profile, "OneDrive", "Documents"),
+            Path.Combine(profile, "OneDrive", "Documentos"),
+        };
+        foreach (string doc in docs)
+        {
+            Add(Path.Combine(doc, @"My Games\Rocket League\TAGame\SaveDataEpic\DBE_Production"));
+            Add(Path.Combine(doc, @"My Games\Rocket League\TAGame\SaveData\DBE_Production"));
+        }
+        return set;
+    }
+
 
     /// <summary>
     /// Apos sync de video: so devolve o Best se a conta live encolheu para stub
@@ -222,52 +337,14 @@ internal static class SaveRecovery
     /// </summary>
     public static int RestorePaintIfDamaged(string? iniPath)
     {
-        if (iniPath is null) return 0;
-        try
-        {
-            if (Process.GetProcessesByName("RocketLeague").Length > 0)
-            {
-                AppMeta.Log("Tinta: RL aberto, o save regravado fica para quando fechar.");
-                return 0;
-            }
-            // A v25.0.22 gravou a cor como Int e o id do carro cortado.
-            // O jogo lê Byte/QWord e cai no Octane. Conserta o arquivo no lugar.
-            foreach (bool epic in new[] { true, false })
-            {
-                string? dir = SaveDirFromIni(iniPath, epic);
-                if (dir is not null && Directory.Exists(dir))
-                    SaveVideoPatcher.PatchSaveDirectory(dir, "REPAIR");
-            }
-            int n = HealDamagedSlots(SaveDirFromIni(iniPath, epic: true))
-                    + HealDamagedSlots(SaveDirFromIni(iniPath, epic: false));
-            n += RestoreMissingIntact(SaveDirFromIni(iniPath, epic: true));
-            n += RestoreMissingIntact(SaveDirFromIni(iniPath, epic: false));
-            if (n > 0)
-                AppMeta.Log($"Tinta: {n} save(s) regravados trocados pela copia integra.");
-            else
-                AppMeta.Log("Tinta: nenhuma copia integra melhor que o save atual.");
-            return n;
-        }
-        catch (Exception ex)
-        {
-            AppMeta.Log("RestorePaintIfDamaged: " + ex.Message);
-            return 0;
-        }
+        AppMeta.Log("Copia de backup para o save desligada (v25.0.31).");
+        return 0;
     }
 
     public static int BackupGaragePresets(string? iniPath)
     {
-        if (iniPath is null) return 0;
-        bool seeded = false;
-        try { SeedBestVaultFromArchives(); seeded = true; } catch { }
-        if (seeded)
-        {
-            try { PruneArchivesOnce(); } catch { }
-        }
-        int n = 0;
-        n += BackupGarageFromDir(SaveDirFromIni(iniPath, epic: true));
-        n += BackupGarageFromDir(SaveDirFromIni(iniPath, epic: false));
-        return n;
+        AppMeta.Log("Backup de .save desligado (v25.0.31).");
+        return 0;
     }
 
     private static int SnapshotLiveGarage(string iniPath)

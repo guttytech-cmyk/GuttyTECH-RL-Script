@@ -5,6 +5,10 @@ namespace GuttyRL;
 
 internal static class Program
 {
+    private static bool IsWatcherLaunch(string[] args) =>
+        args.Length > 0
+        && args[0].Trim('/', '-').Equals("WATCH", StringComparison.OrdinalIgnoreCase);
+
     private static readonly string[] DisplayKeys =
         { "ResX", "ResY", "Fullscreen", "Borderless", "AutoDetectDesktopResolution" };
 
@@ -30,6 +34,11 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // Antes de extrair runtime ou abrir arquivo. O watcher filho (WATCH)
+        // nao mata o pai que acabou de subi-lo.
+        if (!IsWatcherLaunch(args))
+            ProcessGuard.KillOtherInstances();
+
         // Extracao estavel do single-file (evita TEMP limpo pelo AV / Edge cache).
         try
         {
@@ -493,10 +502,8 @@ internal static class Program
         {
             try { _cfg = RlPathResolver.RelocateOffOneDriveIfNeeded(_cfg); } catch { }
             AppMeta.Log($"GUI INI: {_cfg}");
-            // Snapshot preventivo: se a garagem ainda esta grande, guarda no Best agora
-            try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
-            if (GetRl().Length == 0)
-                try { SaveRecovery.RestorePaintIfDamaged(_cfg); } catch { }
+            // Uma vez: backups .23–.30 e o save local contaminado saem do caminho do jogo.
+            try { SaveRecovery.MigrateCleanSaveOnce(_cfg); } catch { }
 
             // A GUI usa Dispatch(interactive:false), portanto o watcher antigo nunca
             // arrancava. O RL regravava o SystemSettings principal (LOD 128, shaders
@@ -631,7 +638,7 @@ internal static class Program
         Ui.MenuCard("3", "REMOVER", "Para watcher + INI stock + limpa cache (preserva presets)", Ui.Amber);
         Ui.MenuCard("4", "COMANDO DE INICIALIZAÇÃO", "Copia o comando compatível com Steam e Epic", Ui.Cyan);
         Ui.MenuCard("5", "CORRIGIR ERROS", "Perfil, boot, permissões e diagnóstico", Ui.Amber);
-        Ui.MenuCard("6", "RESTAURAR PRESETS", "Recupera a garagem dos backups Epic/Steam", Ui.Amber);
+        Ui.MenuCard("6", "RESTAURAR PRESETS", "Esvazia o save local para o jogo criar um novo", Ui.Amber);
         Ui.MenuCard("7", "SAIR", "Encerra o RL Optimizer", Ui.DimC);
         Ui.PanelBlank();
         Ui.PanelBottom();
@@ -704,8 +711,6 @@ internal static class Program
 
         EnsureOriginalBackup();
         ReportGui(18, "prog.backup", "prog.backupDetail");
-        // Presets/garagem (saves grandes) — antes de qualquer patch de video.
-        try { SaveRecovery.BackupGaragePresets(_cfg); } catch { }
 
         // Sempre limpa como REMOVER antes de aplicar.
         // Troca de conta cria .save novo com VideoOptions vazio → menu Alta qualidade /
@@ -1015,7 +1020,7 @@ internal static class Program
         bool menuOk = interactive
             ? Ui.StepAnimated("Desfazendo menu de video no .save", () => VideoSettingsSync.RevertVideoSave(_cfg!))
             : VideoSettingsSync.RevertVideoSave(_cfg!);
-        report.Add(menuOk ? "menu .save revertido" : "menu .save parcial");
+        report.Add(menuOk ? "save do jogo intocado" : "save do jogo intocado");
 
         // 6) Cache Epic — evita menu/FPS otimizado a lutar com INI stock
         bool purgeOk;
@@ -1158,7 +1163,6 @@ internal static class Program
 
     private static int RestoreLatestSaves(bool interactive)
     {
-        if (!CheckGame(interactive)) return 1;
         string? cfg = _cfg ?? ResolveConfigPath();
         if (cfg is null)
         {
@@ -1177,41 +1181,21 @@ internal static class Program
             return 1;
         }
 
-        var (bakFiles, bakGarage, bakBytes) = SaveRecovery.CountBackups();
-
         if (interactive)
         {
             Ui.Cls();
             Ui.MiniBannerIfTall(Ui.MAmber);
             Ui.TitleBar("RESTAURAR PRESETS", Ui.MAmber);
-            Ui.StepsPanel("GARAGEM / PRESETS DO CARRO", new[]
+            Ui.StepsPanel("SAVE LOCAL LIMPO", new[]
             {
-                "Prioriza o maior save de cada conta (cofre Best sticky)",
-                "Procura em Best + Backups + Presets + Quarentena",
-                "Reforca contas live pequeninas e faz 2o passe anti-cloud",
-                "Abra o RL OFFLINE depois — cloud Epic pode regravar online",
+                "Os backups das versoes 23 a 30 ficam de fora",
+                "A pasta do save fica vazia",
+                "O Rocket League cria um save novo da Psyonix",
+                "Os itens da conta continuam no servidor",
             }, Ui.MAmber);
             Ui.Gap();
-            Ui.PanelTop("BACKUPS DISPONIVEIS");
-            Ui.PanelLine(Ui.C($"Arquivos: {bakFiles}  |  Garagem(>=250KB): {bakGarage}  |  {bakBytes / 1024} KB", Ui.Gray));
-            Ui.PanelBottom();
-            if (bakFiles == 0)
-            {
-                Ui.CompletionMessage(Ui.MRed, "SEM BACKUP", new[]
-                {
-                    "Nao ha saves em GuttyTECH\\RL-Optimizer-v22\\Backups",
-                    "Sem backup local nao da para recuperar presets.",
-                    "Epic Launcher -> Biblioteca -> RL -> Verificar arquivos.",
-                });
-                return 1;
-            }
-            Ui.Gap();
-            Ui.Prompt("Restaurar agora? (S/N)");
+            Ui.Prompt("Esvaziar o save local agora? (S/N)");
             if (!IsYes(Console.ReadLine())) return 1;
-        }
-        else if (bakFiles == 0)
-        {
-            return 1;
         }
 
         // Fecha RL — senao o jogo/cloud regrava por cima
@@ -1233,20 +1217,18 @@ internal static class Program
 
         if (interactive)
         {
-            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MRed, ok ? "PRESETS RESTAURADOS" : "FALHOU", ok
+            Ui.CompletionMessage(ok ? Ui.OkGreen : Ui.MRed, ok ? "SAVE LOCAL LIMPO" : "FALHOU", ok
                 ? new[]
                 {
                     summary,
-                    "Destino: " + FitPath(saveDir, 48),
-                    "1) Abre o RL OFFLINE e confirma a garagem",
-                    "2) No Epic: pausa Cloud Saves do Rocket League",
-                    "3) Se o Windows ainda apontava Documentos ao OneDrive, ja copiei para local",
+                    "A pasta vazia faz o jogo criar um save novo. Os itens ficam na conta.",
+                    "1) Na Epic, se aparecer Conflito de Nuvem, escolha MAIS RECENTE / ARQUIVO LOCAL (Carregar para a Nuvem).",
+                    "2) Se o carro puxar o visual antigo, na Garagem use EXCLUIR PREDEFINICAO ou RANDOMIZAR e crie uma Predefinicao Nova (+).",
                 }
                 : new[]
                 {
-                    "Nenhum save de garagem recuperavel nos backups.",
-                    "Pasta: GuttyTECH\\RL-Optimizer-v22\\Backups\\Presets\\Best",
-                    "Epic -> Verificar arquivos do Rocket League.",
+                    summary,
+                    "Feche o Rocket League e tente de novo.",
                 });
         }
         Log(ok ? $"RESTAURAR-PRESETS OK: {summary}" : "RESTAURAR-PRESETS: falhou.");

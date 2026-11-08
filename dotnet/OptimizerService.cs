@@ -345,7 +345,7 @@ internal sealed class OptimizerService
             OptimizerAction.RecuperarBoot => "Desbloqueando boot (stock + EAC)",
             OptimizerAction.RepararEac => "Reinstalando serviço EasyAntiCheat_EOS",
             OptimizerAction.CorrigirTudo => "Executando desbloqueio nuclear do boot",
-            OptimizerAction.RestaurarPresets => "Restaurando garagem Epic e Steam",
+            OptimizerAction.RestaurarPresets => "Esvaziando o save local",
             OptimizerAction.CorrigirSave => "Quarentena Steam Cloud + saves partidos",
             _ => "Executando operação",
         };

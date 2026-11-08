@@ -3,6 +3,14 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.31] — 2026-11-08
+### Corrigido
+- COMPLETO e CRIADOR só gravam o `TASystemSettings.ini`. O app não reescreve mais o `.save`.
+- O watcher só vigia o INI. Ele não copia nem restaura save quando o jogo abre ou fecha.
+- Na abertura, os processos antigos do Gutty e o Python da pasta do otimizador são encerrados.
+- RESTAURAR PRESETS esvazia o save local. O Rocket League cria um arquivo novo e os itens continuam na conta. Os backups das versões 23 a 30 vão para `Deprecated_Pre25_0_31` e não voltam para o jogo.
+- Na primeira abertura desta versão, essa limpeza roda uma vez sozinha.
+
 ## [v25.0.30] — 2026-11-05
 ### Corrigido
 - O conserto da cor era desfeito na hora: o detector ainda marcava o save reparado como quebrado e o app copiava outro arquivo por cima.

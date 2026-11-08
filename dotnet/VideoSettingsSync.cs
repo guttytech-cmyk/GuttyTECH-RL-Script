@@ -7,21 +7,17 @@ namespace GuttyRL;
 /// Nao apaga save nem RLSettingsData.</summary>
 internal static class VideoSettingsSync
 {
-    /// <summary>Repara VideoOptions + reclampa INI (arranque / pos-jogo).</summary>
+    /// <summary>Reclampa só o INI. Desde a v25.0.31 o .save não é lido nem gravado.</summary>
     public static bool HealIfNeeded(string iniPath, string mode)
     {
         try
         {
             if (GetRl().Length > 0) return false;
-            // Snapshot antes do patch — se o assemble encolher, o reforco recupera.
-            try { SaveRecovery.BackupGaragePresets(iniPath); } catch { }
-            bool ok = SyncVideoSave(iniPath, mode, interactive: false);
-            ok = ReclampIni(iniPath, mode) && ok;
-            return ok;
+            return ReclampIni(iniPath, mode);
         }
         catch (Exception ex)
         {
-            AppMeta.Log("Heal video falhou: " + ex.Message);
+            AppMeta.Log("Heal INI falhou: " + ex.Message);
             return false;
         }
     }
@@ -324,7 +320,7 @@ internal static class VideoSettingsSync
                 if (driftSeen >= 3)
                     AppMeta.Log($"WATCH: sessao {session} saiu com {driftSeen} chaves fora — repondo {mode}.");
                 else
-                    AppMeta.Log($"WATCH: sessao {session} fechou — reparando INI+save...");
+                    AppMeta.Log($"WATCH: sessao {session} fechou — repondo só o INI.");
 
                 if (RlBuildStamp.TryDetectUpdate(out string buildOnClose))
                     AppMeta.Log($"WATCH: build mudou durante a sessao ({buildOnClose}).");
@@ -563,68 +559,16 @@ internal static class VideoSettingsSync
 
     public static bool SyncVideoSave(string iniPath, string mode, bool interactive, Action<int, int, string>? progress = null)
     {
-        if (!EnsureGameClosed(interactive)) return false;
-
-        try { SaveRecovery.BackupGaragePresets(iniPath); } catch { }
-        // Repoe slots regravados por versoes antigas ANTES do patch — o que voltar
-        // do backup tambem recebe o menu do modo.
-        try { SaveRecovery.ReinforceGarageAfterVideoSync(iniPath); } catch { }
-
-        string[] saveDirs = SaveDirs(iniPath);
-        if (saveDirs.Length == 0) return false;
-
-        bool anyDir = false;
-        bool anyOk = false;
-        foreach (string saveDir in saveDirs)
-        {
-            if (!Directory.Exists(saveDir)) continue;
-            anyDir = true;
-            string tag = saveDir.Contains("SaveDataEpic", StringComparison.OrdinalIgnoreCase) ? "Epic" : "Steam";
-            progress?.Invoke(0, 1, tag);
-            BackupSaves(saveDir);
-            if (SaveVideoPatcher.PatchSaveDirectory(saveDir, mode, (cur, tot, detail) =>
-                {
-                    progress?.Invoke(cur, tot, string.IsNullOrWhiteSpace(detail) ? tag : $"{tag} · {detail}");
-                }))
-            {
-                anyOk = true;
-            }
-            else if (tag == "Steam")
-                AppMeta.Log("Steam: save invalido/corrompido ignorado (Epic e a fonte principal).");
-            else
-                AppMeta.Log("Patch parcial/falhou em: " + saveDir);
-        }
-
-        if (!anyDir)
-        {
-            AppMeta.Log("Nenhum SaveDataEpic/SaveData encontrado; menu in-game nao sincronizado.");
-            return true;
-        }
-
-        return anyOk;
+        AppMeta.Log("Sync de .save desligado (v25.0.31). Grafico e FPS ficam so no INI.");
+        progress?.Invoke(1, 1, "INI");
+        return true;
     }
 
-    /// <summary>
-    /// REMOVER: devolve o bloco de video/gameplay/camera do .save ao original
-    /// (sidecar pre-Gutty) ou, sem sidecar, tira as chaves Gutty → padrao do jogo.
-    /// Garagem nao e tocada. RL precisa estar fechado.
-    /// </summary>
+    /// <summary>REMOVER não regrava o .save. O INI stock é o que volta.</summary>
     public static bool RevertVideoSave(string iniPath)
     {
-        if (GetRl().Length > 0)
-        {
-            AppMeta.Log("Revert menu .save: RL aberto, abortado.");
-            return false;
-        }
-        bool ok = true;
-        foreach (string saveDir in SaveDirs(iniPath))
-        {
-            if (!Directory.Exists(saveDir)) continue;
-            BackupSaves(saveDir);
-            if (!SaveVideoPatcher.PatchSaveDirectory(saveDir, "STOCK"))
-                ok = false;
-        }
-        return ok;
+        AppMeta.Log("REMOVER nao regrava .save (v25.0.31).");
+        return true;
     }
 
     private static string[] SaveDirs(string iniPath)
