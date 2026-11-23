@@ -30,12 +30,13 @@ internal static class RlPathResolver
     public static string? ResolveIni()
     {
         string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string? liveDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         string? ov = Environment.GetEnvironmentVariable("GUTTYRL_INI");
         if (!string.IsNullOrWhiteSpace(ov) && File.Exists(ov))
             return ov;
 
         string? pinned = ReadPinned();
-        if (pinned is not null && !RlPathPolicy.IsPinnedUsable(pinned, me))
+        if (pinned is not null && !RlPathPolicy.IsPinnedUsable(pinned, me, liveDocs))
         {
             AppMeta.Log("Pin ignorado: " + pinned);
             try { File.Delete(PinFile); } catch { }
@@ -68,7 +69,8 @@ internal static class RlPathResolver
     public static string RelocateOffOneDriveIfNeeded(string iniPath)
     {
         string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (string.IsNullOrWhiteSpace(iniPath) || !RlPathPolicy.NeedsRelocation(iniPath, me))
+        string? liveDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (string.IsNullOrWhiteSpace(iniPath) || !RlPathPolicy.NeedsRelocation(iniPath, me, liveDocs))
             return iniPath;
 
         string? localDocs = ResolveLocalDocumentsDir();
@@ -86,7 +88,7 @@ internal static class RlPathResolver
         string destIni = Path.Combine(destRl, "TAGame", "Config", "TASystemSettings.ini");
 
         string? srcIni = RlPathPolicy.ChooseCopySourceIni(iniPath, EnumerateCurrentUserInis(), me);
-        if (!RlPathPolicy.CanRelocateOffOneDrive(srcIni, me))
+        if (!RlPathPolicy.CanRelocateOffOneDrive(srcIni, me, Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)))
         {
             AppMeta.Log("OneDrive: relocate recusado (fonte nao e o OneDrive deste usuario).");
             return iniPath;
@@ -134,8 +136,9 @@ internal static class RlPathResolver
         string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var scored = new List<(int Score, DateTime Mtime, string Ini)>();
 
+        string? liveDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         foreach (string root in CandidateDocumentRoots(currentUserOnly: true))
-            Consider(root, me, scored);
+            Consider(root, me, liveDocs, scored);
 
         // Outro perfil Windows so se o atual nao tiver NADA (nem OneDrive).
         if (RlPathPolicy.ShouldScanOtherProfiles(scored.Select(x => x.Ini)))
@@ -149,7 +152,7 @@ internal static class RlPathResolver
                     {
                         if (u.Equals(me, StringComparison.OrdinalIgnoreCase)) continue;
                         foreach (string root in CandidateDocumentRootsFor(u))
-                            Consider(root, me, scored);
+                            Consider(root, me, liveDocs, scored);
                     }
                 }
             }
@@ -163,12 +166,12 @@ internal static class RlPathResolver
             .Distinct(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static void Consider(string docsRoot, string myProfile, List<(int, DateTime, string)> scored)
+    private static void Consider(string docsRoot, string myProfile, string? liveDocuments, List<(int, DateTime, string)> scored)
     {
         string configDir = Path.Combine(docsRoot, @"My Games\Rocket League\TAGame\Config");
         if (!Directory.Exists(configDir)) return;
         string ini = Path.Combine(configDir, "TASystemSettings.ini");
-        int score = RlPathPolicy.Score(ini, myProfile);
+        int score = RlPathPolicy.Score(ini, myProfile, liveDocuments);
 
         DateTime mtime = DateTime.MinValue;
         try
@@ -391,7 +394,8 @@ internal static class RlPathResolver
     public static void Pin(string iniPath)
     {
         string me = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (!RlPathPolicy.IsPinnedUsable(iniPath, me))
+        string? liveDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (!RlPathPolicy.IsPinnedUsable(iniPath, me, liveDocs))
         {
             AppMeta.Log("Pin recusado: " + iniPath);
             return;

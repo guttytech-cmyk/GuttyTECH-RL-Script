@@ -47,6 +47,22 @@ public class RlPathPolicyTests
     }
 
     [Fact]
+    public void Documentos_do_windows_no_onedrive_vence_a_copia_local()
+    {
+        string live = Gusta + @"\OneDrive\Documentos";
+        IReadOnlyList<string> ranked = RlPathPolicy.RankInis(
+            currentUserInis: [GustaOneDriveIni, GustaLocalIni],
+            otherProfileInis: [GustavoLocalIni],
+            userProfile: Gusta,
+            liveDocuments: live);
+
+        Assert.Equal(GustaOneDriveIni, ranked[0]);
+        Assert.True(RlPathPolicy.IsPinnedUsable(GustaOneDriveIni, Gusta, live));
+        Assert.False(RlPathPolicy.IsPinnedUsable(GustaLocalIni, Gusta, live));
+        Assert.False(RlPathPolicy.NeedsRelocation(GustaOneDriveIni, Gusta, live));
+    }
+
+    [Fact]
     public void Rank_prefers_current_local_documents_over_onedrive()
     {
         IReadOnlyList<string> ranked = RlPathPolicy.RankInis(
@@ -55,6 +71,22 @@ public class RlPathPolicyTests
             userProfile: Gusta);
 
         Assert.Equal(GustaLocalIni, ranked[0]);
+    }
+
+    [Fact]
+    public void Rank_follows_windows_documents_when_that_folder_is_onedrive()
+    {
+        string live = Gusta + @"\OneDrive\Documentos";
+        IReadOnlyList<string> ranked = RlPathPolicy.RankInis(
+            currentUserInis: [GustaLocalIni, GustaOneDriveIni],
+            otherProfileInis: [GustavoLocalIni],
+            userProfile: Gusta,
+            liveDocuments: live);
+
+        Assert.Equal(GustaOneDriveIni, ranked[0]);
+        Assert.True(RlPathPolicy.IsPinnedUsable(GustaOneDriveIni, Gusta, live));
+        Assert.False(RlPathPolicy.IsPinnedUsable(GustaLocalIni, Gusta, live));
+        Assert.False(RlPathPolicy.CanRelocateOffOneDrive(GustaOneDriveIni, Gusta, live));
     }
 
     [Fact]

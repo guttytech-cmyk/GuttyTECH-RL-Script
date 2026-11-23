@@ -3,6 +3,10 @@
 Todas as versões do **GUTTYTECH — Rocket League Optimizer**.
 Formato baseado em *Keep a Changelog*; datas em UTC.
 
+## [v25.0.32] — 2026-11-23
+### Corrigido
+- O COMPLETO gravava o INI em `Documents` local enquanto o Windows e o Rocket League usam `OneDrive\Documentos`. O jogo lia o outro arquivo e a textura não mudava. Agora o app grava na pasta Documentos que o Windows está usando.
+
 ## [v25.0.31] — 2026-11-08
 ### Corrigido
 - COMPLETO e CRIADOR só gravam o `TASystemSettings.ini`. O app não reescreve mais o `.save`.

@@ -29,9 +29,31 @@ internal static class RlPathPolicy
         !string.IsNullOrWhiteSpace(path) && !IsUnderProfile(path, userProfile);
 
     public static bool IsPinnedUsable(string? pinned, string userProfile) =>
-        !string.IsNullOrWhiteSpace(pinned)
-        && !IsOneDrivePath(pinned)
-        && IsUnderProfile(pinned, userProfile);
+        IsPinnedUsable(pinned, userProfile, liveDocuments: null);
+
+    /// <summary>
+    /// O pin vale se estiver na pasta Documentos que o Windows usa agora.
+    /// Se essa pasta for OneDrive, o pin do OneDrive vale e o de Documents local não.
+    /// </summary>
+    public static bool IsPinnedUsable(string? pinned, string userProfile, string? liveDocuments)
+    {
+        if (string.IsNullOrWhiteSpace(pinned) || !IsUnderProfile(pinned, userProfile))
+            return false;
+        if (!string.IsNullOrWhiteSpace(liveDocuments))
+            return IsUnderRoot(pinned, liveDocuments);
+        return !IsOneDrivePath(pinned);
+    }
+
+    public static bool IsUnderRoot(string? path, string? root)
+    {
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(root))
+            return false;
+        string p = NormalizeRoot(path);
+        string r = NormalizeRoot(root);
+        return p.Equals(r, StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith(r + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || p.StartsWith(r + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// So migra quando o INI do usuario atual esta no OneDrive.
@@ -41,18 +63,33 @@ internal static class RlPathPolicy
     public static bool NeedsRelocation(string? iniPath, string userProfile) =>
         CanRelocateOffOneDrive(iniPath, userProfile);
 
+    public static bool NeedsRelocation(string? iniPath, string userProfile, string? liveDocuments) =>
+        CanRelocateOffOneDrive(iniPath, userProfile, liveDocuments);
+
     public static bool CanRelocateOffOneDrive(string? sourceIni, string userProfile) =>
-        !string.IsNullOrWhiteSpace(sourceIni)
-        && IsOneDrivePath(sourceIni)
-        && IsUnderProfile(sourceIni, userProfile);
+        CanRelocateOffOneDrive(sourceIni, userProfile, liveDocuments: null);
+
+    public static bool CanRelocateOffOneDrive(string? sourceIni, string userProfile, string? liveDocuments)
+    {
+        if (string.IsNullOrWhiteSpace(sourceIni)
+            || !IsOneDrivePath(sourceIni)
+            || !IsUnderProfile(sourceIni, userProfile))
+            return false;
+        // A pasta Documentos do Windows já é esse OneDrive. O jogo lê daqui.
+        if (!string.IsNullOrWhiteSpace(liveDocuments) && IsUnderRoot(sourceIni, liveDocuments))
+            return false;
+        return true;
+    }
 
     public static bool ShouldScanOtherProfiles(IEnumerable<string> currentUserIniPaths) =>
         !currentUserIniPaths.Any(p => !string.IsNullOrWhiteSpace(p));
 
-    public static int Score(string ini, string userProfile)
+    public static int Score(string ini, string userProfile, string? liveDocuments = null)
     {
         int score = 0;
-        if (!IsOneDrivePath(ini)) score += 100;
+        if (!string.IsNullOrWhiteSpace(liveDocuments) && IsUnderRoot(ini, liveDocuments))
+            score += 300;
+        else if (!IsOneDrivePath(ini)) score += 100;
         else score -= 80;
         if (IsUnderProfile(ini, userProfile)) score += 40;
         else score -= 50;
@@ -62,7 +99,8 @@ internal static class RlPathPolicy
     public static IReadOnlyList<string> RankInis(
         IEnumerable<string> currentUserInis,
         IEnumerable<string> otherProfileInis,
-        string userProfile)
+        string userProfile,
+        string? liveDocuments = null)
     {
         var mine = currentUserInis.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
         var list = new List<string>(mine);
@@ -70,7 +108,7 @@ internal static class RlPathPolicy
             list.AddRange(otherProfileInis.Where(p => !string.IsNullOrWhiteSpace(p)));
 
         return list
-            .OrderByDescending(p => Score(p, userProfile))
+            .OrderByDescending(p => Score(p, userProfile, liveDocuments))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
